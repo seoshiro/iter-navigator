@@ -1,0 +1,396 @@
+{
+  "sourceRevision": "524f6f98d49ecb0bb5c91fc4519241c8adee171a",
+  "generatedAt": "2026-10-08T13:12:21.886Z",
+  "renderOrigin": null,
+  "publicOrigin": null,
+  "hostedConfiguration": false,
+  "cloudTests": true,
+  "sourceFiles": [
+    {
+      "path": "docs/deployment.md",
+      "sha256": "702b4928270e5558d352edf35e2950bc23cd01a5303278ddcf65717d71c73e38"
+    },
+    {
+      "path": "index.html",
+      "sha256": "ffa0f6840bebd3417de564a3f11dd36baca08135d7f827747c16ab98d7ce58bc"
+    },
+    {
+      "path": "package.json",
+      "sha256": "789c144f4779632da5e27d858d48d26251ae3d9ad01977ec8b5a658d5a53ce2e"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "1f9c5589f0456dd765bc40597524cb083d640c075ebec7bc337ecda0aba331e7"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "7d0a4a80a92f42f9dbe4db6b2103a6e87f7200bfecaee6674700ae594c924e1c"
+    },
+    {
+      "path": "public/brand/icon-16.png",
+      "sha256": "c7ac3c9bb213620778b01aebe2ecfd5b02d4dd0e93bca20f99f51c2dde71d115"
+    },
+    {
+      "path": "public/brand/icon-32.png",
+      "sha256": "92d33bbd9ff716d748847b0ce4bdfe8d68c517e1c694dbb327bef52a5508ab06"
+    },
+    {
+      "path": "public/brand/mark.svg",
+      "sha256": "48ff5adec4c37de31a1cc1d195e62407fab12d2ff313de119f38da6083f4cc36"
+    },
+    {
+      "path": "public/brand/wordmark.svg",
+      "sha256": "329a4dd6e35f13e3a67e60ef32059d2697cb4a9ac4173e2a2ef92be094a398a7"
+    },
+    {
+      "path": "public/favicon.ico",
+      "sha256": "1d468d2f59b4b3870912217b81d45835a78866de6118d5a233579041879d71ab"
+    },
+    {
+      "path": "public/favicon.svg",
+      "sha256": "f00c2306134c6073e59e6eb08825023e1cc42e501850ea9b2402e21c4bf7cc5f"
+    },
+    {
+      "path": "render.yaml",
+      "sha256": "a7981d124511d069a6d5a0ed8ad63ad652c7a8db75c7953c18bd727a0a9f39f2"
+    },
+    {
+      "path": "server/http.ts",
+      "sha256": "f6f5bda4263acd2deb06b2cd793e3c964ddccd0dab139fa8ba8460f4857e138f"
+    },
+    {
+      "path": "server/paths.ts",
+      "sha256": "d324977cbe976e37b599df583cacbc9312c7bcc78439fc0a255831929b5dd65b"
+    },
+    {
+      "path": "server/postgres-repository.ts",
+      "sha256": "5f55154cc7f063e513b28c2784d0fb170dc28eccb44b4cb639781140c15126af"
+    },
+    {
+      "path": "server/postgres-schema.sql",
+      "sha256": "2447454fd4ffc9fff9309020b1eefa8617ba2ccbb37fdfed8e83f3d356c2d5ff"
+    },
+    {
+      "path": "server/postgres-test-worker.ts",
+      "sha256": "525b51d5d701c91220e3f7369fbc0b2fdaa38a82459270f594607e3bb04f3ffa"
+    },
+    {
+      "path": "server/postgres.test.ts",
+      "sha256": "7f8138269bf3bb975e064e3d822e34562a302e3b63e7c76572d763a44df1147d"
+    },
+    {
+      "path": "server/public-boundary.ts",
+      "sha256": "ba48b105bd2bfc509b735d192eadf415d3159c17d54508501d2e2dc987837076"
+    },
+    {
+      "path": "server/public-main.ts",
+      "sha256": "6d22d0eed66ec0c80ffa0715480d3e8ab86ca79186e70d522b6af6b58ccd6551"
+    },
+    {
+      "path": "server/report-store.ts",
+      "sha256": "6a911d71cf4e13ecc7ff418c3769199caf074a981d2fb7790ffe86fef46eb5c2"
+    },
+    {
+      "path": "server/validation.ts",
+      "sha256": "37a1af9e3126cef6ac67957c3397fed8e044589b80c664b360344558e0e396bf"
+    },
+    {
+      "path": "shared/report-contract.ts",
+      "sha256": "5d001dee2e7f7df9599b1a921e85136161ae73962a5817351022769ce0468452"
+    },
+    {
+      "path": "src/App.tsx",
+      "sha256": "336aace2503774b62d1f86c9b845830ecc1daefad4062f685b61d720a6cddbe2"
+    },
+    {
+      "path": "src/components/Brand.tsx",
+      "sha256": "3ee821d94a14bea31a962b0f3a853abfd3ba6f6c8381b15befa4988c60f729aa"
+    },
+    {
+      "path": "src/components/Diorama.tsx",
+      "sha256": "247d13b088f1adf6b0009675411157f08b24109ffdaa4d391ed514919407117f"
+    },
+    {
+      "path": "src/components/DisplaySettings.tsx",
+      "sha256": "cce98ec7dec12c72cc4b481a8bb80c04ae9757aa83b3319b36393f8462d1c7fd"
+    },
+    {
+      "path": "src/components/FloorPlan.tsx",
+      "sha256": "526cad53068c62b0a052eb996ff5fda09ec810432035ad557e1ba9aa3b1e56f1"
+    },
+    {
+      "path": "src/components/ReportJournal.tsx",
+      "sha256": "6e99d7cbb962c0b81262ede98d374ae878713645de239551375ed08d85c306bc"
+    },
+    {
+      "path": "src/data/building.json",
+      "sha256": "9c8580fbe216d857c0c71f93e4a6d74d7b63c2774033ec1b6d606dfe41b62111"
+    },
+    {
+      "path": "src/domain/model.ts",
+      "sha256": "022c1cb513f7f0208dc7ec77a7afed2f9a6f39b333567dff770e64b858d95740"
+    },
+    {
+      "path": "src/domain/routing.ts",
+      "sha256": "d809845b36672622fc4e5350b91ccf4c4e8ebe37c0c905e04d542fdb7d48826c"
+    },
+    {
+      "path": "src/domain/storage.ts",
+      "sha256": "d87327071cd6646b0c61cb8a07dab37700c78bea95adabee12359829e44d016f"
+    },
+    {
+      "path": "src/domain/validation.ts",
+      "sha256": "c085edf3b24a74c4b06cf17fa2f94ce3926ba412447cfe8a7ecb6fd1a4d52dfa"
+    },
+    {
+      "path": "src/i18n/report-ru.ts",
+      "sha256": "6bfeff830670216d25e3887f2006109de60e44e329d7083fa7443d6b4dd30211"
+    },
+    {
+      "path": "src/i18n/ru.ts",
+      "sha256": "d4c97859815f8fb70b6b9b940f4f16e75a58efdff582c65f59fbda9495a95f10"
+    },
+    {
+      "path": "src/main.tsx",
+      "sha256": "b3244f1c925d852b29a04b91a89aa5031432fa9b2fe2bb3daaaf4f086d678e09"
+    },
+    {
+      "path": "src/reports/client.ts",
+      "sha256": "ecc0f444c04c631e6b2542ae013b098c46404741c31d8ccf39c36a273bab8de4"
+    },
+    {
+      "path": "src/styles.css",
+      "sha256": "7f1db9449fe1dfffcae3c300251b48e30891be782ae4e950866d1c154e6dbc4b"
+    },
+    {
+      "path": "src/ui/camera.ts",
+      "sha256": "620c73ae5215e15d6b57a52a53b7df8497f7ff13f5c3865359f9411912cea8a4"
+    },
+    {
+      "path": "src/ui/preferences.ts",
+      "sha256": "72da1964e2bc89648b8462121d6e263c1e500761fc3a3a6d43b04b0d93c71f76"
+    },
+    {
+      "path": "src/ui/route-diagnosis.ts",
+      "sha256": "95fa649d452b885ceba320cf3b57f2ea1fa97ad5f3928b843566a4e160085e12"
+    },
+    {
+      "path": "src/vite-env.d.ts",
+      "sha256": "424faf9241dd699dda995b367ed36665732da1e6ec1f33b2fd40394488ecac92"
+    },
+    {
+      "path": "tools/stage-deployment.mjs",
+      "sha256": "4701719e2b6ed78a9e2b0a1dd668a2a121257d4e32ab7daa8245ad54d5969156"
+    },
+    {
+      "path": "tools/test-postgres.mjs",
+      "sha256": "328138a76bedaa6cf0463031d1047800db8f8cfdfea1030a67888fb6260e3191"
+    },
+    {
+      "path": "tools/vercel-proxy.mjs",
+      "sha256": "9e4d50f889f2df3805388f9b1ccf043057c6c5042f1b5150d541cd2b3093edef"
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "16d3cf8f14bf3b7e68594ed51b429942f5e35ff238f1b3b7a29c31c081bda82c"
+    },
+    {
+      "path": "vite.config.ts",
+      "sha256": "0f9305448bbcead04abb1da1bde854a840ff3692dbfd3010db1d4c2f8c25d93d"
+    }
+  ],
+  "snapshotFiles": [
+    {
+      "path": "docs/deployment.md",
+      "sha256": "702b4928270e5558d352edf35e2950bc23cd01a5303278ddcf65717d71c73e38"
+    },
+    {
+      "path": "index.html",
+      "sha256": "ffa0f6840bebd3417de564a3f11dd36baca08135d7f827747c16ab98d7ce58bc"
+    },
+    {
+      "path": "package.json",
+      "sha256": "2af4ff898a7e8122b18f4c28d5fde34ec68cb92697cf588002a4c06f73cf7363"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "1f9c5589f0456dd765bc40597524cb083d640c075ebec7bc337ecda0aba331e7"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "7d0a4a80a92f42f9dbe4db6b2103a6e87f7200bfecaee6674700ae594c924e1c"
+    },
+    {
+      "path": "public/brand/icon-16.png",
+      "sha256": "c7ac3c9bb213620778b01aebe2ecfd5b02d4dd0e93bca20f99f51c2dde71d115"
+    },
+    {
+      "path": "public/brand/icon-32.png",
+      "sha256": "92d33bbd9ff716d748847b0ce4bdfe8d68c517e1c694dbb327bef52a5508ab06"
+    },
+    {
+      "path": "public/brand/mark.svg",
+      "sha256": "48ff5adec4c37de31a1cc1d195e62407fab12d2ff313de119f38da6083f4cc36"
+    },
+    {
+      "path": "public/brand/wordmark.svg",
+      "sha256": "329a4dd6e35f13e3a67e60ef32059d2697cb4a9ac4173e2a2ef92be094a398a7"
+    },
+    {
+      "path": "public/favicon.ico",
+      "sha256": "1d468d2f59b4b3870912217b81d45835a78866de6118d5a233579041879d71ab"
+    },
+    {
+      "path": "public/favicon.svg",
+      "sha256": "f00c2306134c6073e59e6eb08825023e1cc42e501850ea9b2402e21c4bf7cc5f"
+    },
+    {
+      "path": "render.yaml",
+      "sha256": "a7981d124511d069a6d5a0ed8ad63ad652c7a8db75c7953c18bd727a0a9f39f2"
+    },
+    {
+      "path": "server/http.ts",
+      "sha256": "f6f5bda4263acd2deb06b2cd793e3c964ddccd0dab139fa8ba8460f4857e138f"
+    },
+    {
+      "path": "server/paths.ts",
+      "sha256": "d324977cbe976e37b599df583cacbc9312c7bcc78439fc0a255831929b5dd65b"
+    },
+    {
+      "path": "server/postgres-repository.ts",
+      "sha256": "5f55154cc7f063e513b28c2784d0fb170dc28eccb44b4cb639781140c15126af"
+    },
+    {
+      "path": "server/postgres-schema.sql",
+      "sha256": "2447454fd4ffc9fff9309020b1eefa8617ba2ccbb37fdfed8e83f3d356c2d5ff"
+    },
+    {
+      "path": "server/postgres-test-worker.ts",
+      "sha256": "525b51d5d701c91220e3f7369fbc0b2fdaa38a82459270f594607e3bb04f3ffa"
+    },
+    {
+      "path": "server/postgres.test.ts",
+      "sha256": "7f8138269bf3bb975e064e3d822e34562a302e3b63e7c76572d763a44df1147d"
+    },
+    {
+      "path": "server/public-boundary.ts",
+      "sha256": "ba48b105bd2bfc509b735d192eadf415d3159c17d54508501d2e2dc987837076"
+    },
+    {
+      "path": "server/public-main.ts",
+      "sha256": "6d22d0eed66ec0c80ffa0715480d3e8ab86ca79186e70d522b6af6b58ccd6551"
+    },
+    {
+      "path": "server/report-store.ts",
+      "sha256": "6a911d71cf4e13ecc7ff418c3769199caf074a981d2fb7790ffe86fef46eb5c2"
+    },
+    {
+      "path": "server/validation.ts",
+      "sha256": "37a1af9e3126cef6ac67957c3397fed8e044589b80c664b360344558e0e396bf"
+    },
+    {
+      "path": "shared/report-contract.ts",
+      "sha256": "5d001dee2e7f7df9599b1a921e85136161ae73962a5817351022769ce0468452"
+    },
+    {
+      "path": "src/App.tsx",
+      "sha256": "336aace2503774b62d1f86c9b845830ecc1daefad4062f685b61d720a6cddbe2"
+    },
+    {
+      "path": "src/components/Brand.tsx",
+      "sha256": "3ee821d94a14bea31a962b0f3a853abfd3ba6f6c8381b15befa4988c60f729aa"
+    },
+    {
+      "path": "src/components/Diorama.tsx",
+      "sha256": "247d13b088f1adf6b0009675411157f08b24109ffdaa4d391ed514919407117f"
+    },
+    {
+      "path": "src/components/DisplaySettings.tsx",
+      "sha256": "cce98ec7dec12c72cc4b481a8bb80c04ae9757aa83b3319b36393f8462d1c7fd"
+    },
+    {
+      "path": "src/components/FloorPlan.tsx",
+      "sha256": "526cad53068c62b0a052eb996ff5fda09ec810432035ad557e1ba9aa3b1e56f1"
+    },
+    {
+      "path": "src/components/ReportJournal.tsx",
+      "sha256": "6e99d7cbb962c0b81262ede98d374ae878713645de239551375ed08d85c306bc"
+    },
+    {
+      "path": "src/data/building.json",
+      "sha256": "9c8580fbe216d857c0c71f93e4a6d74d7b63c2774033ec1b6d606dfe41b62111"
+    },
+    {
+      "path": "src/domain/model.ts",
+      "sha256": "022c1cb513f7f0208dc7ec77a7afed2f9a6f39b333567dff770e64b858d95740"
+    },
+    {
+      "path": "src/domain/routing.ts",
+      "sha256": "d809845b36672622fc4e5350b91ccf4c4e8ebe37c0c905e04d542fdb7d48826c"
+    },
+    {
+      "path": "src/domain/storage.ts",
+      "sha256": "d87327071cd6646b0c61cb8a07dab37700c78bea95adabee12359829e44d016f"
+    },
+    {
+      "path": "src/domain/validation.ts",
+      "sha256": "c085edf3b24a74c4b06cf17fa2f94ce3926ba412447cfe8a7ecb6fd1a4d52dfa"
+    },
+    {
+      "path": "src/i18n/report-ru.ts",
+      "sha256": "6bfeff830670216d25e3887f2006109de60e44e329d7083fa7443d6b4dd30211"
+    },
+    {
+      "path": "src/i18n/ru.ts",
+      "sha256": "d4c97859815f8fb70b6b9b940f4f16e75a58efdff582c65f59fbda9495a95f10"
+    },
+    {
+      "path": "src/main.tsx",
+      "sha256": "b3244f1c925d852b29a04b91a89aa5031432fa9b2fe2bb3daaaf4f086d678e09"
+    },
+    {
+      "path": "src/reports/client.ts",
+      "sha256": "ecc0f444c04c631e6b2542ae013b098c46404741c31d8ccf39c36a273bab8de4"
+    },
+    {
+      "path": "src/styles.css",
+      "sha256": "7f1db9449fe1dfffcae3c300251b48e30891be782ae4e950866d1c154e6dbc4b"
+    },
+    {
+      "path": "src/ui/camera.ts",
+      "sha256": "620c73ae5215e15d6b57a52a53b7df8497f7ff13f5c3865359f9411912cea8a4"
+    },
+    {
+      "path": "src/ui/preferences.ts",
+      "sha256": "72da1964e2bc89648b8462121d6e263c1e500761fc3a3a6d43b04b0d93c71f76"
+    },
+    {
+      "path": "src/ui/route-diagnosis.ts",
+      "sha256": "95fa649d452b885ceba320cf3b57f2ea1fa97ad5f3928b843566a4e160085e12"
+    },
+    {
+      "path": "src/vite-env.d.ts",
+      "sha256": "424faf9241dd699dda995b367ed36665732da1e6ec1f33b2fd40394488ecac92"
+    },
+    {
+      "path": "tools/stage-deployment.mjs",
+      "sha256": "4701719e2b6ed78a9e2b0a1dd668a2a121257d4e32ab7daa8245ad54d5969156"
+    },
+    {
+      "path": "tools/test-postgres.mjs",
+      "sha256": "328138a76bedaa6cf0463031d1047800db8f8cfdfea1030a67888fb6260e3191"
+    },
+    {
+      "path": "tools/vercel-proxy.mjs",
+      "sha256": "9e4d50f889f2df3805388f9b1ccf043057c6c5042f1b5150d541cd2b3093edef"
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "2656c933044a5470d858d681a4c39000e2b62e2c9ee3f28e3236bbfd41373713"
+    },
+    {
+      "path": "vite.config.ts",
+      "sha256": "0f9305448bbcead04abb1da1bde854a840ff3692dbfd3010db1d4c2f8c25d93d"
+    }
+  ]
+}

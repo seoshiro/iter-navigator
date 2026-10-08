@@ -1,0 +1,885 @@
+{
+  "version": 1,
+  "fictional": true,
+  "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+  "surveyedOn": null,
+  "floorHeightM": 5,
+  "floors": [
+    {
+      "id": 0,
+      "label": "1 этаж"
+    },
+    {
+      "id": 1,
+      "label": "2 этаж"
+    },
+    {
+      "id": 2,
+      "label": "3 этаж"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "entrance",
+      "label": "Главный вход",
+      "floor": 0,
+      "x": 3,
+      "z": 21,
+      "kind": "entrance",
+      "selectable": true
+    },
+    {
+      "id": "lobby-0",
+      "label": "Холл · 1 этаж",
+      "floor": 0,
+      "x": 8,
+      "z": 15,
+      "kind": "junction",
+      "selectable": true
+    },
+    {
+      "id": "lift-a-0",
+      "label": "Лифт A · 1 этаж",
+      "floor": 0,
+      "x": 8,
+      "z": 7,
+      "kind": "lift",
+      "selectable": false
+    },
+    {
+      "id": "lift-b-0",
+      "label": "Лифт B · 1 этаж",
+      "floor": 0,
+      "x": 24,
+      "z": 7,
+      "kind": "lift",
+      "selectable": false
+    },
+    {
+      "id": "stairs-0",
+      "label": "Лестница · 1 этаж",
+      "floor": 0,
+      "x": 28,
+      "z": 16,
+      "kind": "stairs",
+      "selectable": false
+    },
+    {
+      "id": "lift-a-1",
+      "label": "Лифт A · 2 этаж",
+      "floor": 1,
+      "x": 8,
+      "z": 7,
+      "kind": "lift",
+      "selectable": false
+    },
+    {
+      "id": "lift-b-1",
+      "label": "Лифт B · 2 этаж",
+      "floor": 1,
+      "x": 24,
+      "z": 7,
+      "kind": "lift",
+      "selectable": false
+    },
+    {
+      "id": "stairs-1",
+      "label": "Лестница · 2 этаж",
+      "floor": 1,
+      "x": 28,
+      "z": 16,
+      "kind": "stairs",
+      "selectable": false
+    },
+    {
+      "id": "hall-1",
+      "label": "Галерея · 2 этаж",
+      "floor": 1,
+      "x": 16,
+      "z": 11,
+      "kind": "junction",
+      "selectable": false
+    },
+    {
+      "id": "east-1-node",
+      "label": "Восточный проход · 2 этаж",
+      "floor": 1,
+      "x": 24,
+      "z": 11,
+      "kind": "junction",
+      "selectable": false
+    },
+    {
+      "id": "room-204",
+      "label": "Аудитория 204",
+      "floor": 1,
+      "x": 16,
+      "z": 3,
+      "kind": "room",
+      "selectable": true
+    },
+    {
+      "id": "room-205",
+      "label": "Аудитория 205 · неизвестная дверь",
+      "floor": 1,
+      "x": 24,
+      "z": 3,
+      "kind": "room",
+      "selectable": true
+    },
+    {
+      "id": "lift-a-2",
+      "label": "Лифт A · 3 этаж",
+      "floor": 2,
+      "x": 8,
+      "z": 7,
+      "kind": "lift",
+      "selectable": false
+    },
+    {
+      "id": "lift-b-2",
+      "label": "Лифт B · 3 этаж",
+      "floor": 2,
+      "x": 24,
+      "z": 7,
+      "kind": "lift",
+      "selectable": false
+    },
+    {
+      "id": "stairs-2",
+      "label": "Лестница · 3 этаж",
+      "floor": 2,
+      "x": 28,
+      "z": 16,
+      "kind": "stairs",
+      "selectable": false
+    },
+    {
+      "id": "hall-2",
+      "label": "Галерея · 3 этаж",
+      "floor": 2,
+      "x": 16,
+      "z": 11,
+      "kind": "junction",
+      "selectable": false
+    },
+    {
+      "id": "room-301",
+      "label": "Читальный зал 301",
+      "floor": 2,
+      "x": 16,
+      "z": 3,
+      "kind": "room",
+      "selectable": true
+    }
+  ],
+  "edges": [
+    {
+      "id": "entry",
+      "from": "entrance",
+      "to": "lobby-0",
+      "type": "corridor",
+      "lengthM": 10,
+      "widthM": {
+        "status": "checked",
+        "value": 1.5,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "approach-a",
+      "from": "lobby-0",
+      "to": "lift-a-0",
+      "type": "corridor",
+      "lengthM": 8,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "approach-b",
+      "from": "lobby-0",
+      "to": "lift-b-0",
+      "type": "corridor",
+      "lengthM": 20,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "rough-0",
+      "from": "lobby-0",
+      "to": "stairs-0",
+      "type": "corridor",
+      "lengthM": 14,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "rough",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "ramp-0",
+      "from": "lift-a-0",
+      "to": "lift-b-0",
+      "type": "ramp",
+      "lengthM": 16,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 8,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "lift-a-01",
+      "from": "lift-a-0",
+      "to": "lift-a-1",
+      "type": "lift",
+      "lengthM": 4,
+      "widthM": {
+        "status": "checked",
+        "value": 1.1,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "lift-a-12",
+      "from": "lift-a-1",
+      "to": "lift-a-2",
+      "type": "lift",
+      "lengthM": 4,
+      "widthM": {
+        "status": "checked",
+        "value": 1.1,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "lift-b-01",
+      "from": "lift-b-0",
+      "to": "lift-b-1",
+      "type": "lift",
+      "lengthM": 4,
+      "widthM": {
+        "status": "checked",
+        "value": 1.1,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "lift-b-12",
+      "from": "lift-b-1",
+      "to": "lift-b-2",
+      "type": "lift",
+      "lengthM": 4,
+      "widthM": {
+        "status": "checked",
+        "value": 1.1,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "stairs-01",
+      "from": "stairs-0",
+      "to": "stairs-1",
+      "type": "stairs",
+      "lengthM": 7,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "unknown",
+        "value": null,
+        "source": "Учебный пример: характеристика не задана; обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "unknown",
+        "value": null,
+        "source": "Учебный пример: характеристика не задана; обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": false,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "stairs-12",
+      "from": "stairs-1",
+      "to": "stairs-2",
+      "type": "stairs",
+      "lengthM": 7,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "unknown",
+        "value": null,
+        "source": "Учебный пример: характеристика не задана; обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "unknown",
+        "value": null,
+        "source": "Учебный пример: характеристика не задана; обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": false,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "gallery-a-1",
+      "from": "lift-a-1",
+      "to": "hall-1",
+      "type": "corridor",
+      "lengthM": 10,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "gallery-b-1",
+      "from": "lift-b-1",
+      "to": "east-1-node",
+      "type": "corridor",
+      "lengthM": 4,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "east-1",
+      "from": "east-1-node",
+      "to": "hall-1",
+      "type": "corridor",
+      "lengthM": 8,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "stairs-gallery-1",
+      "from": "stairs-1",
+      "to": "east-1-node",
+      "type": "corridor",
+      "lengthM": 7,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "door-204",
+      "from": "hall-1",
+      "to": "room-204",
+      "type": "door",
+      "lengthM": 8,
+      "widthM": {
+        "status": "checked",
+        "value": 1.05,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "narrow-204",
+      "from": "lift-a-1",
+      "to": "room-204",
+      "type": "door",
+      "lengthM": 5,
+      "widthM": {
+        "status": "checked",
+        "value": 0.72,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "door-205",
+      "from": "east-1-node",
+      "to": "room-205",
+      "type": "door",
+      "lengthM": 8,
+      "widthM": {
+        "status": "unknown",
+        "value": null,
+        "source": "Учебный пример: характеристика не задана; обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "unknown",
+        "value": null,
+        "source": "Учебный пример: характеристика не задана; обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "gallery-a-2",
+      "from": "lift-a-2",
+      "to": "hall-2",
+      "type": "corridor",
+      "lengthM": 10,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "gallery-b-2",
+      "from": "lift-b-2",
+      "to": "hall-2",
+      "type": "corridor",
+      "lengthM": 10,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "stairs-gallery-2",
+      "from": "stairs-2",
+      "to": "hall-2",
+      "type": "corridor",
+      "lengthM": 12,
+      "widthM": {
+        "status": "checked",
+        "value": 1.2,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "door-301",
+      "from": "hall-2",
+      "to": "room-301",
+      "type": "door",
+      "lengthM": 8,
+      "widthM": {
+        "status": "checked",
+        "value": 1.05,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
+        "checkedOn": null
+      }
+    }
+  ],
+  "closureGroups": [
+    {
+      "id": "lift-a",
+      "label": "Лифт A",
+      "edgeIds": [
+        "lift-a-01",
+        "lift-a-12"
+      ]
+    },
+    {
+      "id": "lift-b",
+      "label": "Лифт B",
+      "edgeIds": [
+        "lift-b-01",
+        "lift-b-12"
+      ]
+    },
+    {
+      "id": "east-passage",
+      "label": "Восточный проход · 2 этаж",
+      "edgeIds": [
+        "east-1"
+      ]
+    }
+  ]
+}

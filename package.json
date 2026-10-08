@@ -1,0 +1,39 @@
+{
+  "name": "accessible-route-navigator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24.19.0 <25"
+  },
+  "scripts": {
+    "build": "node node_modules/typescript7/bin/tsc --noEmit && vite build",
+    "start:public": "node server/public-main.ts",
+    "test:postgres": "node tools/test-postgres.mjs"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "three": "0.186.1",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "@types/node": "26.6.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "eslint": "10.12.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "typescript": "6.0.3",
+    "typescript7": "npm:typescript@7.0.2",
+    "typescript-eslint": "8.71.1",
+    "vite": "8.3.3",
+    "vitest": "5.0.3",
+    "@types/pg": "8.23.1"
+  }
+}

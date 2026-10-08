@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: iter-public-demo-api
+    runtime: node
+    plan: free
+    numInstances: 1
+    autoDeployTrigger: off
+    buildCommand: npx --yes pnpm@11.19.0 install --frozen-lockfile
+    startCommand: node server/public-main.ts
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      - key: NAVIGATOR_DEDICATED_DATABASE
+        value: iter-public-demo
+      - key: DATABASE_URL
+        sync: false
+      - key: NAVIGATOR_PUBLIC_ORIGIN
+        sync: false
+      - key: NAVIGATOR_PROXY_SECRET
+        sync: false
