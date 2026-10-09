@@ -7,6 +7,12 @@
   "installCommand": "npx --yes pnpm@11.19.0 install --frozen-lockfile",
   "outputDirectory": "dist",
   "functions": {
+    "api/health.mjs": {
+      "maxDuration": 10
+    },
+    "api/reports.mjs": {
+      "maxDuration": 10
+    },
     "api/[...path].mjs": {
       "maxDuration": 10
     }
