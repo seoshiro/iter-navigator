@@ -1,6 +1,6 @@
 {
-  "sourceRevision": "a3a1c27bb1785a96036154429a349115676da91a",
-  "generatedAt": "2026-10-09T16:21:14.160Z",
+  "sourceRevision": "8c98f46cc1a8d125eee3057fabdeed1c286b3e67",
+  "generatedAt": "2026-10-09T16:23:59.653Z",
   "renderOrigin": "https://iter-public-demo-api.onrender.com",
   "publicOrigin": "https://iter-navigator.vercel.app",
   "hostedConfiguration": true,
@@ -188,7 +188,7 @@
     },
     {
       "path": "tools/vercel-proxy.mjs",
-      "sha256": "ad05875c20d26e86c1e96363f52a0f994e597f9c982f4935f5bc678dafd96e89"
+      "sha256": "b7c62ebf584006f0df55642d886a6e373a461f6e4ecc63f0e7391af2e8f832f5"
     },
     {
       "path": "tsconfig.json",
@@ -202,7 +202,7 @@
   "snapshotFiles": [
     {
       "path": "api/[...path].mjs",
-      "sha256": "f96f42eb63b41478a1db6c7ef290f79e60f470d6c9d60483bff4b78c2db1ec04"
+      "sha256": "a17be24466d1e46ba0b016c1f61f403fb14d48178bbb466ad59ca873a470e351"
     },
     {
       "path": "docs/deployment.md",
@@ -386,7 +386,7 @@
     },
     {
       "path": "tools/vercel-proxy.mjs",
-      "sha256": "ad05875c20d26e86c1e96363f52a0f994e597f9c982f4935f5bc678dafd96e89"
+      "sha256": "b7c62ebf584006f0df55642d886a6e373a461f6e4ecc63f0e7391af2e8f832f5"
     },
     {
       "path": "tsconfig.json",
