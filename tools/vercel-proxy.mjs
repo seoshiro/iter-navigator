@@ -68,6 +68,9 @@ export default async function proxy(request, response) {
     for await (const chunk of upstream.body ?? []) { size += chunk.length; if (size > 150_000) throw new Error('storage_unavailable'); chunks.push(Buffer.from(chunk)); }
     response.writeHead(upstream.status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...(upstream.status === 429 ? { 'Retry-After': '60' } : {}) });
     response.end(Buffer.concat(chunks));
-  } catch (error) { fail(response, Object.hasOwn(errors, error?.message) ? error.message : 'storage_unavailable'); }
+  } catch (error) {
+    if (error?.message === 'invalid_input') { const diagnostic = new URL(request.url ?? '', 'http://127.0.0.1'); console.warn('iter_proxy_url', { relative: request.url?.startsWith('/'), path: ['/api/health', '/api/reports'].includes(diagnostic.pathname) ? diagnostic.pathname : 'other', queryKeys: [...diagnostic.searchParams.keys()].map(key => ['path', 'limit', 'cursor'].includes(key) ? key : 'other') }); }
+    fail(response, Object.hasOwn(errors, error?.message) ? error.message : 'storage_unavailable');
+  }
 }
 // The generated deployment sets NODEJS_HELPERS=0 for the original IncomingMessage stream.
