@@ -218,8 +218,10 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
           const point = new THREE.Mesh(geometry, destination ? direction : cyan); point.position.copy(position(id)); point.renderOrder = 13; routes.add(point);
         }
       }
-      if (state.highlight && nodes.has(state.highlight.nodeId)) {
-        const node = nodes.get(state.highlight.nodeId)!;
+      const highlightedEdge = state.highlight?.edgeId ? edges.get(state.highlight.edgeId) : undefined;
+      const highlightedNodes = highlightedEdge && nodes.get(highlightedEdge.from)!.floor !== nodes.get(highlightedEdge.to)!.floor ? [highlightedEdge.from, highlightedEdge.to] : state.highlight ? [state.highlight.nodeId] : [];
+      for (const id of highlightedNodes) {
+        const node = nodes.get(id)!;
         if (state.floor === 'all' || node.floor === state.floor) {
           const geometry = new THREE.TorusGeometry(.85, .14, 8, 24); allocation.geometries.push(geometry);
           const ring = new THREE.Mesh(geometry, direction); ring.position.copy(position(node.id)); ring.rotation.x = Math.PI / 2; ring.renderOrder = 16; routes.add(ring);

@@ -290,3 +290,55 @@ button { transition:background-color 150ms ease, border-color 150ms ease; }
 button, button:hover, button[aria-pressed="true"], .presets button, select, input[type="number"], .report-journal textarea { border-color:var(--control-border); }
 .controls-panel, .route-panel, .display-settings { border-color:color-mix(in srgb, var(--line) 65%, var(--panel)); }
 @media (max-width:700px) { .framing-controls { padding:0 15px 14px; } .route-summary p { margin:6px 0; } }
+
+/* DOM order follows requirements, result and steps before the local simulation. */
+.workspace { grid-template-columns: 295px minmax(0, 1fr) 310px; }
+.advanced-panel { grid-column:1; grid-row:2; }
+.directions-panel { grid-column:3; grid-row:2; }
+.simulation-panel { grid-column:1; grid-row:3; }
+.visual-panel { grid-row:1 / span 3; }
+.route-variants { margin:18px 0; padding-top:12px; }
+.route-variants button { display:block; width:100%; margin-top:8px; text-align:left; }
+.route-variants button small { display:block; margin-top:6px; font-size:.875rem; }
+.variant-disclosure { margin:18px 0; }
+.variant-disclosure > summary { color:var(--text); }
+.variant-disclosure .route-variants { margin-bottom:0; }
+.no-alternatives { font-size:.875rem; color:var(--muted); }
+@media (min-width:701px) { .variant-disclosure > summary { cursor:default; list-style:none; } .variant-disclosure .route-variants { border:0; margin-top:0; padding-top:0; } .variant-disclosure legend { position:absolute; clip-path:inset(50%); } }
+.guidance-actions, .speech-controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.step-review { margin-bottom:20px; }
+.step-review p, .step-action { font-size:.875rem; overflow-wrap:anywhere; }
+.step-action { margin:6px 0; }
+.guidance-actions { margin-top:10px; }
+.camera-disclosure > summary { padding:10px 20px; color:var(--text); }
+.display-settings:has(details:not([open])) { padding-top:14px; padding-bottom:14px; }
+.display-settings > p { font-size:.875rem; margin:10px 0; overflow-wrap:anywhere; }
+.display-settings fieldset > label { min-width:0; max-width:100%; }
+.display-settings select { max-width:100%; }
+.primary-plan .floor-card { overflow:auto; }
+.primary-plan .floor-card svg { width:calc(100% * var(--plan-zoom, 1)); max-width:none; }
+@media (max-width:1250px) { .workspace { grid-template-columns:285px minmax(0, 1fr); } .outcome-panel { grid-column:1; grid-row:3; } .simulation-panel { grid-column:1; grid-row:4; } .visual-panel { grid-column:2; grid-row:1 / span 4; } .directions-panel { grid-column:1 / -1; grid-row:5; } }
+@media (max-width:850px) { .workspace { grid-template-columns:255px minmax(0, 1fr); } }
+@media (max-width:700px) { .workspace { display:flex; } .simulation-panel { width:100%; } .guidance-actions button { flex:1 1 130px; } .display-settings fieldset { align-items:stretch; } .display-settings fieldset > label { flex:1 1 100%; } }
+@media (max-width:700px) {
+  .brand small, .intro-copy, .model-meta, .view-label { display:none; }
+  .intro { padding:8px 0; }
+  .fiction-note { margin-top:4px; padding:5px 10px; }
+  .controls-panel, .route-panel { padding:12px; }
+  .endpoint-fields { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; border:0; padding:0; margin-left:0; }
+  .endpoint-link, .endpoint-fields::before, .endpoint-fields::after { display:none; }
+  .advanced-panel .settings-disclosure { margin:0; }
+  .settings-disclosure:not([open]) > summary > span:not(.warning) { display:none; }
+  .settings-disclosure:not([open]) > summary { padding:8px 0; }
+  .outcome-panel .panel-title { margin-bottom:6px; }
+  .outcome-panel .route-summary { padding-bottom:6px; }
+  .outcome-panel .route-summary p { margin:4px 0; }
+  .status-kicker { letter-spacing:0; }
+  .distance { font-size:2rem; }
+  .variant-disclosure { margin:8px 0; }
+  .workspace { gap:8px; }
+  .outcome-panel .guidance-actions { margin-top:4px; }
+  .outcome-panel .directions-jump { margin-top:4px; }
+  .visual-toolbar { padding:4px 12px; gap:8px; }
+  .visual-toolbar .section-index { display:none; }
+}
