@@ -66,6 +66,9 @@ export default async function proxy(request, response) {
     for await (const chunk of upstream.body ?? []) { size += chunk.length; if (size > 150_000) throw new Error('storage_unavailable'); chunks.push(Buffer.from(chunk)); }
     response.writeHead(upstream.status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...(upstream.status === 429 ? { 'Retry-After': '60' } : {}) });
     response.end(Buffer.concat(chunks));
-  } catch (error) { fail(response, Object.hasOwn(errors, error?.message) ? error.message : 'storage_unavailable'); }
+  } catch (error) {
+    if (error?.message === 'forbidden') console.warn('iter_proxy_boundary', { hostMatches: request.headers.host === new URL(process.env.NAVIGATOR_PUBLIC_ORIGIN).host, originMatches: request.headers.origin === undefined || request.headers.origin === process.env.NAVIGATOR_PUBLIC_ORIGIN, siteMatches: request.headers['sec-fetch-site'] === undefined || ['same-origin', 'none'].includes(request.headers['sec-fetch-site']), proxyHeadersPresent: request.headers['x-iter-proxy-key'] !== undefined || request.headers['x-iter-public-host'] !== undefined, forwardedPresent: request.headers.forwarded !== undefined });
+    fail(response, Object.hasOwn(errors, error?.message) ? error.message : 'storage_unavailable');
+  }
 }
 // The generated deployment sets NODEJS_HELPERS=0 for the original IncomingMessage stream.
