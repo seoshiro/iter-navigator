@@ -9,6 +9,8 @@ export function FloorPlan({ building, result, floor, closedEdgeIds, highlight }:
   const routed = new Set(result.status === 'ok' ? result.edgeIds : []);
   const uncertain = new Set(result.status === 'ok' ? result.uncertainEdgeIds : []);
   const closed = new Set(closedEdgeIds);
+  const highlightedEdge = building.edges.find(edge => edge.id === highlight?.edgeId);
+  const transitionNodes = highlightedEdge && nodeMap.get(highlightedEdge.from)!.floor !== nodeMap.get(highlightedEdge.to)!.floor ? [highlightedEdge.from, highlightedEdge.to] : [];
   const x = (v: number) => 24 + v * 9;
   const y = (v: number) => 35 + v * 9;
   return <div className="floor-plans" data-testid="floor-plan" data-highlight-node={highlight?.nodeId ?? ''} data-highlight-edge={highlight?.edgeId ?? ''} data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}>
@@ -46,7 +48,7 @@ export function FloorPlan({ building, result, floor, closedEdgeIds, highlight }:
           </g>;
         })}
         {building.nodes.filter(n => n.floor === f.id).map(n => <g key={n.id} data-node-id={n.id} data-endpoint={result.status === 'ok' && result.nodeIds[0] === n.id ? 'start' : result.status === 'ok' && result.nodeIds.at(-1) === n.id ? 'destination' : undefined}>
-          {highlight?.nodeId === n.id && <circle cx={x(n.x)} cy={y(n.z)} r="11" className="plan-highlight-node" />}
+          {(highlight?.nodeId === n.id || transitionNodes.includes(n.id)) && <circle cx={x(n.x)} cy={y(n.z)} r="11" className="plan-highlight-node" />}
           {result.status === 'ok' && result.nodeIds.at(-1) === n.id && result.nodeIds.length > 1 ? <rect x={x(n.x) - 6} y={y(n.z) - 6} width="12" height="12" rx="1" className="plan-endpoint-destination" /> : <circle cx={x(n.x)} cy={y(n.z)} r={result.status === 'ok' && result.nodeIds[0] === n.id ? 7 : n.selectable ? 5 : 2.5} className={`plan-node ${result.status === 'ok' && result.nodeIds.includes(n.id) ? 'on-route' : ''}`} />}
           {(n.kind === 'room' || n.kind === 'entrance' || n.id === 'lobby-0') && <text x={x(n.x)} y={y(n.z) + (n.kind === 'room' ? -9 : 17)} textAnchor="middle" className="room-label">{n.kind === 'room' ? n.id.replace('room-', '') : n.kind === 'entrance' ? 'Вход' : 'Холл'}</text>}
         </g>)}

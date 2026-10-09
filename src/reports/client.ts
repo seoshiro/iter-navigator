@@ -15,7 +15,8 @@ export class ReportClientError extends Error {
 }
 async function request(path: string, options: RequestInit, signal?: AbortSignal): Promise<{ response: Response; value: unknown }> {
   try {
-    const response = await fetch(path, { ...options, credentials: 'omit', mode: 'same-origin', cache: 'no-store', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(8_000)]) : AbortSignal.timeout(8_000) });
+    const timeout = AbortSignal.timeout(options.method === 'GET' ? 70_000 : 8_000);
+    const response = await fetch(path, { ...options, credentials: 'omit', mode: 'same-origin', cache: 'no-store', signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
     if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(response.headers.get('content-type') ?? '')) throw new ReportClientError('ambiguous');
     const text = await response.text();
     if (text.length > 150_000) throw new ReportClientError('ambiguous');

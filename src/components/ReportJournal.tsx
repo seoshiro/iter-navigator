@@ -22,6 +22,7 @@ export function ReportJournal() {
   const [cursor, setCursor] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [stale, setStale] = useState(false);
+  const [readStarted, setReadStarted] = useState(false);
   const mounted = useRef(false);
   const busy = useRef(false);
   const uncertainAttempt = useRef(false);
@@ -47,7 +48,7 @@ export function ReportJournal() {
   const refresh = useCallback(async (before: number | null = null) => {
     const generation = ++readGeneration.current;
     readController.current?.abort(); const controller = new AbortController(); readController.current = controller;
-    setLoading(true);
+    setReadStarted(true); setLoading(true);
     try {
       const page = await listReports(before, controller.signal);
       if (!mounted.current || generation !== readGeneration.current) return;
@@ -111,9 +112,9 @@ export function ReportJournal() {
           {attempt && !sending && <div className="journal-actions"><button type="button" onClick={() => void send(attempt)}>Повторить тот же запрос</button><button type="button" onClick={() => { uncertainAttempt.current = false; setAttempt(null); setFeedback(reportRu.abandoned); }}>Завершить попытку и разрешить правку</button></div>}
           <div className="journal-list-heading"><h3>Сохранённые сообщения</h3><button type="button" onClick={() => void refresh()}>Обновить журнал</button></div>
           <p className="journal-dates">{reportRu.dates}</p>
-          {loading && <p role="status">{reportRu.loading}</p>}
+          {(!readStarted || loading) && <p role="status">{hosted ? reportRu.publicLoading : reportRu.loading}</p>}
           {stale && <p className="journal-notice" role="status" data-testid="report-stale">{hosted ? reportRu.publicUnavailable : reportRu.unavailable}</p>}
-          {!loading && !stale && records.length === 0 && <p>В журнале пока нет сообщений.</p>}
+          {readStarted && !loading && !stale && records.length === 0 && <p>В журнале пока нет сообщений.</p>}
           <ol className="journal-records" data-stale={stale}>{records.map(record => <li key={record.id} data-report-id={record.id}>
             <div className="journal-record-title"><strong>{reportKindRu[record.kind]} · {passageLabelRu(record.passageId, REPORT_PASSAGES.find(item => item.id === record.passageId)?.label ?? 'Здание в целом')}</strong><span>{reportStatusRu[record.status]}</span></div>
             <p className="journal-message">{record.message}</p>
