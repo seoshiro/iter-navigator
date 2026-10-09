@@ -69,8 +69,10 @@ await writeFile(tsconfigPath, JSON.stringify(tsconfig, null, 2) + '\n');
 if (render) {
   await mkdir(resolve(target, 'api'));
   const proxy = (await readFile(resolve(root, 'tools/vercel-proxy.mjs'), 'utf8')).replace('__VERIFIED_RENDER_ORIGIN__', render);
-  await writeFile(resolve(target, 'api/[...path].mjs'), proxy);
-  await writeFile(resolve(target, 'vercel.json'), JSON.stringify({ framework: 'vite', env: { NODEJS_HELPERS: '0' }, buildCommand: 'npx --yes pnpm@11.19.0 run build', installCommand: 'npx --yes pnpm@11.19.0 install --frozen-lockfile', outputDirectory: 'dist', functions: { 'api/[...path].mjs': { maxDuration: 10 } }, headers: [{ source: '/(.*)', headers: [{ key: 'X-Content-Type-Options', value: 'nosniff' }, { key: 'X-Frame-Options', value: 'DENY' }] }] }, null, 2) + '\n');
+  // Static entry points avoid Vercel injecting dynamic path query parameters.
+  await writeFile(resolve(target, 'server/vercel-proxy.mjs'), proxy);
+  for (const path of ['health', 'reports', '[...path]']) await writeFile(resolve(target, 'api/' + path + '.mjs'), "export { default } from '../server/vercel-proxy.mjs';\n");
+  await writeFile(resolve(target, 'vercel.json'), JSON.stringify({ framework: 'vite', env: { NODEJS_HELPERS: '0' }, buildCommand: 'npx --yes pnpm@11.19.0 run build', installCommand: 'npx --yes pnpm@11.19.0 install --frozen-lockfile', outputDirectory: 'dist', functions: { 'api/health.mjs': { maxDuration: 10 }, 'api/reports.mjs': { maxDuration: 10 }, 'api/[...path].mjs': { maxDuration: 10 } }, headers: [{ source: '/(.*)', headers: [{ key: 'X-Content-Type-Options', value: 'nosniff' }, { key: 'X-Frame-Options', value: 'DENY' }] }] }, null, 2) + '\n');
 }
 const revision = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8', windowsHide: true });
 const staged = [];

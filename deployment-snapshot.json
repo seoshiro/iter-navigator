@@ -1,6 +1,6 @@
 {
-  "sourceRevision": "8c98f46cc1a8d125eee3057fabdeed1c286b3e67",
-  "generatedAt": "2026-10-09T16:23:59.653Z",
+  "sourceRevision": "fe5e33bbb920fce01c7218b344881d8bdbbd82d4",
+  "generatedAt": "2026-10-09T16:29:48.110Z",
   "renderOrigin": "https://iter-public-demo-api.onrender.com",
   "publicOrigin": "https://iter-navigator.vercel.app",
   "hostedConfiguration": true,
@@ -180,7 +180,7 @@
     },
     {
       "path": "tools/stage-deployment.mjs",
-      "sha256": "4701719e2b6ed78a9e2b0a1dd668a2a121257d4e32ab7daa8245ad54d5969156"
+      "sha256": "dbc7e15fc9d0d185d5434a8055b0f7b06f1b9a17c3e3e48cbcd0005739b8c5c7"
     },
     {
       "path": "tools/test-postgres.mjs",
@@ -188,7 +188,7 @@
     },
     {
       "path": "tools/vercel-proxy.mjs",
-      "sha256": "b7c62ebf584006f0df55642d886a6e373a461f6e4ecc63f0e7391af2e8f832f5"
+      "sha256": "ad05875c20d26e86c1e96363f52a0f994e597f9c982f4935f5bc678dafd96e89"
     },
     {
       "path": "tsconfig.json",
@@ -202,7 +202,15 @@
   "snapshotFiles": [
     {
       "path": "api/[...path].mjs",
-      "sha256": "a17be24466d1e46ba0b016c1f61f403fb14d48178bbb466ad59ca873a470e351"
+      "sha256": "ead806803d7d80086d701adc2903616c27af22b78a2c485087af3a4e64fe110a"
+    },
+    {
+      "path": "api/health.mjs",
+      "sha256": "ead806803d7d80086d701adc2903616c27af22b78a2c485087af3a4e64fe110a"
+    },
+    {
+      "path": "api/reports.mjs",
+      "sha256": "ead806803d7d80086d701adc2903616c27af22b78a2c485087af3a4e64fe110a"
     },
     {
       "path": "docs/deployment.md",
@@ -249,6 +257,10 @@
       "sha256": "f00c2306134c6073e59e6eb08825023e1cc42e501850ea9b2402e21c4bf7cc5f"
     },
     {
+      "path": "README.md",
+      "sha256": "dea68189ccbd68154258dc8dfe4aa11fa0784476ad48b93c06e9038a0aff20e0"
+    },
+    {
       "path": "render.yaml",
       "sha256": "a7981d124511d069a6d5a0ed8ad63ad652c7a8db75c7953c18bd727a0a9f39f2"
     },
@@ -291,6 +303,10 @@
     {
       "path": "server/validation.ts",
       "sha256": "0f71eb39c6faf73ef9dde5152c19c6c322cafc52002632d0d3511de85aa30ee9"
+    },
+    {
+      "path": "server/vercel-proxy.mjs",
+      "sha256": "f96f42eb63b41478a1db6c7ef290f79e60f470d6c9d60483bff4b78c2db1ec04"
     },
     {
       "path": "shared/report-contract.ts",
@@ -378,7 +394,7 @@
     },
     {
       "path": "tools/stage-deployment.mjs",
-      "sha256": "4701719e2b6ed78a9e2b0a1dd668a2a121257d4e32ab7daa8245ad54d5969156"
+      "sha256": "dbc7e15fc9d0d185d5434a8055b0f7b06f1b9a17c3e3e48cbcd0005739b8c5c7"
     },
     {
       "path": "tools/test-postgres.mjs",
@@ -386,7 +402,7 @@
     },
     {
       "path": "tools/vercel-proxy.mjs",
-      "sha256": "b7c62ebf584006f0df55642d886a6e373a461f6e4ecc63f0e7391af2e8f832f5"
+      "sha256": "ad05875c20d26e86c1e96363f52a0f994e597f9c982f4935f5bc678dafd96e89"
     },
     {
       "path": "tsconfig.json",
@@ -394,15 +410,11 @@
     },
     {
       "path": "vercel.json",
-      "sha256": "d3ee9fc6b162a9f4e0e8a16b250a3a8448700a945c609bac3d7049067bc44b83"
+      "sha256": "dc3befcebd9e5cf1d9198c28620b7460147209b5c9da271479c8c01dc79e1e3f"
     },
     {
       "path": "vite.config.ts",
       "sha256": "a87bc173e9e0509d8edc4811709601f047a89f12e5b0159389cc989ed8682af8"
-    },
-    {
-      "path": "README.md",
-      "sha256": "dea68189ccbd68154258dc8dfe4aa11fa0784476ad48b93c06e9038a0aff20e0"
     }
   ],
   "snapshotHashEncoding": "Git canonical file content: LF text, unchanged binary bytes"

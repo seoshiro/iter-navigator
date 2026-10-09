@@ -1,5 +1,5 @@
 // Replaced only by stage-deployment.mjs after the Render URL is verified.
-const RENDER_ORIGIN = '__VERIFIED_RENDER_ORIGIN__';
+const RENDER_ORIGIN = 'https://iter-public-demo-api.onrender.com';
 const errors = {
   forbidden: [403, 'Request is not allowed.'],
   invalid_input: [400, 'Invalid report input.'],
