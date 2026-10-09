@@ -23,7 +23,7 @@ function origin(raw, suffix) {
 if (Boolean(rawRender) !== Boolean(rawPublic)) throw new Error('Both verified origins are required together.');
 const render = rawRender ? origin(rawRender, '.onrender.com') : null;
 const publicOrigin = rawPublic ? origin(rawPublic) : null;
-const exactFiles = ['index.html', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vite.config.ts', 'render.yaml', 'shared/report-contract.ts', 'server/http.ts', 'server/paths.ts', 'server/validation.ts', 'server/report-store.ts', 'server/public-boundary.ts', 'server/postgres-repository.ts', 'server/postgres-schema.sql', 'server/public-main.ts', 'docs/deployment.md'];
+const exactFiles = ['index.html', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vite.config.ts', 'render.yaml', 'shared/report-contract.ts', 'server/http.ts', 'server/paths.ts', 'server/validation.ts', 'server/report-store.ts', 'server/public-boundary.ts', 'server/postgres-repository.ts', 'server/postgres-schema.sql', 'server/public-main.ts', 'docs/deployment.md', 'docs/deployment-flow.svg'];
 if (cloudTests) exactFiles.push('server/postgres.test.ts', 'server/postgres-test-worker.ts', 'tools/test-postgres.mjs', 'tools/stage-deployment.mjs', 'tools/vercel-proxy.mjs');
 const directories = ['src', 'public'];
 const files = [...exactFiles];

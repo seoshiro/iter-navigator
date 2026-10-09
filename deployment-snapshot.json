@@ -1,11 +1,15 @@
 {
-  "sourceRevision": "1e19704846926d33e1903debed0b392d3496d517",
-  "generatedAt": "2026-10-09T16:38:20.348Z",
+  "sourceRevision": "67edc145427d120ffcf635f515cce58f1d5c4660",
+  "generatedAt": "2026-10-09T16:57:43.177Z",
   "renderOrigin": "https://iter-public-demo-api.onrender.com",
   "publicOrigin": "https://iter-navigator.vercel.app",
   "hostedConfiguration": true,
   "cloudTests": true,
   "sourceFiles": [
+    {
+      "path": "docs/deployment-flow.svg",
+      "sha256": "a52e5e3a2e869f64a492af47226ee5df16e46eb8586f9c527b33df01d997bb66"
+    },
     {
       "path": "docs/deployment.md",
       "sha256": "702b4928270e5558d352edf35e2950bc23cd01a5303278ddcf65717d71c73e38"
@@ -180,7 +184,7 @@
     },
     {
       "path": "tools/stage-deployment.mjs",
-      "sha256": "dbc7e15fc9d0d185d5434a8055b0f7b06f1b9a17c3e3e48cbcd0005739b8c5c7"
+      "sha256": "e1ef9c5db420766433b36fb5af7eff6932149f9b217af0ae69fcbc91f7698452"
     },
     {
       "path": "tools/test-postgres.mjs",
@@ -211,6 +215,10 @@
     {
       "path": "api/reports.mjs",
       "sha256": "ead806803d7d80086d701adc2903616c27af22b78a2c485087af3a4e64fe110a"
+    },
+    {
+      "path": "docs/deployment-flow.svg",
+      "sha256": "a52e5e3a2e869f64a492af47226ee5df16e46eb8586f9c527b33df01d997bb66"
     },
     {
       "path": "docs/deployment.md",
@@ -258,7 +266,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "1b74fbd3efda090851ea0ce835d404c5f6510d1445c93a7da89b0e1d01e856ea"
+      "sha256": "4f542247d911e6653cd94a7f24f13d4e35280711e54f8abb3e8b1cb3512eae7d"
     },
     {
       "path": "render.yaml",
@@ -394,7 +402,7 @@
     },
     {
       "path": "tools/stage-deployment.mjs",
-      "sha256": "dbc7e15fc9d0d185d5434a8055b0f7b06f1b9a17c3e3e48cbcd0005739b8c5c7"
+      "sha256": "e1ef9c5db420766433b36fb5af7eff6932149f9b217af0ae69fcbc91f7698452"
     },
     {
       "path": "tools/test-postgres.mjs",

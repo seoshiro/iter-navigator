@@ -128,12 +128,7 @@ pnpm test:browser
 
 Развёрнутая схема размещения:
 
-```mermaid
-flowchart LR
-    Browser[Браузер] -->|HTTPS: страница и /api| Vercel[Vercel Hobby]
-    Vercel -->|Серверный proxy| Render[Render Free: Node.js API]
-    Render -->|PostgreSQL с проверкой TLS| Neon[Neon Free: PostgreSQL]
-```
+![Облачная схема: браузер → Vercel Hobby → Render Free → Neon Free](docs/deployment-flow.svg)
 
 Клиент журнала обращается к относительному `/api/reports`; сервис также реализует `/api/health`. Прокси должен быть серверной функцией Vercel с фиксированным адресом Render; его ключ не нужен браузеру. Границы запросов проверяют Host/Origin, прокси-метаданные, тип и размер тела. Прямой публичный вызов Render API не заменяет same-origin интеграцию.
 
