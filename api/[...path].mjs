@@ -40,7 +40,9 @@ export default async function proxy(request, response) {
     const origin = header(request, 'origin'); const site = header(request, 'sec-fetch-site');
     if ((request.method === 'POST' && origin === undefined) || (origin !== undefined && origin !== publicUrl.origin) || (site !== undefined && !['same-origin', 'none'].includes(site))) throw new Error('forbidden');
     // Client-supplied proxy authorization is never forwarded or accepted.
-    if (header(request, 'x-iter-proxy-key') !== undefined || header(request, 'x-iter-public-host') !== undefined || header(request, 'forwarded') !== undefined) throw new Error('forbidden');
+    if (header(request, 'x-iter-proxy-key') !== undefined || header(request, 'x-iter-public-host') !== undefined) throw new Error('forbidden');
+    // Vercel adds Forwarded; reject duplicates, but never use or forward its value.
+    header(request, 'forwarded');
     if (!request.url?.startsWith('/') || request.url.startsWith('//')) throw new Error('invalid_input');
     const url = new URL(request.url, 'http://127.0.0.1');
     // Match the handler's route, method and query precedence before reading a body.
@@ -66,9 +68,6 @@ export default async function proxy(request, response) {
     for await (const chunk of upstream.body ?? []) { size += chunk.length; if (size > 150_000) throw new Error('storage_unavailable'); chunks.push(Buffer.from(chunk)); }
     response.writeHead(upstream.status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...(upstream.status === 429 ? { 'Retry-After': '60' } : {}) });
     response.end(Buffer.concat(chunks));
-  } catch (error) {
-    if (error?.message === 'forbidden') console.warn('iter_proxy_boundary', { hostMatches: request.headers.host === new URL(process.env.NAVIGATOR_PUBLIC_ORIGIN).host, originMatches: request.headers.origin === undefined || request.headers.origin === process.env.NAVIGATOR_PUBLIC_ORIGIN, siteMatches: request.headers['sec-fetch-site'] === undefined || ['same-origin', 'none'].includes(request.headers['sec-fetch-site']), proxyHeadersPresent: request.headers['x-iter-proxy-key'] !== undefined || request.headers['x-iter-public-host'] !== undefined, forwardedPresent: request.headers.forwarded !== undefined });
-    fail(response, Object.hasOwn(errors, error?.message) ? error.message : 'storage_unavailable');
-  }
+  } catch (error) { fail(response, Object.hasOwn(errors, error?.message) ? error.message : 'storage_unavailable'); }
 }
 // The generated deployment sets NODEJS_HELPERS=0 for the original IncomingMessage stream.
