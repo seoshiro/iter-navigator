@@ -1,6 +1,6 @@
 {
-  "sourceRevision": "67edc145427d120ffcf635f515cce58f1d5c4660",
-  "generatedAt": "2026-10-09T16:57:43.177Z",
+  "sourceRevision": "1abf6afc82270bda44bb9673a4b66dd320020ba3",
+  "generatedAt": "2026-10-09T16:59:53.101Z",
   "renderOrigin": "https://iter-public-demo-api.onrender.com",
   "publicOrigin": "https://iter-navigator.vercel.app",
   "hostedConfiguration": true,
@@ -8,7 +8,7 @@
   "sourceFiles": [
     {
       "path": "docs/deployment-flow.svg",
-      "sha256": "a52e5e3a2e869f64a492af47226ee5df16e46eb8586f9c527b33df01d997bb66"
+      "sha256": "5e4a33d795fc0d2894ff4270f494aa6bbe29a818f1df9764f07173d4a4bad1e4"
     },
     {
       "path": "docs/deployment.md",
@@ -218,7 +218,7 @@
     },
     {
       "path": "docs/deployment-flow.svg",
-      "sha256": "a52e5e3a2e869f64a492af47226ee5df16e46eb8586f9c527b33df01d997bb66"
+      "sha256": "5e4a33d795fc0d2894ff4270f494aa6bbe29a818f1df9764f07173d4a4bad1e4"
     },
     {
       "path": "docs/deployment.md",
@@ -266,7 +266,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "4f542247d911e6653cd94a7f24f13d4e35280711e54f8abb3e8b1cb3512eae7d"
+      "sha256": "571635d34e382335bd01bb4638b8eecd5c3fa3d9ccb271a80b84f11880dd4e74"
     },
     {
       "path": "render.yaml",

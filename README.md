@@ -128,7 +128,7 @@ pnpm test:browser
 
 Развёрнутая схема размещения:
 
-![Облачная схема: браузер → Vercel Hobby → Render Free → Neon Free](docs/deployment-flow.svg)
+<img src="docs/deployment-flow.svg" alt="Облачная схема: браузер → Vercel Hobby → Render Free → Neon Free" width="640">
 
 Клиент журнала обращается к относительному `/api/reports`; сервис также реализует `/api/health`. Прокси должен быть серверной функцией Vercel с фиксированным адресом Render; его ключ не нужен браузеру. Границы запросов проверяют Host/Origin, прокси-метаданные, тип и размер тела. Прямой публичный вызов Render API не заменяет same-origin интеграцию.
 
