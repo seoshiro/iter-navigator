@@ -1,6 +1,6 @@
 {
-  "sourceRevision": "e8755acc1b260d00a68103ec375774b7385276be",
-  "generatedAt": "2026-10-09T19:30:46.315Z",
+  "sourceRevision": "b245df9ffa6e540a431db89f379a6ba74de6f356",
+  "generatedAt": "2026-10-09T20:02:23.402Z",
   "renderOrigin": "https://iter-public-demo-api.onrender.com",
   "publicOrigin": "https://iter-navigator.vercel.app",
   "hostedConfiguration": true,
@@ -16,7 +16,7 @@
     },
     {
       "path": "index.html",
-      "sha256": "ffa0f6840bebd3417de564a3f11dd36baca08135d7f827747c16ab98d7ce58bc"
+      "sha256": "89f868d954cf2e0b79df01f9ae46c07c146567f65fd300c13a39fd742f46e05c"
     },
     {
       "path": "package.json",
@@ -246,7 +246,7 @@
     },
     {
       "path": "index.html",
-      "sha256": "ffa0f6840bebd3417de564a3f11dd36baca08135d7f827747c16ab98d7ce58bc"
+      "sha256": "89f868d954cf2e0b79df01f9ae46c07c146567f65fd300c13a39fd742f46e05c"
     },
     {
       "path": "package.json",
