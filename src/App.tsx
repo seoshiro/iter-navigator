@@ -82,6 +82,9 @@ function Planner({ building }: { building: Building }) {
   const [closuresOpen, setClosuresOpen] = useState(false);
   const [variantsOpen, setVariantsOpen] = useState(false);
   const [inlinePlanOpen, setInlinePlanOpen] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [displayOpen, setDisplayOpen] = useState(false);
+  const [expandedStepIds, setExpandedStepIds] = useState<string[]>([]);
   const requirementsRef = useRef<HTMLDetailsElement>(null);
   const closuresRef = useRef<HTMLDetailsElement>(null);
   const directionsRef = useRef<HTMLElement>(null);
@@ -243,7 +246,7 @@ function Planner({ building }: { building: Building }) {
             {good ? <><div className="distance">{numberRu(result.distanceM)}<span>м</span></div><p>{result.edgeIds.length === 0 ? 'Начало и цель — одна выбранная точка.' : countRu(result.edgeIds.length, ['участок', 'участка', 'участков'])} · {desktop ? ru.route.floors(diagnosis.floors) : guidanceRu.floorsCompact(diagnosis.floors)}</p><p>{ru.route.stepFree(diagnosis.stepFree)}</p><small>Расстояние по учебному графу.</small></> : <><h3>{diagnosis.kind === 'invalid' ? ru.route.invalid : diagnosis.kind === 'insufficient' ? ru.route.insufficient : ru.route.noRoute}</h3><p>{result.status === 'invalid' ? result.message : diagnosis.kind === 'insufficient' ? ru.route.insufficientHint : diagnosis.connected ? ru.route.blockedHint : ru.route.disconnectedHint}</p>{diagnosis.kind === 'insufficient' && <p>{[...new Set(diagnosis.details.flatMap(detail => detail.reasons))].map(reason => reasonNames[reason]).join('; ')}.</p>}</>}
           </div>
           {uncertain && <div className="uncertain-warning" role="alert"><strong>{ru.route.uncertainty}</strong><p>{countRu(result.uncertainEdgeIds.length, ['неподтверждённый участок', 'неподтверждённых участка', 'неподтверждённых участков'])}: {diagnosis.details.map(detail => { const edge = edgeMap.get(detail.edgeId)!; const index = result.edgeIds.indexOf(detail.edgeId); return `${edgeNames[edge.type]}: ${labelForNode(result.nodeIds[index])} → ${labelForNode(result.nodeIds[index + 1])} — ${detail.reasons.map(reason => reasonNames[reason]).join(', ')}`; }).join('; ')}. Известные нарушения условий по-прежнему исключены.</p></div>}
-          {good && <RouteVariants building={building} routes={routes} selected={selectedVariant} desktop={desktop} expanded={variantsOpen} onExpandedChange={setVariantsOpen} onSelect={variant => { speech.controller.stop(); setHighlight(null); setGuidance({ key: routingKey, variant, step: null }); confirm(guidanceRu.selected(variant), undefined, routes[variant]!); }} />}
+          {good && <RouteVariants building={building} routes={routes} selected={selectedVariant} expanded={variantsOpen} onExpandedChange={setVariantsOpen} onSelect={variant => { speech.controller.stop(); setHighlight(null); setGuidance({ key: routingKey, variant, step: null }); confirm(guidanceRu.selected(variant), undefined, routes[variant]!); }} />}
           <div className="guidance-actions"><button type="button" aria-describedby={speech.status === 'ready' ? undefined : 'route-speech-feedback'} onClick={readRoute}>{guidanceRu.readRoute}</button><button type="button" aria-describedby={speech.status === 'ready' ? undefined : 'route-speech-feedback'} onClick={speech.controller.stop}>{guidanceRu.stop}</button></div>
           {speech.status !== 'ready' && <p id="route-speech-feedback" className="speech-feedback">{speechRu[speech.status]}</p>}
           {!good && <div className="settings-shortcuts"><button type="button" onClick={() => openSettings('requirements')}>Изменить условия</button><button type="button" onClick={() => openSettings('closures')}>Открыть закрытия</button></div>}
@@ -268,9 +271,9 @@ function Planner({ building }: { building: Building }) {
 
   const directionsPanel = <section ref={directionsRef} id="route-directions" className="route-panel directions-panel" data-workspace-panel="directionsPanel" aria-label="Полные шаги и причины исключения" tabIndex={-1}>
           <div className="panel-title"><span className="section-index">04</span><h2>Путь по шагам</h2></div>
-          {good && <RouteGuidance building={building} result={result} selected={selectedStep} onSelect={selectStep} onReadStep={() => { speech.controller.setEnabled(true); readStep(); }} onStop={speech.controller.stop} speechStatus={speech.status} />}
+          {good && <RouteGuidance building={building} result={result} selected={selectedStep} onSelect={selectStep} onReadStep={() => { speech.controller.setEnabled(true); readStep(); }} onStop={speech.controller.stop} speechStatus={speech.status} expandedStepIds={expandedStepIds} onToggleEvidence={id => setExpandedStepIds(ids => ids.includes(id) ? ids.filter(item => item !== id) : [...ids, id])} />}
           {result.status === 'no-route' && diagnosis.details.length > 0 && <details className="excluded-details" open><summary>{diagnosis.kind === 'insufficient' ? ru.route.missing : ru.route.obstacles}</summary><ul>{diagnosis.details.map(item => <li key={item.edgeId} data-edge-id={item.edgeId}><strong>{edgeNames[edgeMap.get(item.edgeId)!.type]}: {labelForNode(edgeMap.get(item.edgeId)!.from)} ↔ {labelForNode(edgeMap.get(item.edgeId)!.to)}</strong><span>{item.reasons.map(reason => reasonNames[reason]).join('; ')}</span></li>)}</ul></details>}
-          <div className="evidence-note"><span aria-hidden="true">◇</span><p><strong>Прозрачные исходные данные</strong>{ru.evidenceSource} «Задано в модели» означает свойство учебного примера.</p></div>
+          <details className="evidence-note" open={evidenceOpen}><summary onClick={event => { event.preventDefault(); setEvidenceOpen(open => !open); }}>Прозрачные исходные данные</summary><p>{ru.evidenceSource} «Задано в модели» означает свойство учебного примера.</p></details>
         </section>;
 
   const closuresPanel = <aside className="controls-panel simulation-panel" data-workspace-panel="closuresPanel" aria-label="Симуляция закрытий">
@@ -284,19 +287,20 @@ function Planner({ building }: { building: Building }) {
           <button className="reset-button" type="button" onClick={reset}>↺ {ru.reset}</button>
           <p className="storage-note" role="status">{storageWarning ? 'Сохранение недоступно или данные повреждены. Сценарий работает; при ошибке загрузки взяты исходные значения.' : initial.restored ? 'Настройки восстановлены и сохраняются в браузере.' : 'Настройки сохраняются в этом браузере.'}</p>
         </aside>;
+  const displayPanel = <DisplaySettings preferences={preferences} onChange={setPreferences} systemReduced={systemReduced} warning={displayWarning} speech={speech} expanded={displayOpen} onExpandedChange={setDisplayOpen} />;
   return <>
     <a className="skip-link" href="#route-controls">К настройке маршрута</a>
-    <header className="site-header"><Brand /><a className="display-jump" href="#display-settings" onClick={event => { event.preventDefault(); const section = document.getElementById('display-settings'); const details = section?.querySelector('details'); if (details) details.open = true; section?.focus(); section?.scrollIntoView({ block: 'start' }); }}>{ru.display.entry}</a><span className="header-note"><i aria-hidden="true" />Локальный сценарий</span></header>
+    <header className="site-header"><Brand /><a className="display-jump" href="#display-settings" onClick={event => { event.preventDefault(); setDisplayOpen(true); const section = document.getElementById('display-settings'); section?.focus(); section?.scrollIntoView({ block: 'start' }); }}>{ru.display.entry}</a><span className="header-note"><i aria-hidden="true" />Локальный сценарий</span></header>
     <main>
       <div className="intro"><h1>Навигатор доступных маршрутов</h1><p className="intro-copy">Выберите начало, цель и условия прохода.</p></div>
       <div className="workspace">
-        {wideWorkspace ? <>
-          <div className="control-stack">{endpointsPanel}{requirementsPanel}{closuresPanel}</div>
-          {visualPanel}
-          <div className="route-stack">{outcomePanel}{directionsPanel}</div>
+        {desktop ? <>
+          <div className="control-stack">{endpointsPanel}{requirementsPanel}{!wideWorkspace && outcomePanel}{closuresPanel}</div>
+          <div className="model-stack">{visualPanel}{displayPanel}</div>
+          {wideWorkspace ? <div className="route-stack">{outcomePanel}{directionsPanel}</div> : directionsPanel}
         </> : <>{endpointsPanel}{requirementsPanel}{outcomePanel}{visualPanel}{directionsPanel}{closuresPanel}</>}
       </div>
-      <DisplaySettings preferences={preferences} onChange={setPreferences} systemReduced={systemReduced} warning={displayWarning} speech={speech} />
+      {!desktop && displayPanel}
       <ReportJournal />
       <footer><span>{ru.brand.toUpperCase()} / учебный прототип</span><span>Условия меняют путь. Ракурс — только изображение.</span></footer>
     </main>
