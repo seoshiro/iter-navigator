@@ -13,6 +13,7 @@ export interface SpeechPort {
 export type SpeechStatus = 'unsupported' | 'loading' | 'unavailable' | 'ready' | 'speaking' | 'stopped' | 'error';
 export class SpeechController {
   private generation = 0;
+  private loadingExpired = false;
   private listeners = new Set<() => void>();
   private state: { enabled: boolean; status: SpeechStatus; voices: LocalVoice[] };
   constructor(private port: SpeechPort | null, private preferences: SpeechPreferences) {
@@ -25,14 +26,19 @@ export class SpeechController {
     try {
       const available = this.port?.getVoices() ?? [];
       const voices = available.filter(voice => voice.localService && /^ru(?:[-_]|$)/i.test(voice.lang));
-      this.update({ voices, status: this.state.status === 'speaking' ? 'speaking' : voices.length ? 'ready' : available.length ? 'unavailable' : 'loading' });
+      const status = this.state.status;
+      this.update({ voices, status: status === 'speaking' || status === 'error' ? status : voices.length ? 'ready' : !available.length && status === 'loading' && !this.loadingExpired ? 'loading' : 'unavailable' });
     } catch { this.stop(); this.update({ status: 'error' }); }
   };
   connect() {
     if (!this.port) return () => {};
     try { this.port.addEventListener('voiceschanged', this.refreshVoices); } catch { this.update({ status: 'error' }); return () => { this.stop(); }; }
     this.refreshVoices();
-    return () => { try { this.port?.removeEventListener('voiceschanged', this.refreshVoices); } catch { /* A failed native cleanup must not break the planner. */ } this.stop(); };
+    const deadline = setTimeout(() => {
+      this.loadingExpired = true;
+      if (this.state.status === 'loading') this.update({ status: 'unavailable' });
+    }, 5000);
+    return () => { clearTimeout(deadline); try { this.port?.removeEventListener('voiceschanged', this.refreshVoices); } catch { /* A failed native cleanup must not break the planner. */ } this.stop(); };
   }
   setEnabled(enabled: boolean) { this.stop(); this.update({ enabled }); }
   setPreferences(preferences: SpeechPreferences) { this.stop(); this.preferences = preferences; }

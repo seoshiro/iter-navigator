@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Component, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import fixture from './data/building.json';
 import type { Building, Requirements, Scenario } from './domain/model';
@@ -12,7 +12,7 @@ import { DisplaySettings } from './components/DisplaySettings';
 import { Brand } from './components/Brand';
 import { RouteGuidance, RouteVariants } from './components/RouteGuidance';
 import { useLocalSpeech } from './ui/speech';
-import { guidanceRu, routeOutcomeRu, routeSpeechRu, stepTextRu } from './i18n/guidance-ru';
+import { guidanceRu, routeOutcomeRu, routeSpeechRu, speechRu, stepTextRu } from './i18n/guidance-ru';
 import { boundCamera, fitRouteCamera, focusNodeCamera, INITIAL_CAMERA } from './ui/camera';
 import { diagnoseRoute } from './ui/route-diagnosis';
 import type { CameraState } from './ui/camera';
@@ -74,28 +74,48 @@ function Planner({ building }: { building: Building }) {
   const visualRef = useRef<HTMLElement>(null);
   const [view, setView] = useState<'3d' | '2d'>('3d');
   const [planZoom, setPlanZoom] = useState(1);
+  const [planReset, setPlanReset] = useState(0);
+  const resetPlan = () => { setPlanZoom(1); setPlanReset(value => value + 1); };
   const [webglFailed, setWebglFailed] = useState(false);
   // Capture summary activation directly; delayed native toggle events also report forced desktop writes.
   const [requirementsOpen, setRequirementsOpen] = useState(false);
   const [closuresOpen, setClosuresOpen] = useState(false);
-  const [fictionOpen, setFictionOpen] = useState(false);
+  const [variantsOpen, setVariantsOpen] = useState(false);
+  const [inlinePlanOpen, setInlinePlanOpen] = useState(false);
   const requirementsRef = useRef<HTMLDetailsElement>(null);
   const closuresRef = useRef<HTMLDetailsElement>(null);
   const directionsRef = useRef<HTMLElement>(null);
+  const pendingFocus = useRef<{ panel: string; index: number; x: number; y: number } | null>(null);
   const subscribeToLayout = useCallback((onChange: () => void) => {
     const media = window.matchMedia('(min-width: 701px)');
+    const wide = window.matchMedia('(min-width: 1251px)');
     const synchronize = () => {
+      const active = document.activeElement;
+      const panel = active?.closest<HTMLElement>('[data-workspace-panel]');
+      pendingFocus.current = panel ? { panel: panel.dataset.workspacePanel!, index: [...panel.querySelectorAll('button,input,select,summary,a,[tabindex]')].indexOf(active!), x: window.scrollX, y: window.scrollY } : null;
       if (!media.matches) {
         if (requirementsRef.current?.contains(document.activeElement) && !requirementsRef.current.querySelector('summary')?.contains(document.activeElement)) setRequirementsOpen(true);
         if (closuresRef.current?.contains(document.activeElement) && !closuresRef.current.querySelector('summary')?.contains(document.activeElement)) setClosuresOpen(true);
+        if (active?.closest('.variant-disclosure') && !active.closest('summary')) setVariantsOpen(true);
       }
       onChange();
     };
     media.addEventListener('change', synchronize);
-    synchronize();
-    return () => media.removeEventListener('change', synchronize);
+    wide.addEventListener('change', synchronize);
+    return () => { media.removeEventListener('change', synchronize); wide.removeEventListener('change', synchronize); };
   }, []);
-  const desktop = useSyncExternalStore(subscribeToLayout, () => window.matchMedia('(min-width: 701px)').matches);
+  const layout = useSyncExternalStore(subscribeToLayout, () => window.matchMedia('(min-width: 1251px)').matches ? 'wide' : window.matchMedia('(min-width: 701px)').matches ? 'compact' : 'mobile');
+  const desktop = layout !== 'mobile';
+  const wideWorkspace = layout === 'wide';
+  useLayoutEffect(() => {
+    const focus = pendingFocus.current;
+    if (!focus) return;
+    pendingFocus.current = null;
+    const panel = document.querySelector<HTMLElement>(`[data-workspace-panel="${focus.panel}"]`);
+    const target = focus.index < 0 ? panel : panel?.querySelectorAll<HTMLElement>('button,input,select,summary,a,[tabindex]')[focus.index];
+    target?.focus({ preventScroll: true });
+    window.scrollTo({ left: focus.x, top: focus.y, behavior: 'instant' });
+  }, [layout]);
   const [numericDraft, setNumericDraft] = useState({ minWidthM: String(initial.scenario.requirements.minWidthM * 100), maxSlopePercent: String(initial.scenario.requirements.maxSlopePercent) });
   const numericEdited = useRef({ minWidthM: false, maxSlopePercent: false });
   const widthInvalid = numericDraft.minWidthM === '' || !Number.isFinite(Number(numericDraft.minWidthM)) || Number(numericDraft.minWidthM) < 50 || Number(numericDraft.minWidthM) > 150;
@@ -150,7 +170,7 @@ function Planner({ building }: { building: Building }) {
     confirm(guidanceRu.closure(label, closed), next); setScenario(next);
   };
   const applyPreset = (values: Requirements, label: string) => { requirement(values, guidanceRu.preset(label)); setNumericDraft({ minWidthM: String(values.minWidthM * 100), maxSlopePercent: String(values.maxSlopePercent) }); };
-  const reset = () => { clearGuidance(); confirm(guidanceRu.reset, defaultScenario()); setGestureReset(value => value + 1); setScenario(defaultScenario()); setCamera(INITIAL_CAMERA); setGesturesEnabled(false); setNumericDraft({ minWidthM: '90', maxSlopePercent: '5' }); setRequirementsOpen(false); setClosuresOpen(false); };
+  const reset = () => { clearGuidance(); resetPlan(); confirm(guidanceRu.reset, defaultScenario()); setGestureReset(value => value + 1); setScenario(defaultScenario()); setCamera(INITIAL_CAMERA); setGesturesEnabled(false); setNumericDraft({ minWidthM: '90', maxSlopePercent: '5' }); setRequirementsOpen(false); setClosuresOpen(false); };
   const updateCamera = useCallback((value: CameraState) => setCamera(boundCamera(value)), []);
   const good = result.status === 'ok';
   const uncertain = good && result.uncertainEdgeIds.length > 0;
@@ -168,7 +188,7 @@ function Planner({ building }: { building: Building }) {
   };
   const fitRoute = () => {
     if (!good) return;
-    speech.controller.stop(); setPlanZoom(1);
+    speech.controller.stop(); resetPlan();
     const scene = visualRef.current?.querySelector('.diorama');
     const bounds = scene?.getBoundingClientRect();
     setCamera(fitRouteCamera(building, result.nodeIds, bounds ? bounds.width / bounds.height : 1));
@@ -196,18 +216,13 @@ function Planner({ building }: { building: Building }) {
     if (section === 'requirements') setRequirementsOpen(true); else setClosuresOpen(true);
     requestAnimationFrame(() => (section === 'requirements' ? requirementsRef : closuresRef).current?.querySelector('summary')?.focus());
   };
-  return <>
-    <a className="skip-link" href="#route-controls">К настройке маршрута</a>
-    <header className="site-header"><Brand /><a className="display-jump" href="#display-settings" onClick={event => { event.preventDefault(); const section = document.getElementById('display-settings'); const details = section?.querySelector('details'); if (details) details.open = true; section?.focus(); section?.scrollIntoView({ block: 'start' }); }}>{ru.display.entry}</a><span className="header-note"><i aria-hidden="true" />Локальный сценарий</span></header>
-    <main>
-      <div className="intro"><div><h1>Навигатор доступных маршрутов</h1><p className="intro-copy">Выберите начало, цель и условия прохода.</p></div><details className="fiction-note" open={desktop || fictionOpen}><summary tabIndex={desktop ? -1 : 0} onClick={event => { event.preventDefault(); if (!desktop) setFictionOpen(open => !open); }}><span className="fiction-icon" aria-hidden="true">i</span><strong>{ru.fiction}</strong></summary><p>{ru.fictionDetail}</p></details></div>
-      <div className="workspace">
-        <section className="controls-panel endpoints-panel" id="route-controls" aria-label="Настройка маршрута" tabIndex={-1}>
+  const endpointsPanel = <section className="controls-panel endpoints-panel" id="route-controls" data-workspace-panel="endpointsPanel" aria-label="Настройка маршрута" tabIndex={-1}>
           <div className="panel-title"><span className="section-index">01</span><h2>Ваш маршрут</h2></div>
           <div className="endpoint-fields"><label>{ru.start}<select aria-label={ru.start} aria-describedby="start-description" value={scenario.start} onChange={e => patch({ start: e.target.value })}>{selectable.map(n => <option key={n.id} value={n.id}>{labelForNode(n.id)}</option>)}</select><span id="start-description" className="endpoint-caption">{endpointDescription(scenario.start)}</span></label><div className="endpoint-link" aria-hidden="true">↓</div><label>{ru.destination}<select aria-label={ru.destination} aria-describedby="destination-description" value={scenario.destination} onChange={e => patch({ destination: e.target.value })}>{selectable.map(n => <option key={n.id} value={n.id}>{labelForNode(n.id)}</option>)}</select><span id="destination-description" className="endpoint-caption">{endpointDescription(scenario.destination)}</span></label></div>
           <button className="endpoint-swap" type="button" aria-label={ru.camera.swap} title={ru.camera.swap} onClick={() => patch({ start: scenario.destination, destination: scenario.start })}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M7 20V4M3 8L7 4L11 8M17 4V20M13 16L17 20L21 16" /></svg></button>
-        </section>
-        <aside className="controls-panel advanced-panel" aria-label="Дополнительные настройки">
+        </section>;
+
+  const requirementsPanel = <aside className="controls-panel advanced-panel" data-workspace-panel="requirementsPanel" aria-label="Дополнительные настройки">
           <details ref={requirementsRef} id="requirements-settings" className="settings-disclosure" open={desktop || requirementsOpen}>
             <summary tabIndex={desktop ? -1 : 0} onClick={event => { event.preventDefault(); if (!desktop) setRequirementsOpen(open => !open); }}><strong>{ru.requirements}</strong><span>{requirementsDescription}</span>{(widthInvalid || slopeInvalid) && <span className="warning">Ошибки: {[widthInvalid && 'ширина', slopeInvalid && 'уклон'].filter(Boolean).join(', ')}. Действуют последние допустимые значения.</span>}</summary>
             <fieldset><legend>{ru.requirements}</legend><p className="field-help">Пресеты — редактируемые учебные значения.</p><div className="presets">{presets.map(p => <button key={p.id} type="button" onClick={() => applyPreset(p.requirements, p.label)}>{p.label}</button>)}</div>
@@ -219,43 +234,46 @@ function Planner({ building }: { building: Building }) {
             <label className="check-row unknown-choice"><input type="checkbox" aria-label={ru.unknown} aria-describedby="unknown-policy-hint" checked={scenario.requirements.allowUnknown} onChange={e => requirement({ allowUnknown: e.target.checked }, guidanceRu.unknown(e.target.checked))} /><span>{ru.unknown}<small id="unknown-policy-hint">{ru.unknownHint}</small></span></label>
             </fieldset>
           </details>
-        </aside>
-        <section className="route-panel outcome-panel" aria-label="Результат маршрута">
+        </aside>;
+
+  const outcomePanel = <section className="route-panel outcome-panel" data-workspace-panel="outcomePanel" aria-label="Результат маршрута">
           <div className="panel-title"><span className="section-index">02</span><h2>Результат маршрута</h2></div>
           <div className={`route-summary ${uncertain || !good ? 'caution' : ''}`} role="status" aria-live="polite" aria-atomic="true" data-testid="route-result" data-route-state={diagnosis.kind} data-route-ids={good ? result.edgeIds.join(',') : ''}>
             <span className="status-kicker">{good ? uncertain ? 'НЕПОДТВЕРЖДЁННЫЙ ПУТЬ' : 'ПОДХОДИТ УСЛОВИЯМ МОДЕЛИ' : 'ПУТЬ НЕ ПОСТРОЕН'}</span>
             {good ? <><div className="distance">{numberRu(result.distanceM)}<span>м</span></div><p>{result.edgeIds.length === 0 ? 'Начало и цель — одна выбранная точка.' : countRu(result.edgeIds.length, ['участок', 'участка', 'участков'])} · {desktop ? ru.route.floors(diagnosis.floors) : guidanceRu.floorsCompact(diagnosis.floors)}</p><p>{ru.route.stepFree(diagnosis.stepFree)}</p><small>Расстояние по учебному графу.</small></> : <><h3>{diagnosis.kind === 'invalid' ? ru.route.invalid : diagnosis.kind === 'insufficient' ? ru.route.insufficient : ru.route.noRoute}</h3><p>{result.status === 'invalid' ? result.message : diagnosis.kind === 'insufficient' ? ru.route.insufficientHint : diagnosis.connected ? ru.route.blockedHint : ru.route.disconnectedHint}</p>{diagnosis.kind === 'insufficient' && <p>{[...new Set(diagnosis.details.flatMap(detail => detail.reasons))].map(reason => reasonNames[reason]).join('; ')}.</p>}</>}
           </div>
           {uncertain && <div className="uncertain-warning" role="alert"><strong>{ru.route.uncertainty}</strong><p>{countRu(result.uncertainEdgeIds.length, ['неподтверждённый участок', 'неподтверждённых участка', 'неподтверждённых участков'])}: {diagnosis.details.map(detail => { const edge = edgeMap.get(detail.edgeId)!; const index = result.edgeIds.indexOf(detail.edgeId); return `${edgeNames[edge.type]}: ${labelForNode(result.nodeIds[index])} → ${labelForNode(result.nodeIds[index + 1])} — ${detail.reasons.map(reason => reasonNames[reason]).join(', ')}`; }).join('; ')}. Известные нарушения условий по-прежнему исключены.</p></div>}
-          {good && <RouteVariants building={building} routes={routes} selected={selectedVariant} desktop={desktop} onSelect={variant => { speech.controller.stop(); setHighlight(null); setGuidance({ key: routingKey, variant, step: null }); confirm(guidanceRu.selected(variant), undefined, routes[variant]!); }} />}
-          <div className="guidance-actions"><button type="button" onClick={readRoute}>{guidanceRu.readRoute}</button><button type="button" onClick={speech.controller.stop}>{guidanceRu.stop}</button></div>
+          {good && <RouteVariants building={building} routes={routes} selected={selectedVariant} desktop={desktop} expanded={variantsOpen} onExpandedChange={setVariantsOpen} onSelect={variant => { speech.controller.stop(); setHighlight(null); setGuidance({ key: routingKey, variant, step: null }); confirm(guidanceRu.selected(variant), undefined, routes[variant]!); }} />}
+          <div className="guidance-actions"><button type="button" aria-describedby={speech.status === 'ready' ? undefined : 'route-speech-feedback'} onClick={readRoute}>{guidanceRu.readRoute}</button><button type="button" aria-describedby={speech.status === 'ready' ? undefined : 'route-speech-feedback'} onClick={speech.controller.stop}>{guidanceRu.stop}</button></div>
+          {speech.status !== 'ready' && <p id="route-speech-feedback" className="speech-feedback">{speechRu[speech.status]}</p>}
           {!good && <div className="settings-shortcuts"><button type="button" onClick={() => openSettings('requirements')}>Изменить условия</button><button type="button" onClick={() => openSettings('closures')}>Открыть закрытия</button></div>}
           <a className="directions-jump" href="#route-directions" onClick={event => { event.preventDefault(); directionsRef.current?.focus(); directionsRef.current?.scrollIntoView({ block: 'start' }); }}>{good ? 'К полным шагам маршрута ↓' : 'К причинам исключения ↓'}</a>
-        </section>
+        </section>;
 
-        <section ref={visualRef} className="visual-panel" aria-label="Визуализация здания">
+  const visualPanel = <section ref={visualRef} className="visual-panel" data-workspace-panel="visualPanel" aria-label="Визуализация здания">
           <div className="visual-toolbar"><div><span className="section-index">03</span><h2>Здание «{ru.brand}»</h2></div><div className="view-switch" role="group" aria-label="Вид здания"><button type="button" aria-label="3D модель" aria-pressed={view === '3d'} disabled={webglFailed} onClick={() => setView('3d')}>3D<span className="view-label"> модель</span></button><button type="button" aria-label="2D схема" aria-pressed={view === '2d'} onClick={() => setView('2d')}>2D<span className="view-label"> схема</span></button></div></div>
           <div className="model-meta"><span>3 этажа · 2 лифта</span><span>{ru.modelGeometry}</span></div>
           <div className="floor-toolbar"><span>{guidanceRu.floorLabel}</span><div role="group" aria-label="Этажи"><button type="button" aria-pressed={scenario.floor === 'all'} onClick={() => patch({ floor: 'all' })}>Все</button>{building.floors.map(f => <button type="button" key={f.id} aria-pressed={scenario.floor === f.id} onClick={() => patch({ floor: f.id })}>{f.id + 1}</button>)}</div></div>
           {webglFailed && <p className="fallback-note" role="status">3D недоступно: автоматически показана 2D схема. Маршрут и настройки сохранены.</p>}
-          {view === '3d' && !webglFailed ? <div className="diorama-wrap"><VisualBoundary onFailure={onFailure}><Suspense fallback={<div className="visual-loading" role="status">Загружаем авторскую модель…</div>}><Diorama building={building} result={result} floor={scenario.floor} closedEdgeIds={scenario.closedEdgeIds} camera={camera} onCameraChange={updateCamera} motionAllowed={motionAllowed} theme={preferences.theme} largerText={preferences.largerText} highlight={activeHighlight} gesturesEnabled={gesturesEnabled} gestureReset={gestureReset} onFailure={onFailure} /></Suspense></VisualBoundary><span className="model-caption">Вымышленное здание / масштаб условный</span></div> : <div className="primary-plan" style={{ '--plan-zoom': planZoom } as import('react').CSSProperties}><FloorPlan building={building} result={result} floor={scenario.floor} closedEdgeIds={scenario.closedEdgeIds} highlight={activeHighlight} /></div>}
+          {view === '3d' && !webglFailed ? <div className="diorama-wrap"><VisualBoundary onFailure={onFailure}><Suspense fallback={<div className="visual-loading" role="status">Загружаем авторскую модель…</div>}><Diorama building={building} result={result} floor={scenario.floor} closedEdgeIds={scenario.closedEdgeIds} camera={camera} onCameraChange={updateCamera} motionAllowed={motionAllowed} theme={preferences.theme} largerText={preferences.largerText} highlight={activeHighlight} gesturesEnabled={gesturesEnabled} gestureReset={gestureReset} onFailure={onFailure} /></Suspense></VisualBoundary><span className="model-caption">Вымышленное здание / масштаб условный</span></div> : <div className="primary-plan"><FloorPlan building={building} result={result} floor={scenario.floor} closedEdgeIds={scenario.closedEdgeIds} highlight={activeHighlight} zoom={planZoom} resetToken={planReset} /></div>}
           {view === '3d' && !webglFailed && <details className="camera-disclosure" open><summary>{guidanceRu.cameraActions}</summary>
           <div className="camera-controls" aria-label="Управление камерой"><label>Ракурс<select aria-label="Ракурс" value={camera.preset} onChange={e => setCamera(c => boundCamera({ ...c, preset: e.target.value as CameraState['preset'] }))}><option value="overview">Общий вид</option><option value="front">Спереди</option><option value="top">Сверху</option></select></label><div role="group" aria-label="Поворот и масштаб камеры"><button type="button" aria-label="Повернуть влево" onClick={() => setCamera(c => boundCamera({ ...c, yaw: c.yaw - 20 }))}>↶</button><button type="button" aria-label="Повернуть вправо" onClick={() => setCamera(c => boundCamera({ ...c, yaw: c.yaw + 20 }))}>↷</button><button type="button" aria-label="Уменьшить масштаб" onClick={() => setCamera(c => boundCamera({ ...c, zoom: c.zoom - 0.15 }))}>−</button><button type="button" aria-label="Увеличить масштаб" onClick={() => setCamera(c => boundCamera({ ...c, zoom: c.zoom + 0.15 }))}>+</button><button type="button" onClick={() => { setGestureReset(value => value + 1); setCamera(INITIAL_CAMERA); setHighlight(null); setGesturesEnabled(false); }}>Сброс камеры</button></div><div role="group" aria-label="Смещение камеры">{([{ label: 'Сместить вид влево', text: '←', x: -1, y: 0 }, { label: 'Сместить вид вправо', text: '→', x: 1, y: 0 }, { label: 'Сместить вид вверх', text: '↑', x: 0, y: -1 }, { label: 'Сместить вид вниз', text: '↓', x: 0, y: 1 }]).map(control => <button key={control.label} type="button" aria-label={control.label} onClick={() => setCamera(c => boundCamera({ ...c, panX: c.panX + control.x, panY: c.panY + control.y }))}>{control.text}</button>)}</div></div>
           </details>}
           <div className="framing-controls"><button type="button" disabled={!nodeMap.has(scenario.destination)} onClick={() => focusNode(scenario.destination)}>{ru.camera.destinationFocus}</button><button type="button" disabled={!good} onClick={fitRoute}>{ru.camera.fit}</button><button type="button" disabled={!activeHighlight} onClick={() => { speech.controller.stop(); setHighlight(null); setGuidance({ key: routingKey, variant: selectedVariant, step: null }); }}>{ru.camera.clearFocus}</button>{view === '3d' && !webglFailed && <><button type="button" aria-pressed={gesturesEnabled} onClick={() => setGesturesEnabled(enabled => !enabled)}>{ru.camera.gestures}</button><button type="button" aria-label={ru.camera.tiltUp} onClick={() => setCamera(c => boundCamera({ ...c, tilt: (c.tilt ?? 0) + 5 }))}>Ракурс ↑</button><button type="button" aria-label={ru.camera.tiltDown} onClick={() => setCamera(c => boundCamera({ ...c, tilt: (c.tilt ?? 0) - 5 }))}>Ракурс ↓</button></>}</div>
-          {view === '2d' && <div className="framing-controls" role="group" aria-label={guidanceRu.zoom2d}><button type="button" aria-label={guidanceRu.zoomOut2d} disabled={planZoom <= 1} onClick={() => setPlanZoom(value => Math.max(1, value - .25))}>−</button><button type="button" aria-label={guidanceRu.zoomIn2d} disabled={planZoom >= 2} onClick={() => setPlanZoom(value => Math.min(2, value + .25))}>+</button><button type="button" onClick={() => setPlanZoom(1)}>{guidanceRu.reset2d}</button></div>}
+          {view === '2d' && <div className="framing-controls" role="group" aria-label={guidanceRu.zoom2d}><button type="button" aria-label={guidanceRu.zoomOut2d} disabled={planZoom <= 1} onClick={() => setPlanZoom(value => Math.max(1, value - .25))}>−</button><button type="button" aria-label={guidanceRu.zoomIn2d} disabled={planZoom >= 2} onClick={() => setPlanZoom(value => Math.min(2, value + .25))}>+</button><button type="button" onClick={resetPlan}>{guidanceRu.reset2d}</button></div>}
           <p className="scene-help">{view === '3d' && !webglFailed ? ru.sceneHelp3d : ru.sceneHelp2d}</p>
           <div className="legend"><span><i className="endpoint-start" />Начало маршрута</span><span><i className="endpoint-destination" />Цель маршрута</span><span><i className="route-key" />Маршрут · стрелки показывают порядок</span><span><i className="unknown-key" />? Неподтверждённый участок</span><span><b>×</b> Закрыто в симуляции</span></div>
-          {view === '3d' && <details className="always-plan"><summary>Открыть ту же дорогу на 2D схеме</summary><FloorPlan building={building} result={result} floor={scenario.floor} closedEdgeIds={scenario.closedEdgeIds} highlight={activeHighlight} /></details>}
-        </section>
+          {view === '3d' && <details className="always-plan" open={inlinePlanOpen}><summary onClick={event => { event.preventDefault(); setInlinePlanOpen(open => !open); }}>Открыть ту же дорогу на 2D схеме</summary><FloorPlan building={building} result={result} floor={scenario.floor} closedEdgeIds={scenario.closedEdgeIds} highlight={activeHighlight} /></details>}
+        </section>;
 
-        <section ref={directionsRef} id="route-directions" className="route-panel directions-panel" aria-label="Полные шаги и причины исключения" tabIndex={-1}>
+  const directionsPanel = <section ref={directionsRef} id="route-directions" className="route-panel directions-panel" data-workspace-panel="directionsPanel" aria-label="Полные шаги и причины исключения" tabIndex={-1}>
           <div className="panel-title"><span className="section-index">04</span><h2>Путь по шагам</h2></div>
-          {good && <RouteGuidance building={building} result={result} selected={selectedStep} onSelect={selectStep} onReadStep={() => { speech.controller.setEnabled(true); readStep(); }} onStop={speech.controller.stop} />}
+          {good && <RouteGuidance building={building} result={result} selected={selectedStep} onSelect={selectStep} onReadStep={() => { speech.controller.setEnabled(true); readStep(); }} onStop={speech.controller.stop} speechStatus={speech.status} />}
           {result.status === 'no-route' && diagnosis.details.length > 0 && <details className="excluded-details" open><summary>{diagnosis.kind === 'insufficient' ? ru.route.missing : ru.route.obstacles}</summary><ul>{diagnosis.details.map(item => <li key={item.edgeId} data-edge-id={item.edgeId}><strong>{edgeNames[edgeMap.get(item.edgeId)!.type]}: {labelForNode(edgeMap.get(item.edgeId)!.from)} ↔ {labelForNode(edgeMap.get(item.edgeId)!.to)}</strong><span>{item.reasons.map(reason => reasonNames[reason]).join('; ')}</span></li>)}</ul></details>}
           <div className="evidence-note"><span aria-hidden="true">◇</span><p><strong>Прозрачные исходные данные</strong>{ru.evidenceSource} «Задано в модели» означает свойство учебного примера.</p></div>
-        </section>
-        <aside className="controls-panel simulation-panel" aria-label="Симуляция закрытий">
+        </section>;
+
+  const closuresPanel = <aside className="controls-panel simulation-panel" data-workspace-panel="closuresPanel" aria-label="Симуляция закрытий">
           <details ref={closuresRef} id="closure-settings" className="settings-disclosure" open={desktop || closuresOpen}>
             <summary tabIndex={desktop ? -1 : 0} onClick={event => { event.preventDefault(); if (!desktop) setClosuresOpen(open => !open); }}><strong>Симуляция закрытий</strong><span>Закрыто групп: {closedGroups} из {building.closureGroups.length}</span></summary>
             <fieldset className="closures"><legend>Симуляция закрытий</legend><p className="field-help">Изменения действуют только в этом браузере.</p>{building.closureGroups.map(group => {
@@ -265,7 +283,18 @@ function Planner({ building }: { building: Building }) {
           </details>
           <button className="reset-button" type="button" onClick={reset}>↺ {ru.reset}</button>
           <p className="storage-note" role="status">{storageWarning ? 'Сохранение недоступно или данные повреждены. Сценарий работает; при ошибке загрузки взяты исходные значения.' : initial.restored ? 'Настройки восстановлены и сохраняются в браузере.' : 'Настройки сохраняются в этом браузере.'}</p>
-        </aside>
+        </aside>;
+  return <>
+    <a className="skip-link" href="#route-controls">К настройке маршрута</a>
+    <header className="site-header"><Brand /><a className="display-jump" href="#display-settings" onClick={event => { event.preventDefault(); const section = document.getElementById('display-settings'); const details = section?.querySelector('details'); if (details) details.open = true; section?.focus(); section?.scrollIntoView({ block: 'start' }); }}>{ru.display.entry}</a><span className="header-note"><i aria-hidden="true" />Локальный сценарий</span></header>
+    <main>
+      <div className="intro"><h1>Навигатор доступных маршрутов</h1><p className="intro-copy">Выберите начало, цель и условия прохода.</p></div>
+      <div className="workspace">
+        {wideWorkspace ? <>
+          <div className="control-stack">{endpointsPanel}{requirementsPanel}{closuresPanel}</div>
+          {visualPanel}
+          <div className="route-stack">{outcomePanel}{directionsPanel}</div>
+        </> : <>{endpointsPanel}{requirementsPanel}{outcomePanel}{visualPanel}{directionsPanel}{closuresPanel}</>}
       </div>
       <DisplaySettings preferences={preferences} onChange={setPreferences} systemReduced={systemReduced} warning={displayWarning} speech={speech} />
       <ReportJournal />
