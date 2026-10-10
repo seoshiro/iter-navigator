@@ -3,12 +3,12 @@ import { ru } from '../i18n/ru';
 import type { LocalSpeech } from '../ui/speech';
 import { guidanceRu, speechRu } from '../i18n/guidance-ru';
 
-interface Props { preferences: DisplayPreferences; onChange: (value: DisplayPreferences) => void; systemReduced: boolean; warning: boolean; speech: LocalSpeech }
-export function DisplaySettings({ preferences, onChange, systemReduced, warning, speech }: Props) {
-  return <section id="display-settings" tabIndex={-1} className="display-settings" aria-label={ru.display.title}>
+interface Props { preferences: DisplayPreferences; onChange: (value: DisplayPreferences) => void; systemReduced: boolean; warning: boolean; speech: LocalSpeech; expanded: boolean; onExpandedChange: (expanded: boolean) => void }
+export function DisplaySettings({ preferences, onChange, systemReduced, warning, speech, expanded, onExpandedChange }: Props) {
+  return <section id="display-settings" tabIndex={-1} className="display-settings" data-workspace-panel="displayPanel" aria-label={ru.display.title}>
     <div className="speech-controls"><label className="check-row"><input type="checkbox" checked={speech.enabled} onChange={event => speech.controller.setEnabled(event.target.checked)} />{guidanceRu.enable}</label><button type="button" onClick={speech.controller.stop}>{guidanceRu.stop}</button></div>
-    <p role="status" aria-live="polite" data-testid="speech-status">{speechRu[speech.status]}</p><details>
-    <summary>{ru.display.title}</summary>
+    <p role="status" aria-live="polite" data-testid="speech-status">{speechRu[speech.status]}</p><details open={expanded}>
+    <summary onClick={event => { event.preventDefault(); onExpandedChange(!expanded); }}>{ru.display.title}</summary>
     <fieldset><legend>{ru.display.title}</legend>
       <label>{ru.display.theme}<select value={preferences.theme} onChange={event => onChange({ ...preferences, theme: event.target.value as DisplayPreferences['theme'] })}><option value="dark">{ru.display.dark}</option><option value="light">{ru.display.light}</option></select></label>
       <label className="check-row"><input type="checkbox" checked={preferences.largerText} onChange={event => onChange({ ...preferences, largerText: event.target.checked })} />{ru.display.largerText}</label>

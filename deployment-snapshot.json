@@ -1,6 +1,6 @@
 {
-  "sourceRevision": "114d1107256a9c3edb9b551e17389aad485179e3",
-  "generatedAt": "2026-10-10T08:10:33.804Z",
+  "sourceRevision": "9e6693d6a36dc199e4dbd67b16b9b771bcc2647b",
+  "generatedAt": "2026-10-10T09:20:08.881Z",
   "renderOrigin": "https://iter-public-demo-api.onrender.com",
   "publicOrigin": "https://iter-navigator.vercel.app",
   "hostedConfiguration": true,
@@ -104,7 +104,7 @@
     },
     {
       "path": "src/App.tsx",
-      "sha256": "b879094e91ee43b07b0868b5b7a34dc6efe807c7ae05f2468563bd2a22e7380d"
+      "sha256": "da75752f8a4c92f03ff481e6fd9453efb984eb4b447b5df1a81ce27d782e5cdd"
     },
     {
       "path": "src/components/Brand.tsx",
@@ -116,7 +116,7 @@
     },
     {
       "path": "src/components/DisplaySettings.tsx",
-      "sha256": "7cc22226e82e79706274c330ed567a40f694dd97ced973b6ee6b7c8fcf4f583b"
+      "sha256": "dce9994c7d93ef1f28390638bf2fe5d46c2260bec84a749084db57e2a996a872"
     },
     {
       "path": "src/components/FloorPlan.tsx",
@@ -128,7 +128,7 @@
     },
     {
       "path": "src/components/RouteGuidance.tsx",
-      "sha256": "3c7f6ffa2cfe04c91f0ed8235719752c9d6ffdf4890bb1e5d7fccd3af3fd6574"
+      "sha256": "8a8533813f5e385545633c610d621773817d3b3c401157477a4f144bafbdabed"
     },
     {
       "path": "src/data/building.json",
@@ -176,7 +176,7 @@
     },
     {
       "path": "src/styles.css",
-      "sha256": "f28f6c8d6eaadee139a8eb136358548119493f49a72b7ad5a1af5c60ea2294dc"
+      "sha256": "bd0e52042fe896e2108776580eecee74914733efdd11e70c049e1a5a2581b8a1"
     },
     {
       "path": "src/ui/camera.ts",
@@ -338,7 +338,7 @@
     },
     {
       "path": "src/App.tsx",
-      "sha256": "46e42254700a621e7c8c47f34790bcbdc860b6f9064440edd51276bc770534b8"
+      "sha256": "b4984bee76016965e77e68e3d744832fe0115c67405d80f26837bfdf4b8ff7f7"
     },
     {
       "path": "src/components/Brand.tsx",
@@ -350,7 +350,7 @@
     },
     {
       "path": "src/components/DisplaySettings.tsx",
-      "sha256": "7cc22226e82e79706274c330ed567a40f694dd97ced973b6ee6b7c8fcf4f583b"
+      "sha256": "dce9994c7d93ef1f28390638bf2fe5d46c2260bec84a749084db57e2a996a872"
     },
     {
       "path": "src/components/FloorPlan.tsx",
@@ -362,7 +362,7 @@
     },
     {
       "path": "src/components/RouteGuidance.tsx",
-      "sha256": "3c7f6ffa2cfe04c91f0ed8235719752c9d6ffdf4890bb1e5d7fccd3af3fd6574"
+      "sha256": "8a8533813f5e385545633c610d621773817d3b3c401157477a4f144bafbdabed"
     },
     {
       "path": "src/data/building.json",
@@ -410,7 +410,7 @@
     },
     {
       "path": "src/styles.css",
-      "sha256": "7e80d9d4879bb1ea224ef91022a4dd9b4d1200d5417b8fbabce3af142b905d61"
+      "sha256": "3b45cbb9b9c59a7ecc6da6d1f73fc824688e93e9950eab4db220382af9830735"
     },
     {
       "path": "src/ui/camera.ts",
