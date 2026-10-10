@@ -1,9 +1,15 @@
-import { useId } from 'react';
+import { useId, useLayoutEffect, useRef } from 'react';
 import type { Building, RouteResult } from '../domain/model';
 
-interface Props { building: Building; result: RouteResult; floor: 'all' | number; closedEdgeIds: string[]; highlight?: { nodeId: string; edgeId?: string } | null }
-export function FloorPlan({ building, result, floor, closedEdgeIds, highlight }: Props) {
+interface Props { building: Building; result: RouteResult; floor: 'all' | number; closedEdgeIds: string[]; highlight?: { nodeId: string; edgeId?: string } | null; zoom?: number; resetToken?: number }
+export function FloorPlan({ building, result, floor, closedEdgeIds, highlight, zoom = 1, resetToken = 0 }: Props) {
   const prefix = useId();
+  const collectionRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const collection = collectionRef.current;
+    if (!collection) return;
+    for (const element of [collection, ...collection.querySelectorAll<HTMLElement>('.floor-viewport')]) { element.scrollTop = 0; element.scrollLeft = 0; }
+  }, [resetToken]);
   const floors = building.floors.filter(f => floor === 'all' || f.id === floor);
   const nodeMap = new Map(building.nodes.map(n => [n.id, n]));
   const routed = new Set(result.status === 'ok' ? result.edgeIds : []);
@@ -11,12 +17,13 @@ export function FloorPlan({ building, result, floor, closedEdgeIds, highlight }:
   const closed = new Set(closedEdgeIds);
   const highlightedEdge = building.edges.find(edge => edge.id === highlight?.edgeId);
   const transitionNodes = highlightedEdge && nodeMap.get(highlightedEdge.from)!.floor !== nodeMap.get(highlightedEdge.to)!.floor ? [highlightedEdge.from, highlightedEdge.to] : [];
+  const routeFloors = new Set(result.status === 'ok' ? result.nodeIds.map(id => nodeMap.get(id)!.floor) : []);
   const x = (v: number) => 24 + v * 9;
   const y = (v: number) => 35 + v * 9;
-  return <div className="floor-plans" data-testid="floor-plan" data-highlight-node={highlight?.nodeId ?? ''} data-highlight-edge={highlight?.edgeId ?? ''} data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}>
+  return <div ref={collectionRef} className="floor-plans" role="region" aria-label="Схемы этажей учебной модели" tabIndex={0} data-testid="floor-plan" data-highlight-node={highlight?.nodeId ?? ''} data-highlight-edge={highlight?.edgeId ?? ''} data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}>
     {floors.map(f => <figure className="floor-card" key={f.id} data-floor-id={f.id}>
-      <figcaption><span>{f.label}</span><span className="tiny muted">Схема условная</span></figcaption>
-      <svg viewBox="0 0 336 262" role="img" tabIndex={-1} aria-labelledby={`${prefix}-${f.id}`}>
+      <figcaption><span>{f.label}{routeFloors.has(f.id) ? ' · На маршруте' : ''}</span><span className="tiny muted">Схема условная</span></figcaption>
+      <div className="floor-viewport" role="region" aria-label={`${f.label}: прокручиваемая схема`} tabIndex={0}><svg viewBox="0 0 336 262" style={{ width: `calc(min(100%, var(--floor-height) * 336 / 262) * ${zoom})` }} role="img" tabIndex={-1} aria-labelledby={`${prefix}-${f.id}`}>
         <title id={`${prefix}-${f.id}`}>{`${f.label}: схема вымышленного здания и текущий маршрут`}</title>
         <rect x="25" y="40" width="286" height="197" rx="8" className="plan-shell" />
         {[5, 13, 21].map(roomX => <rect key={roomX} x={x(roomX)} y={y(1)} width="59" height="45" rx="3" className="plan-room" />)}
@@ -52,7 +59,7 @@ export function FloorPlan({ building, result, floor, closedEdgeIds, highlight }:
           {result.status === 'ok' && result.nodeIds.at(-1) === n.id && result.nodeIds.length > 1 ? <rect x={x(n.x) - 6} y={y(n.z) - 6} width="12" height="12" rx="1" className="plan-endpoint-destination" /> : <circle cx={x(n.x)} cy={y(n.z)} r={result.status === 'ok' && result.nodeIds[0] === n.id ? 7 : n.selectable ? 5 : 2.5} className={`plan-node ${result.status === 'ok' && result.nodeIds.includes(n.id) ? 'on-route' : ''}`} />}
           {(n.kind === 'room' || n.kind === 'entrance' || n.id === 'lobby-0') && <text x={x(n.x)} y={y(n.z) + (n.kind === 'room' ? -9 : 17)} textAnchor="middle" className="room-label">{n.kind === 'room' ? n.id.replace('room-', '') : n.kind === 'entrance' ? 'Вход' : 'Холл'}</text>}
         </g>)}
-      </svg>
+      </svg></div>
     </figure>)}
   </div>;
 }

@@ -112,10 +112,8 @@ export function ReportJournal() {
           {attempt && !sending && <div className="journal-actions"><button type="button" onClick={() => void send(attempt)}>Повторить тот же запрос</button><button type="button" onClick={() => { uncertainAttempt.current = false; setAttempt(null); setFeedback(reportRu.abandoned); }}>Завершить попытку и разрешить правку</button></div>}
           <div className="journal-list-heading"><h3>Сохранённые сообщения</h3><button type="button" onClick={() => void refresh()}>Обновить журнал</button></div>
           <p className="journal-dates">{reportRu.dates}</p>
-          {(!readStarted || loading) && <p role="status">{hosted ? reportRu.publicLoading : reportRu.loading}</p>}
-          {stale && <p className="journal-notice" role="status" data-testid="report-stale">{hosted ? reportRu.publicUnavailable : reportRu.unavailable}</p>}
-          {readStarted && !loading && !stale && records.length === 0 && <p>В журнале пока нет сообщений.</p>}
-          <ol className="journal-records" data-stale={stale}>{records.map(record => <li key={record.id} data-report-id={record.id}>
+          <p className={stale && !loading ? 'journal-notice' : ''} role="status" aria-live="polite" aria-atomic="true" data-testid="report-read-status">{!readStarted || loading ? <>{hosted ? reportRu.publicLoading : reportRu.loading}{records.length > 0 && ` ${reportRu.refreshStale}`}</> : stale ? <span data-testid="report-stale">{hosted ? reportRu.publicUnavailable : reportRu.unavailable}</span> : records.length === 0 ? reportRu.empty : reportRu.loaded}</p>
+          <ol className="journal-records" data-stale={stale || loading && records.length > 0}>{records.map(record => <li key={record.id} data-report-id={record.id}>
             <div className="journal-record-title"><strong>{reportKindRu[record.kind]} · {passageLabelRu(record.passageId, REPORT_PASSAGES.find(item => item.id === record.passageId)?.label ?? 'Здание в целом')}</strong><span>{reportStatusRu[record.status]}</span></div>
             <p className="journal-message">{record.message}</p>
             <small>Отправлено: <time dateTime={record.createdAt}>{dateText(record.createdAt)}</time>. Обновлено: <time dateTime={record.updatedAt}>{dateText(record.updatedAt)}</time>. Версия {record.version}.</small>
