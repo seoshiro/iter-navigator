@@ -21,20 +21,22 @@ export function panCamera(camera: CameraState, dx: number, dy: number, height: n
 export function wheelCamera(camera: CameraState, delta: number): CameraState {
   return boundCamera({ ...camera, zoom: camera.zoom * Math.exp(-bounded(delta, -200, 200, 0) * .002) });
 }
-export function fitRouteCamera(building: Building, ids: string[], aspect: number): CameraState {
-  const routeNodes = building.nodes.filter(node => ids.includes(node.id));
-  if (!routeNodes.length) return { ...INITIAL_CAMERA };
-  const points = routeNodes.map(node => ({ x: node.x, y: node.floor * building.floorHeightM + .45, z: node.z }));
-  const range = (axis: 'x' | 'y' | 'z') => [Math.min(...points.map(point => point[axis])), Math.max(...points.map(point => point[axis]))] as const;
-  const x = range('x'); const y = range('y'); const z = range('z');
-  const target = { x: (x[0] + x[1]) / 2, y: (y[0] + y[1]) / 2, z: (z[0] + z[1]) / 2 };
-  const angle = INITIAL_CAMERA.yaw * Math.PI / 180; const elevation = Math.atan2(38, 52);
-  const projected = points.map(point => ({ x: Math.cos(angle) * (point.x - target.x) - Math.sin(angle) * (point.z - target.z),
-    y: Math.cos(elevation) * (point.y - target.y) - Math.sin(elevation) * (Math.sin(angle) * (point.x - target.x) + Math.cos(angle) * (point.z - target.z)) }));
-  // Fit every ordered node with a generous margin for route strokes, endpoints and labels.
-  const extentX = Math.max(...projected.map(point => Math.abs(point.x))) + 3;
-  const extentY = Math.max(...projected.map(point => Math.abs(point.y))) + 3;
-  return boundCamera({ ...INITIAL_CAMERA, target, zoom: Math.min(1.6, 24 * Math.max(.1, aspect) / extentX, 24 / extentY) });
+export const CAMERA_HALF_HEIGHT = 21;
+export function fitRouteCamera(building: Building, ids: string[], aspect: number, current:CameraState=INITIAL_CAMERA): CameraState {
+  const routeNodes=building.nodes.filter(n=>ids.includes(n.id));if(!routeNodes.length)return {...INITIAL_CAMERA};
+  const orientation=boundCamera(current);
+  // Fit the expanded model as context, not merely the unexpanded route centerline.
+  const top=Math.max(...building.floors.map(f=>f.id*(building.floorHeightM+5)))+3;
+  const points=[-5,37].flatMap(x=>[-3,27].flatMap(z=>[-1,top].map(y=>({x,y,z}))));
+  points.push(...routeNodes.map(n=>({x:n.x,y:n.floor*(building.floorHeightM+5)+.45,z:n.z})));
+  const worldTarget={x:16,y:(top-1)/2,z:12};
+  const yaw=orientation.yaw*Math.PI/180;
+  const height=orientation.preset==='top'?70:orientation.preset==='front'?21:38;
+  const radius=orientation.preset==='top'?.1:52;
+  const elevation=Math.max(.18,Math.min(1.55,Math.atan2(height,radius)+(orientation.tilt??0)*Math.PI/180));
+  const projected=points.map(p=>({x:Math.cos(yaw)*(p.x-worldTarget.x)-Math.sin(yaw)*(p.z-worldTarget.z),y:Math.cos(elevation)*(p.y-worldTarget.y)-Math.sin(elevation)*(Math.sin(yaw)*(p.x-worldTarget.x)+Math.cos(yaw)*(p.z-worldTarget.z))}));
+  const extentX=Math.max(...projected.map(p=>Math.abs(p.x)))+1.5,extentY=Math.max(...projected.map(p=>Math.abs(p.y)))+1.5;
+  return boundCamera({...orientation,panX:0,panY:0,target:{...worldTarget,y:worldTarget.y-5},zoom:Math.min(1.6,CAMERA_HALF_HEIGHT*Math.max(.1,aspect)/extentX,CAMERA_HALF_HEIGHT/extentY)});
 }
 export function focusNodeCamera(building: Building, id: string): CameraState {
   const node = building.nodes.find(candidate => candidate.id === id);
