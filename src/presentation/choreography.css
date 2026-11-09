@@ -60,6 +60,7 @@
  .pres-root.pres-choreographed:not(.pres-print) .pres-slide{min-height:calc(100svh - 135px);padding:20px 22px calc(56.25vw + 12px);display:block}
  .pres-root.pres-choreographed:not(.pres-print) .pres-slide .pres-copy-column{width:100%;max-width:100%;margin-left:0}
  .pres-root.pres-choreographed:not(.pres-print) .pres-slide h1{font-size:29px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-intro h1{font-size:76px;letter-spacing:-3px;line-height:1.05}
  .pres-question{font-size:29px;line-height:1.08;margin:18px 0;max-width:18ch}
  .pres-root.pres-choreographed:not(.pres-print) .pres-slide-route .pres-body{display:none}
  .pres-condition-actions{margin:18px 0 16px;gap:6px}
