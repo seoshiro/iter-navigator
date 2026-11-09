@@ -222,14 +222,18 @@ export default function Presentation() {
     if (!stage || !slide) return;
     const layout = () => {
       const height = scene === 0 ? stage.clientWidth * 9 / 16 : scene === 6 ? 185 : Math.max(150, Math.min(300, stage.clientHeight - slide.offsetHeight - 20));
-      stage.style.setProperty('--model-top', '0px');
+      const initialModelTop = scene === 6 ? (slide.querySelector<HTMLElement>('.pres-copy-column')?.offsetHeight ?? 70) + 24 : slide.offsetHeight + 10;
+      stage.style.setProperty('--model-top', `${initialModelTop}px`);
       stage.style.setProperty('--model-height', `${height}px`);
       stage.style.setProperty('--stage-reserve', `${height + 20}px`);
+      // Posters/film are visible before lazy WebGL initialization. Direct URLs
+      // need the final host composition before paint, never a tween from y=0.
+      if (transitionScene.current === null || (scene === 0 && !introDone)) gsap.set(modelRef.current, { top: initialModelTop, x: 0, y: 0, xPercent: 0, yPercent: 0, scale: 1 });
     };
     layout();
     const observer = new ResizeObserver(layout); observer.observe(slide);
     return () => observer.disconnect();
-  }, [scene, compactStage, largeText, print, lang]);
+  }, [scene, compactStage, largeText, print, lang, introDone]);
   useLayoutEffect(() => {
     if (print || (!directorReady && !modelFailed)) return;
     director.requirements = { ...requirements, allowUnknown: scene === 5 && unknown };
