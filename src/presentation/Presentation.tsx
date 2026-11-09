@@ -301,12 +301,35 @@ export default function Presentation() {
       revealInformation();
       if (host) {
         host.dataset.routeProgress = String(pose.current.routeProgress); host.dataset.yaw = String(pose.current.yaw);
+        const frame = host.getBoundingClientRect();
+        const stageFrame = host.parentElement!.getBoundingClientRect();
+        const viewport = window.visualViewport;
+        const viewportLeft = viewport?.offsetLeft ?? 0;
+        const safeLeft = Math.max(stageFrame.left, viewportLeft) + 8;
+        const safeRight = Math.min(stageFrame.right, viewportLeft + (viewport?.width ?? document.documentElement.clientWidth)) - 8;
+        // The host translates and scales during scene changes. Clamp in screen
+        // coordinates, then convert only the label's offset back to host pixels.
+        const hostStyle = getComputedStyle(host);
+        const scaleX = frame.width / parseFloat(hostStyle.width) || 1;
+        const scaleY = frame.height / parseFloat(hostStyle.height) || 1;
         host.querySelectorAll<HTMLElement>('[data-anchor]').forEach(label => {
           const point = controller.current?.project(label.dataset.anchor!);
           const introOpacity = scene === 0 ? label.dataset.anchor === 'entrance' ? pose.current.entrance : pose.current.introGoal : 1;
           label.style.visibility = point?.visible && introOpacity > .05 ? 'visible' : 'hidden';
           label.style.opacity = String(introOpacity);
-          if (point) { label.style.left = `${point.x * 100}%`; label.style.top = `${point.y * 100}%`; }
+          if (point) {
+            label.style.left = `${point.x * 100}%`; label.style.top = `${point.y * 100}%`;
+            label.style.maxWidth = `${Math.max(1, safeRight - safeLeft) / scaleX}px`;
+            const box = label.getBoundingClientRect();
+            const anchorX = frame.left + point.x * frame.width;
+            const centerX = Math.max(safeLeft + box.width / 2, Math.min(safeRight - box.width / 2, anchorX));
+            const shift = (centerX - anchorX) / scaleX;
+            const rise = box.height / scaleY / 2 + label.clientTop;
+            label.style.setProperty('--annotation-shift-x', `${shift}px`);
+            // Keep the leader's endpoint on the projected object, not the clamp.
+            label.style.setProperty('--annotation-leader-length', `${Math.hypot(shift, rise)}px`);
+            label.style.setProperty('--annotation-leader-angle', `${Math.atan2(shift, rise)}rad`);
+          }
         });
       }
     };
@@ -319,7 +342,7 @@ export default function Presentation() {
     } });
     if (!presentationMotionAllowed) {
       if (scene === 4) { renderedClosedRef.current = closed; setRenderedClosed(closed); }
-      Object.assign(pose.current, target); apply(); gsap.set(host, composition);
+      Object.assign(pose.current, target); gsap.set(host, composition); apply();
       if (copyElements) gsap.set(copyElements, { opacity: 1, y: 0 });
       if (routeMeta) gsap.set(routeMeta, { opacity: 1, y: 0 });
       if (secondary) gsap.set(secondary, { autoAlpha: 1 });
