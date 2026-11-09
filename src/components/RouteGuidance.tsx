@@ -29,7 +29,11 @@ export function RouteVariants({ building, routes, selected, onSelect, expanded, 
   const { locale, guidanceRu, numberRu, nodeLabelRu, ru } = useI18n();
   const t = (ru: string, kk: string) => locale === 'kk' ? kk : ru;
   if (!routes.length) return null;
-  if (routes.length === 1) return <p className="no-alternatives" data-testid="no-alternatives">{routes[0]!.edgeIds.length ? guidanceRu.noAdditional : guidanceRu.noAdditionalZero}</p>;
+  if (routes.length === 1) {
+    const floors=routes[0]!.nodeIds.map(id=>building.nodes.find(node=>node.id===id)!.floor);
+    const transitions=floors.reduce((sum,floor,index)=>sum+Number(index>0&&floor!==floors[index-1]),0);
+    return <><p className="no-alternatives" data-testid="no-alternatives">{routes[0]!.edgeIds.length ? guidanceRu.noAdditional : guidanceRu.noAdditionalZero}</p>{transitions>Math.abs(floors.at(-1)!-floors[0]!)&&<p className="detour-note">{t('Этот путь проходит через дополнительный этаж, чтобы связать допустимые проходы. Ограничения не ослаблены.', 'Бұл жол қолжетімді өткелдерді байланыстыру үшін қосымша қабат арқылы өтеді. Шектеулер жеңілдетілген жоқ.')}</p>}</>;
+  }
   const nodes = new Map(building.nodes.map(node => [node.id, node]));
   const edges = new Map(building.edges.map(edge => [edge.id, edge]));
   return <details className="variant-disclosure" open={expanded}><summary aria-label={guidanceRu.compare} onClick={event => { event.preventDefault(); onExpandedChange(!expanded); }}>{guidanceRu.compareCompact}</summary><fieldset className="route-variants"><legend>{guidanceRu.compare}</legend><p className="field-help">{guidanceRu.comparisonHint}</p>
