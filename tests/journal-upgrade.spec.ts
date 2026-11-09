@@ -253,10 +253,13 @@ test('storage read failure cannot overwrite an existing identity even if writes 
 
 test('a second tab cannot dispatch concurrently with the active request', async ({ page, context }) => {
   let posts = 0;
+  let release!: () => void;
+  const responseReady = new Promise<void>(resolve => { release=resolve; });
   const respond = async (route: Route) => {
     if (route.request().method() === 'GET') return json(route, { reports: [], nextCursor: null });
     posts++;
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Keep the first request actually in flight until the concurrency assertion.
+    await responseReady;
     await route.abort('failed');
   };
   await page.route('**/api/reports**', respond);
@@ -268,9 +271,11 @@ test('a second tab cannot dispatch concurrently with the active request', async 
   await page.getByRole('button', { name: 'Отправить в публичный журнал', exact: true }).click(); await dispatched;
   await expect(other.getByRole('button', { name: 'Повторить тот же запрос', exact: true })).toBeVisible();
   await other.getByRole('button', { name: 'Повторить тот же запрос', exact: true }).click();
-  await expect(other.getByTestId('report-feedback')).toContainText('Отправка уже идёт в другой вкладке');
-  expect(posts).toBe(1);
-  expect((await readStored(other)).pending.clientRequestId).toBe((await readStored(page)).pending.clientRequestId);
+  try {
+    await expect(other.getByTestId('report-feedback')).toContainText('Отправка уже идёт в другой вкладке');
+    expect(posts).toBe(1);
+    expect((await readStored(other)).pending.clientRequestId).toBe((await readStored(page)).pending.clientRequestId);
+  } finally { release(); }
   await other.close();
 });
 

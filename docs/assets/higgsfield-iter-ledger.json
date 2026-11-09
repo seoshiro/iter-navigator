@@ -1,0 +1,42 @@
+{
+  "project": "ITER Navigator architectural refinement",
+  "budgetTotal": 100,
+  "currentStageLimit": 44,
+  "previousStageSpend": 0,
+  "operation": {
+    "provider": "Higgsfield",
+    "model": "gpt_image_2_6",
+    "params": {
+      "model": "gpt_image_2_6",
+      "quality": "high",
+      "resolution": "1k",
+      "aspect_ratio": "1:1",
+      "output_format": "png",
+      "count": 1,
+      "prompt": "Create a single seamless tileable architectural material texture, square 1024x1024: refined honed warm ivory limestone with very subtle natural mineral variation and fine pores, desaturated cream and pale neutral grey, no strong veins. This is a flat albedo texture for a precise interactive building maquette, not a photograph of a room. Uniform diffuse unlit color, orthographic straight-on view, no cast shadows, no bevels, no tiles or grout lines, no perspective, no text, no objects, no baked lighting. Match left/right and top/bottom edges seamlessly. Keep low contrast so teal navigation paths remain clearly readable over it. Professional restrained museum architectural model material."
+    },
+    "quotedCredits": 1.5,
+    "status": "completed_accepted_in_real_scene",
+    "purpose": "Low-contrast limestone albedo for actual Three.js floor and plinth materials.",
+    "acceptance": [
+      "Quiet pale stone with no baked shadows or grout",
+      "No text or perspective",
+      "Works under actual scene lighting with clearly readable route",
+      "One result only; no automatic retries"
+    ],
+    "costVerified": "estimate_image_cost credits_exact 1.5",
+    "jobId": "8baa2e7f-bf10-4a27-b09b-89f25ea44653",
+    "creditsAtConfirmedPrice": 1.5,
+    "originalFile": "docs/assets/iter-limestone-original.png",
+    "runtimeFile": "public/textures/iter-limestone.webp",
+    "runtimeDimensions": [
+      512,
+      512
+    ],
+    "runtimeBytes": 8908,
+    "assessment": "Inspected source and actual assembled, expanded, focused and rotated Chrome scene. Fine low-contrast stone preserves route legibility. Accepted first result; no retry or other generation."
+  },
+  "cumulativeITERStageSpend": 1.5,
+  "remainingCurrentStage": 42.5,
+  "remainingTotal": 98.5
+}

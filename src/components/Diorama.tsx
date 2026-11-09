@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { PointerEvent } from 'react';
 import { useI18n } from '../i18n/locale';
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Building, RouteResult } from '../domain/model';
 import { boundCamera, dragCamera, panCamera, wheelCamera } from '../ui/camera';
 import { createFloorArchitecture } from '../ui/architecture';
@@ -18,18 +19,15 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
   const host = useRef<HTMLDivElement>(null);
   const runtime = useRef<{ update: (next: VisualState) => void; interrupt: () => void } | null>(null);
   const latest = useRef<VisualState>({ result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, expanded, cameraTransitionId });
-  const pointers = useRef(new Map<number, { x: number; y: number; touch: boolean; button: number }>());
+  const pointers = useRef(new Map<number, { x: number; y: number; startX: number; startY: number; touch: boolean; button: number; axis: 'pending' | 'rotate' }>());
   useLayoutEffect(() => {
     const container = host.current; const ids = [...pointers.current.keys()]; pointers.current.clear();
     for (const id of ids) if (container?.hasPointerCapture(id)) container.releasePointerCapture(id);
     if (container) container.dataset.dragging = 'false';
-  }, [gestureReset]);
+  }, [gestureReset, gesturesEnabled]);
   useLayoutEffect(() => {
     latest.current = { result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, expanded, cameraTransitionId };
     runtime.current?.update(latest.current);
-    if (!gesturesEnabled) for (const [id, pointer] of pointers.current) if (pointer.touch) {
-      pointers.current.delete(id); if (host.current?.hasPointerCapture(id)) host.current.releasePointerCapture(id);
-    }
     if (host.current) host.current.dataset.dragging = String(pointers.current.size > 0);
   }, [result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, expanded, cameraTransitionId]);
   useEffect(() => {
@@ -38,7 +36,8 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       if (!latest.current.gesturesEnabled) return;
       event.preventDefault();
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container.clientHeight : 1);
-      onCameraChange(wheelCamera(latest.current.camera, delta));
+      runtime.current?.interrupt();
+      const next = wheelCamera(latest.current.camera, delta); latest.current = {...latest.current, camera:next}; onCameraChange(next);
     };
     container.addEventListener('wheel', wheel, { passive: false });
     return () => container.removeEventListener('wheel', wheel);
@@ -90,7 +89,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       allocation.materials.push(value); return value;
     };
     const ivory = material('#ede6d4'); const wall = material('#faf5e8'); const wood = material('#aa8660');
-    const green = material('#577d62'); const roomFinish = material('#d9dfd5');
+    const green = material('#577d62'); const roomFinish = material('#d9dfd5'); const trim = material('#506962'); const circulation = material('#d3d4c8'); const glazing = material('#a9c7c4', .48); const metal = material('#8c9992');
     const box = (sx: number, sy: number, sz: number, x: number, y: number, z: number, value: THREE.Material) => {
       const geometry = new THREE.BoxGeometry(sx, sy, sz); allocation.geometries.push(geometry);
       const mesh = new THREE.Mesh(geometry, value); mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
@@ -321,7 +320,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       renderer.domElement.addEventListener('webglcontextlost', contextLost); container.append(renderer.domElement);
       scene.add(new THREE.HemisphereLight('#f7f2df', '#384b53', 1.8));
       const sun = new THREE.DirectionalLight('#fff4dc', 2.1); sun.position.set(-10, 45, 25); sun.castShadow = true; shadow = sun.shadow;
-      sun.shadow.mapSize.set(1024, 1024); Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40 }); scene.add(sun);
+      sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias=-.0005; sun.shadow.normalBias=.035; Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40 }); scene.add(sun);
       allocation = structureResources;
       const surroundings = parent = new THREE.Group(); scene.add(surroundings);
       box(42, .6, 31, 16, -.75, 12, material('#374747'));
@@ -329,17 +328,78 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
         const group = parent = new THREE.Group(); scene.add(group); floorGroups.set(level.id, group);
         const h = level.id * building.floorHeightM;
         const slab = material('#eee8d9', 1); floorSlabs.set(level.id, slab);
-        box(32, .22, 23, 16, h - .14, 11.5, slab);
+        if(level.id===0) box(32,.38,23,16,h-.22,11.5,slab);
+        else {
+          // Physical shaft voids in upper slabs, including the stair landing/return flight.
+          const outline=new THREE.Shape();outline.moveTo(0,0);outline.lineTo(32,0);outline.lineTo(32,23);outline.lineTo(0,23);outline.closePath();
+          const holes=building.nodes.filter(n=>n.floor===level.id&&n.kind==='lift').map(n=>({x:n.x-1.2,z:n.z-1.2,w:2.4,d:2.4}));
+          const stairNode=building.nodes.find(n=>n.floor===level.id&&n.kind==='stairs');if(stairNode)holes.push({x:stairNode.x-1.45,z:stairNode.z-.3,w:2.9,d:4.9});
+          for(const r of holes){const hole=new THREE.Path();hole.moveTo(r.x,r.z);hole.lineTo(r.x,r.z+r.d);hole.lineTo(r.x+r.w,r.z+r.d);hole.lineTo(r.x+r.w,r.z);hole.closePath();outline.holes.push(hole);}
+          const geometry=new THREE.ExtrudeGeometry(outline,{depth:.38,bevelEnabled:false,steps:1});geometry.rotateX(Math.PI/2);geometry.translate(0,h-.03,0);allocation.geometries.push(geometry);
+          const mesh=new THREE.Mesh(geometry,slab);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);
+        }
+        box(32,.08,.12,16,h-.42,23,trim);
+        // Thin inset circulation ribbons follow only existing graph edges.
+        for(const edge of building.edges){const a=nodes.get(edge.from)!,b=nodes.get(edge.to)!;if(a.floor!==level.id||b.floor!==level.id)continue;
+          const length=Math.hypot(b.x-a.x,b.z-a.z); const ux=(b.x-a.x)/length,uz=(b.z-a.z)/length;
+          const inset=(n:typeof a)=>level.id>0&&(n.kind==='lift'||n.kind==='stairs')?1.8:0;
+          const start=inset(a),end=inset(b); const span=Math.max(.01,length-start-end);
+          const ribbon=box(span,.018,1.65,(a.x+b.x)/2+ux*(start-end)/2,h+.025,(a.z+b.z)/2+uz*(start-end)/2,circulation);ribbon.rotation.y=-Math.atan2(b.z-a.z,b.x-a.x);
+        }
+        // Rear glazed elevation creates a readable architectural silhouette; open front remains a cutaway.
+        for(let bay=0;bay<8;bay++) {const x=2+bay*4;
+          box(3.65,1.45,.07,x,h+1.6,.13,glazing);
+          box(.12,2.45,.25,x-1.9,h+1.22,.13,trim);
+          box(3.8,.12,.26,x,h+2.45,.13,ivory);
+        }
+        box(32,.16,.3,16,h+2.55,.13,ivory);
+        for(const x of [0,32])for(const z of [4,10,16,22]){box(.23,2.5,.23,x,h+1.25,z,ivory);}
+
         box(32, .6, .25, 16, h + .22, 0, ivory); box(.25, .6, 23, 0, h + .22, 11.5, ivory); box(.25, .6, 23, 32, h + .22, 11.5, ivory);
         const architecture = createFloorArchitecture(building, level.id);
         for (const room of architecture.rooms) box(room.width,.06,room.depth,room.x,h+.02,room.z,roomFinish);
         for (const w of architecture.walls) box(Math.max(.16,Math.abs(w.x2-w.x1)),1.65,Math.max(.16,Math.abs(w.z2-w.z1)),(w.x1+w.x2)/2,h+.825,(w.z1+w.z2)/2,wall);
-        for (const door of architecture.doors) box(door.axis==='x'?door.width:.18,.035,door.axis==='z'?door.width:.18,door.x,h+.09,door.z,wood);
+        for (const door of architecture.doors) {
+          const horizontal=door.axis==='x';
+          box(horizontal?door.width:.18,.035,horizontal?.18:door.width,door.x,h+.09,door.z,wood);
+          for(const side of [-1,1])box(.12,1.9,.12,door.x+(horizontal?side*door.width/2:0),h+.95,door.z+(horizontal?0:side*door.width/2),trim);
+          box(horizontal?door.width+.12:.16,.14,horizontal?.16:door.width+.12,door.x,h+1.95,door.z,trim);
+        }
         for (const lift of ['a','b']) { const node=nodes.get(`lift-${lift}-${level.id}`)!;
 
-          label(lift.toUpperCase(),node.x,h+2.1,node.z-1.35,'#344a4a');
+          for(const side of [-1,1]){box(2.9,.1,.12,node.x,h+2.35,node.z+side*1.39,trim);box(.12,.1,2.9,node.x+side*1.39,h+2.35,node.z,trim);}
+          if(level.id===0)box(2.25,.04,2.25,node.x,h+.08,node.z,metal);
+          box(.5,.22,.06,node.x,h+1.98,node.z-1.45,trim);
+          label(lift.toUpperCase(),node.x,h+2.65,node.z,'#344a4a');
         }
-        for (let index = 0; index < 5; index++) box(2.6, .12 + index * .15, .55, 28, h + .05 + index * .075, 14.8 + index * .55, ivory);
+        const stair=building.nodes.find(n=>n.floor===level.id&&n.kind==='stairs');
+        if(stair && level.id<building.floors.length-1){
+          // A two-flight stair occupies its declared graph node and extends away from the approach.
+          const rise=building.floorHeightM/20;
+          const slope=Math.atan2(building.floorHeightM/2,4); const run=Math.hypot(building.floorHeightM/2,4);
+          const lowerSupport=box(1.2,.12,run,stair.x-.7,h+building.floorHeightM/4-.14,stair.z+1.8,ivory);lowerSupport.rotation.x=-slope;
+          if(level.id<building.floors.length-1){const upperSupport=box(1.2,.12,run,stair.x+.7,h+building.floorHeightM*.75-.14,stair.z+1.8,ivory);upperSupport.rotation.x=slope;}
+
+          for(let step=0;step<10;step++){
+            box(1.25,rise,.4,stair.x-.7,h+rise*(step+.5),stair.z+step*.4,ivory);
+            if(level.id<building.floors.length-1)box(1.25,rise,.4,stair.x+.7,h+rise*(19.5-step),stair.z+step*.4,ivory);
+          }
+          box(2.8,.18,.8,stair.x,h+building.floorHeightM/2,stair.z+4.1,ivory);
+          box(.06,1.15,4.6,stair.x-1.4,h+.65,stair.z+2,metal);
+          label('↗',stair.x,h+1.7,stair.z-.7,'#344a4a');
+        }
+        if(stair && level.id===building.floors.length-1){
+          // Final landing only: there is no fictitious staircase above the top storey.
+          for(const side of [-1,1]){box(.06,.95,4.6,stair.x+side*1.45,h+.5,stair.z+2.05,metal);}
+          box(2.9,.1,.12,stair.x,h+1,stair.z+4.5,trim);
+          label('↘',stair.x,h+1.4,stair.z-.7,'#344a4a');
+        }
+        if(level.id===0){const entry=nodes.get('entrance');if(entry){
+          box(4.6,.14,2.2,entry.x,h+2.7,23.6,trim);
+          for(const side of [-1,1])box(.16,2.7,.16,entry.x+side*2,h+1.35,24.3,trim);
+          box(3.4,.06,2.5,entry.x,h+.01,23.6,circulation);
+          label('ITER',entry.x,h+3.25,24,'#344a4a');
+        }}
         label(`${level.id + 1} ${locale==='kk'?'ҚАБАТ':'ЭТАЖ'}`, -2.6, h + .7, 18, '#d3e3dc');
         for (const node of building.nodes.filter(item => item.floor === level.id && item.kind === 'room')) label(/^room-\d+$/.test(node.id)?node.id.replace('room-', ''):nodeLabelRu(node.id,node.label,node.labelKk), node.x, h + 1.2, node.z);
       }
@@ -348,6 +408,41 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
         box(.3, 1.8, .3, x!, .5, z!, wood); const geometry = new THREE.IcosahedronGeometry(1.3, 1); allocation.geometries.push(geometry);
         const canopy = new THREE.Mesh(geometry, green); canopy.position.set(x!, 2, z!); canopy.castShadow = true; surroundings.add(canopy);
       }
+      // One Higgsfield-generated, low-contrast albedo. Geometry and route data stay controlled.
+      // Normalize slab UVs to an 8m architectural material scale, including shaft-cut upper slabs.
+      floorGroups.forEach((group,id)=>group.traverse(object=>{
+        if (!(object instanceof THREE.Mesh) || object.material !== floorSlabs.get(id)) return;
+        const positions=object.geometry.getAttribute('position'); const uv=new Float32Array(positions.count*2);
+        for(let i=0;i<positions.count;i++){uv[i*2]=positions.getX(i)/8;uv[i*2+1]=positions.getZ(i)/8;}
+        object.geometry.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+      }));
+      // Batch static architecture within each animated floor, never across floors or route objects.
+      // Keep transparent panes separately sortable and retain original material identities for async textures.
+      const compact = (group:THREE.Group) => {
+        const batches=new Map<string,THREE.Mesh[]>();
+        for(const object of group.children){
+          if(!(object instanceof THREE.Mesh)||Array.isArray(object.material)||object.material.transparent)continue;
+          const key=object.material.uuid+':'+object.castShadow+':'+object.receiveShadow;
+          const batch=batches.get(key)??[];batch.push(object);batches.set(key,batch);
+        }
+        for(const meshes of batches.values()){
+          if(meshes.length<2)continue;
+          const prepared=meshes.map(mesh=>{mesh.updateMatrix();const geometry=mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry.clone();geometry.applyMatrix4(mesh.matrix);geometry.clearGroups();return geometry;});
+          const merged=mergeGeometries(prepared,false);prepared.forEach(g=>g.dispose());if(!merged)continue;
+          const first=meshes[0]!;const mesh=new THREE.Mesh(merged,first.material);mesh.castShadow=first.castShadow;mesh.receiveShadow=first.receiveShadow;group.add(mesh);structureResources.geometries.push(merged);
+          for(const old of meshes){group.remove(old);const i=structureResources.geometries.indexOf(old.geometry);if(i>=0)structureResources.geometries.splice(i,1);old.geometry.dispose();}
+        }
+      };
+      floorGroups.forEach(compact);compact(surroundings);
+      container.dataset.materialSource='procedural-loading';
+      const stone=new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}textures/iter-limestone.webp`,texture=>{
+        if(disposed){texture.dispose();return;}
+        texture.colorSpace=THREE.SRGBColorSpace; texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+        texture.anisotropy=Math.min(4,renderer?.capabilities.getMaxAnisotropy()??1);
+        floorSlabs.forEach(slab=>{slab.map=texture;slab.color.set('#ffffff');slab.roughness=.88;slab.needsUpdate=true;});
+        container.dataset.materialSource='higgsfield-limestone'; dirty=true;schedule();
+      },undefined,()=>{if(!disposed)container.dataset.materialSource='procedural-fallback';});
+      structureResources.textures.push(stone);
       const resizeScene = () => {
         if (disposed || !renderer) return;
         try {
@@ -365,30 +460,41 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     return cleanup;
   }, [building, onFailure, onCameraChange, locale, nodeLabelRu]);
   const endGesture = (event: PointerEvent<HTMLDivElement>) => {
-    pointers.current.delete(event.pointerId); event.currentTarget.dataset.dragging = String(pointers.current.size > 0);
+    pointers.current.delete(event.pointerId);
+    for (const pointer of pointers.current.values()) { pointer.startX=pointer.x; pointer.startY=pointer.y; pointer.axis=gesturesEnabled?'rotate':'pending'; }
+    event.currentTarget.dataset.dragging = String(pointers.current.size > 0);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
-  return <div ref={host} className="diorama" tabIndex={-1} style={{ touchAction: gesturesEnabled ? 'none' : 'pan-y pinch-zoom' }} data-gestures={String(gesturesEnabled)} role="img" aria-label={locale==='kk'?'Ойдан шығарылған ғимараттың үшөлшемді моделі. Көрсеткілер адамның орнын емес, бағыт ретін көрсетеді. Барлық әрекет батырмалар арқылы қолжетімді.':'Авторская трёхмерная модель вымышленного здания. Стрелки показывают порядок маршрута, не положение человека. Все действия доступны кнопками, маршрут — в тексте и на схеме.'} data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}
+  return <div ref={host} className="diorama" tabIndex={-1} style={{ touchAction: gesturesEnabled ? 'none' : 'pan-y' }} data-gestures={String(gesturesEnabled)} role="img" aria-label={locale==='kk'?'Ойдан шығарылған ғимараттың үшөлшемді моделі. Көрсеткілер адамның орнын емес, бағыт ретін көрсетеді. Барлық әрекет батырмалар арқылы қолжетімді.':'Авторская трёхмерная модель вымышленного здания. Стрелки показывают порядок маршрута, не положение человека. Все действия доступны кнопками, маршрут — в тексте и на схеме.'} data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}
     onContextMenu={event => event.preventDefault()}
     onPointerDown={event => {
       const touch = event.pointerType === 'touch';
-      if (touch ? !gesturesEnabled || pointers.current.size >= 2 : !event.isPrimary || ![0, 1, 2].includes(event.button)) return;
-      runtime.current?.interrupt();
-      pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY, touch, button: event.button });
-      event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.dataset.dragging = 'true';
+      if (touch ? pointers.current.size >= 2 : !event.isPrimary || ![0, 1, 2].includes(event.button)) return;
+      if (!touch || gesturesEnabled || pointers.current.size > 0) runtime.current?.interrupt();
+      pointers.current.set(event.pointerId, { x:event.clientX, y:event.clientY, startX:event.clientX, startY:event.clientY, touch, button:event.button, axis:touch&&!gesturesEnabled?'pending':'rotate' });
+      if (!touch || gesturesEnabled) event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.dataset.dragging = 'true';
     }}
     onPointerMove={event => {
       const pointer = pointers.current.get(event.pointerId); if (!pointer) return;
       const before = [...pointers.current.values()].map(point => ({ ...point }));
       const dx = event.clientX - pointer.x; const dy = event.clientY - pointer.y;
       pointer.x = event.clientX; pointer.y = event.clientY;
+      if (pointer.touch && before.length === 1 && !gesturesEnabled && pointer.axis === 'pending') {
+        const totalX=event.clientX-pointer.startX, totalY=event.clientY-pointer.startY;
+        if (Math.hypot(totalX,totalY)<7) return;
+        if (Math.abs(totalY)>Math.abs(totalX)) { endGesture(event); return; }
+        pointer.axis='rotate'; runtime.current?.interrupt();
+      }
       const after = [...pointers.current.values()]; const current = latest.current.camera;
+      let next: CameraState;
       if (pointer.touch && before.length === 2) {
-        const oldCenter = { x: (before[0]!.x + before[1]!.x) / 2, y: (before[0]!.y + before[1]!.y) / 2 };
-        const center = { x: (after[0]!.x + after[1]!.x) / 2, y: (after[0]!.y + after[1]!.y) / 2 };
-        const distance = (points: typeof before) => Math.hypot(points[0]!.x - points[1]!.x, points[0]!.y - points[1]!.y);
-        const previousDistance = distance(before); const ratio = previousDistance > 1 ? distance(after) / previousDistance : 1;
-        onCameraChange(boundCamera({ ...panCamera(current, center.x - oldCenter.x, center.y - oldCenter.y, event.currentTarget.clientHeight), zoom: current.zoom * ratio }));
-      } else onCameraChange(pointer.button === 1 || pointer.button === 2 ? panCamera(current, dx, dy, event.currentTarget.clientHeight) : dragCamera(current, dx, dy));
+        const oldCenter = { x:(before[0]!.x+before[1]!.x)/2, y:(before[0]!.y+before[1]!.y)/2 };
+        const center = { x:(after[0]!.x+after[1]!.x)/2, y:(after[0]!.y+after[1]!.y)/2 };
+        const distance = (points:typeof before) => Math.hypot(points[0]!.x-points[1]!.x,points[0]!.y-points[1]!.y);
+        const previousDistance=distance(before); const ratio=previousDistance>1?distance(after)/previousDistance:1;
+        next=boundCamera({...panCamera(current,center.x-oldCenter.x,center.y-oldCenter.y,event.currentTarget.clientHeight),zoom:current.zoom*ratio});
+      } else next=pointer.button===1||pointer.button===2?panCamera(current,dx,dy,event.currentTarget.clientHeight):dragCamera(current,dx,pointer.touch&&!gesturesEnabled?0:dy);
+      latest.current={...latest.current,camera:next}; onCameraChange(next);
     }} onPointerUp={endGesture} onPointerCancel={endGesture} onLostPointerCapture={endGesture} />;
 }
