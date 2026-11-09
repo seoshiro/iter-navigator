@@ -262,3 +262,8 @@
 @media(max-width:700px){
  .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-building .pres-copy{min-height:84px}
 }
+/* Keep the system diagram inside the print page in both language lengths. */
+.pres-print .pres-slide-system{gap:24px}
+.pres-print .pres-slide-system h1{max-width:none}
+.pres-print .pres-slide-system .pres-pipeline{padding-top:12px;padding-bottom:22px}
+.pres-print .pres-slide-system .pres-pipeline-step h3{margin-top:24px;margin-bottom:12px}
