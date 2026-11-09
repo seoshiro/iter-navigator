@@ -74,8 +74,9 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     const offsets = building.floors.map(f=>state.floor==='all'?(state.expanded?f.id*5:0):(f.id>state.floor?14:0));
     const floorAlpha:number[]=building.floors.map(f=>state.floor!=='all'&&f.id!==state.floor?0:state.routeReveal?.24:1);let alphaFrom=[...floorAlpha],alphaTo=[...floorAlpha];
     const floorMaterials=new Map<number,{material:THREE.Material;base:number;depth?:THREE.MeshDepthMaterial}[]>();
+    // Keep the transparent shader variant alive from first paint; fading changes uniforms/depth state only.
     const applyFloorAppearance=()=>{floorGroups.forEach((group,id)=>{const alpha=floorAlpha[id]??1;group.visible=alpha>.0001;
-      for(const entry of floorMaterials.get(id)??[]){const m=entry.material;m.opacity=entry.base*alpha;const transparent=m instanceof THREE.SpriteMaterial||m.opacity<.999;if(m.transparent!==transparent){m.transparent=transparent;m.needsUpdate=true;}m.depthWrite=!transparent;if(entry.depth){entry.depth.userData.fade.value=alpha*alpha;}}
+      for(const entry of floorMaterials.get(id)??[]){const m=entry.material;m.opacity=entry.base*alpha;m.depthWrite=!(m instanceof THREE.SpriteMaterial)&&m.opacity>=.999;if(entry.depth){entry.depth.userData.fade.value=alpha*alpha;}}
       group.children.forEach(object=>{if(object instanceof THREE.Sprite)object.visible=!state.routeReveal;});
     });container.dataset.floorOpacity=JSON.stringify(floorAlpha);};
     let revealEnd = 0; let revealStart = 0; let offsetFrom = [...offsets]; let offsetTo = [...offsets];
@@ -471,7 +472,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       };
       floorGroups.forEach(compact);compact(surroundings);
       floorGroups.forEach((group,id)=>{const clones=new Map<THREE.Material,THREE.Material>();const entries:{material:THREE.Material;base:number;depth?:THREE.MeshDepthMaterial}[]=[];
-        group.children.forEach(object=>{if(object instanceof THREE.Sprite){entries.push({material:object.material,base:object.material.opacity});return;}if(!(object instanceof THREE.Mesh)||Array.isArray(object.material))return;const original=object.material;const clone:THREE.Material=clones.get(original)??original.clone();if(!clones.has(original)){clones.set(original,clone);structureResources.materials.push(clone);}object.material=clone;
+        group.children.forEach(object=>{if(object instanceof THREE.Sprite){entries.push({material:object.material,base:object.material.opacity});return;}if(!(object instanceof THREE.Mesh)||Array.isArray(object.material))return;const original=object.material;const clone:THREE.Material=clones.get(original)??original.clone();if(!clones.has(original)){clone.transparent=true;clones.set(original,clone);structureResources.materials.push(clone);}object.material=clone;
           if(original===floorSlabs.get(id))floorSlabs.set(id,clone as THREE.MeshStandardMaterial);
           const depth=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking});depth.alphaHash=true;depth.userData.fade={value:1};depth.onBeforeCompile=shader=>{shader.uniforms.uFloorFade=depth.userData.fade;shader.fragmentShader='uniform float uFloorFade;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <alphahash_fragment>','diffuseColor.a *= uFloorFade;\n#include <alphahash_fragment>');};depth.customProgramCacheKey=()=> 'floor-shadow-fade-v1';object.customDepthMaterial=depth;structureResources.materials.push(depth);entries.push({material:clone,base:clone.opacity,depth});
         });floorMaterials.set(id,entries);
