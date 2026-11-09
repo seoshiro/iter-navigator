@@ -2,3 +2,8 @@ node_modules/
 dist/
 .env*
 .vercel/
+
+.local/
+playwright-report/
+test-results/
+.*-transform.cjs

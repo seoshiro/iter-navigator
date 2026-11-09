@@ -21,12 +21,12 @@ export function validateBuilding(input: unknown): Validation<Building> {
       !Array.isArray(input.floors) || !Array.isArray(input.nodes) || !Array.isArray(input.edges) ||
       !Array.isArray(input.closureGroups) || !dense(input.floors) || !dense(input.nodes) || !dense(input.edges) || !dense(input.closureGroups)) return fail('Неверный формат учебной модели.');
   const { floors, nodes, edges, closureGroups, floorHeightM } = input;
-  if (!floors.length || !nodes.length || !floors.every(f => object(f) && Number.isInteger(f.id) && finite(f.id) && f.id >= 0 && text(f.label)) ||
+  if (!floors.length || !nodes.length || !floors.every(f => object(f) && Number.isInteger(f.id) && finite(f.id) && f.id >= 0 && text(f.label) && (!Object.hasOwn(f, 'labelKk') || text(f.labelKk))) ||
       !unique(floors.map(f => f.id))) return fail('Неверные этажи модели.');
   if (!floors.every(f => renderable(f.id * floorHeightM) && renderable(f.id * floorHeightM + 0.45)))
     return fail('Координаты этажей вне диапазона отображения.');
   const floorIds = new Set(floors.map(f => f.id));
-  if (!nodes.every(n => object(n) && text(n.id) && text(n.label) && floorIds.has(n.floor) && finite(n.x) && finite(n.z) &&
+  if (!nodes.every(n => object(n) && text(n.id) && text(n.label) && (!Object.hasOwn(n, 'labelKk') || text(n.labelKk)) && floorIds.has(n.floor) && finite(n.x) && finite(n.z) &&
       typeof n.kind === 'string' && ['entrance', 'room', 'junction', 'lift', 'stairs'].includes(n.kind) && typeof n.selectable === 'boolean') ||
       !unique(nodes.map(n => n.id))) return fail('Неверные узлы или повторяющиеся идентификаторы.');
   if (!nodes.every(n => renderable(n.x) && renderable(n.z) && renderable(n.floor * floorHeightM + 0.45) &&
@@ -46,7 +46,7 @@ export function validateBuilding(input: unknown): Validation<Building> {
   })) return fail('Геометрия связей вне диапазона отображения.');
   if (!Number.isFinite(edges.reduce((sum, edge) => sum + edge.lengthM, 0))) return fail('Суммарная длина связей вне конечного диапазона.');
   const edgeIds = new Set(edges.map(e => e.id));
-  if (!closureGroups.every(g => object(g) && text(g.id) && text(g.label) && Array.isArray(g.edgeIds) && g.edgeIds.length > 0 &&
+  if (!closureGroups.every(g => object(g) && text(g.id) && text(g.label) && (!Object.hasOwn(g, 'labelKk') || text(g.labelKk)) && Array.isArray(g.edgeIds) && g.edgeIds.length > 0 &&
       dense(g.edgeIds) && unique(g.edgeIds) && g.edgeIds.every(id => typeof id === 'string' && edgeIds.has(id))) || !unique(closureGroups.map(g => g.id)))
     return fail('Неверные группы симуляции закрытий.');
   return { valid: true, value: input as unknown as Building };

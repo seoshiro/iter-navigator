@@ -1,8 +1,13 @@
 import { useId, useLayoutEffect, useRef } from 'react';
 import type { Building, RouteResult } from '../domain/model';
+import { useI18n } from '../i18n/locale';
 
-interface Props { building: Building; result: RouteResult; floor: 'all' | number; closedEdgeIds: string[]; highlight?: { nodeId: string; edgeId?: string } | null; zoom?: number; resetToken?: number }
-export function FloorPlan({ building, result, floor, closedEdgeIds, highlight, zoom = 1, resetToken = 0 }: Props) {
+interface Props { building: Building; result: RouteResult; floor: 'all' | number; closedEdgeIds: string[]; highlight?: { nodeId: string; edgeId?: string } | null; zoom?: number; resetToken?: number; onSelectNode?: (id: string) => void }
+export function FloorPlan({ building, result, floor, closedEdgeIds, highlight, zoom = 1, resetToken = 0, onSelectNode }: Props) {
+  const {locale,nodeLabelRu}=useI18n();
+  const t=(ru:string,kk:string)=>locale==='kk'?kk:ru;
+  const floorLabel=(id:number)=>locale==='kk' ? building.floors.find(f=>f.id===id)?.labelKk ?? (id+1)+' қабат' : building.floors.find(f=>f.id===id)!.label;
+  const roomShort:Record<string,[string,string]>={'room-library':['Библиотека','Кітапхана'],'room-dean':['Деканат','Деканат'],'room-canteen':['Столовая','Асхана'],'room-medical':['Медпункт','Медпункт'],'room-toilets':['Туалеты','Дәретхана'],'room-wardrobe':['Гардероб','Гардероб']};
   const prefix = useId();
   const collectionRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -20,11 +25,11 @@ export function FloorPlan({ building, result, floor, closedEdgeIds, highlight, z
   const routeFloors = new Set(result.status === 'ok' ? result.nodeIds.map(id => nodeMap.get(id)!.floor) : []);
   const x = (v: number) => 24 + v * 9;
   const y = (v: number) => 35 + v * 9;
-  return <div ref={collectionRef} className="floor-plans" role="region" aria-label="Схемы этажей учебной модели" tabIndex={0} data-testid="floor-plan" data-highlight-node={highlight?.nodeId ?? ''} data-highlight-edge={highlight?.edgeId ?? ''} data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}>
+  return <div ref={collectionRef} className="floor-plans" role="region" aria-label={t("Схемы этажей учебной модели","Оқу моделінің қабат сызбалары")} tabIndex={0} data-testid="floor-plan" data-highlight-node={highlight?.nodeId ?? ''} data-highlight-edge={highlight?.edgeId ?? ''} data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}>
     {floors.map(f => <figure className="floor-card" key={f.id} data-floor-id={f.id}>
-      <figcaption><span>{f.label}{routeFloors.has(f.id) ? ' · На маршруте' : ''}</span><span className="tiny muted">Схема условная</span></figcaption>
-      <div className="floor-viewport" role="region" aria-label={`${f.label}: прокручиваемая схема`} tabIndex={0}><svg viewBox="0 0 336 262" style={{ width: `calc(min(100%, var(--floor-height) * 336 / 262) * ${zoom})` }} role="img" tabIndex={-1} aria-labelledby={`${prefix}-${f.id}`}>
-        <title id={`${prefix}-${f.id}`}>{`${f.label}: схема вымышленного здания и текущий маршрут`}</title>
+      <figcaption><span>{floorLabel(f.id)}{routeFloors.has(f.id) ? t(' · На маршруте',' · Бағытта') : ''}</span><span className="tiny muted">{t('Схема условная','Шартты сызба')}</span></figcaption>
+      <div className="floor-viewport" role="region" aria-label={`${floorLabel(f.id)}: ${t('прокручиваемая схема','айналдыруға болатын сызба')}`} tabIndex={0}><svg viewBox="0 0 336 262" style={{ width: `calc(min(100%, var(--floor-height) * 336 / 262) * ${zoom})` }} role="group" tabIndex={-1} aria-labelledby={`${prefix}-${f.id}`}>
+        <title id={`${prefix}-${f.id}`}>{`${floorLabel(f.id)}: ${t('схема вымышленного здания и текущий маршрут','ойдан шығарылған ғимарат сызбасы және ағымдағы бағыт')}`}</title>
         <rect x="25" y="40" width="286" height="197" rx="8" className="plan-shell" />
         {[5, 13, 21].map(roomX => <rect key={roomX} x={x(roomX)} y={y(1)} width="59" height="45" rx="3" className="plan-room" />)}
         {building.edges.map(edge => {
@@ -42,7 +47,7 @@ export function FloorPlan({ building, result, floor, closedEdgeIds, highlight, z
               <rect data-direction-from={directionFrom?.id} data-direction-to={directionTo?.id} x={markerX - 10} y={y(node.z) - 12} width="20" height="24" rx="4" />
               <text x={markerX} y={y(node.z) + 4} textAnchor="middle">{isClosed ? '×' : uncertain.has(edge.id) ? '?' : directionFrom && directionTo ? directionTo.floor > directionFrom.floor ? '↑' : '↓' : edge.type === 'lift' ? '↕' : '≋'}</text>
               <text x={markerX} y={y(node.z) + (other.floor > node.floor && transitions > 1 ? 34 : -19)} textAnchor="middle" className="transition-label">
-                {edge.type === 'lift' ? `Лифт ${edge.id.includes('-a-') ? 'A' : 'B'}` : 'Лестница'} {directionFrom && directionTo ? `${directionFrom.floor + 1} → ${directionTo.floor + 1}` : `→ ${other.floor + 1}`} эт.{isClosed ? ' ×' : ''}
+                {edge.type === 'lift' ? `Лифт ${edge.id.includes('-a-') ? 'A' : 'B'}` : t('Лестница','Баспалдақ')} {directionFrom && directionTo ? `${directionFrom.floor + 1} → ${directionTo.floor + 1}` : `→ ${other.floor + 1}`} {t('эт.','қаб.')}{isClosed ? ' ×' : ''}
               </text>
             </g>;
           }
@@ -54,10 +59,10 @@ export function FloorPlan({ building, result, floor, closedEdgeIds, highlight, z
             {uncertain.has(edge.id) && <text className="uncertain-mark" x={(x(from.x) + x(to.x)) / 2 + 7} y={(y(from.z) + y(to.z)) / 2}>?</text>}
           </g>;
         })}
-        {building.nodes.filter(n => n.floor === f.id).map(n => <g key={n.id} data-node-id={n.id} data-endpoint={result.status === 'ok' && result.nodeIds[0] === n.id ? 'start' : result.status === 'ok' && result.nodeIds.at(-1) === n.id ? 'destination' : undefined}>
-          {(highlight?.nodeId === n.id || transitionNodes.includes(n.id)) && <circle cx={x(n.x)} cy={y(n.z)} r="11" className="plan-highlight-node" />}
+        {building.nodes.filter(n => n.floor === f.id).map(n => <g key={n.id} data-node-id={n.id} className={n.selectable&&onSelectNode?'selectable-node':undefined} role={n.selectable&&onSelectNode?'button':undefined} tabIndex={n.selectable&&onSelectNode?0:undefined} aria-label={n.selectable&&onSelectNode?nodeLabelRu(n.id,n.label,n.labelKk):undefined} onClick={()=>{if(n.selectable)onSelectNode?.(n.id);}} onKeyDown={event=>{if(n.selectable&&onSelectNode&&['Enter',' '].includes(event.key)){event.preventDefault();onSelectNode(n.id);}}} data-endpoint={result.status === 'ok' && result.nodeIds[0] === n.id ? 'start' : result.status === 'ok' && result.nodeIds.at(-1) === n.id ? 'destination' : undefined}>
+          {n.selectable&&onSelectNode&&<circle className="node-hit-target" cx={x(n.x)} cy={y(n.z)} r="14"/>}{(highlight?.nodeId === n.id || transitionNodes.includes(n.id)) && <circle cx={x(n.x)} cy={y(n.z)} r="11" className="plan-highlight-node" />}
           {result.status === 'ok' && result.nodeIds.at(-1) === n.id && result.nodeIds.length > 1 ? <rect x={x(n.x) - 6} y={y(n.z) - 6} width="12" height="12" rx="1" className="plan-endpoint-destination" /> : <circle cx={x(n.x)} cy={y(n.z)} r={result.status === 'ok' && result.nodeIds[0] === n.id ? 7 : n.selectable ? 5 : 2.5} className={`plan-node ${result.status === 'ok' && result.nodeIds.includes(n.id) ? 'on-route' : ''}`} />}
-          {(n.kind === 'room' || n.kind === 'entrance' || n.id === 'lobby-0') && <text x={x(n.x)} y={y(n.z) + (n.kind === 'room' ? -9 : 17)} textAnchor="middle" className="room-label">{n.kind === 'room' ? n.id.replace('room-', '') : n.kind === 'entrance' ? 'Вход' : 'Холл'}</text>}
+          {(n.kind === 'room' || n.kind === 'entrance' || n.id === 'lobby-0' || n.id === 'hall-1') && <text x={x(n.x)} y={y(n.z) + (n.kind === 'room' ? -9 : 17)} textAnchor="middle" className="room-label">{roomShort[n.id]?.[locale==='kk'?1:0] ?? (n.kind==='room'?n.id.replace('room-',''):n.kind==='entrance'?t('Вход','Кіру'):t('Холл','Холл'))}</text>}
         </g>)}
       </svg></div>
     </figure>)}

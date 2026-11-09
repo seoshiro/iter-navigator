@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { PointerEvent } from 'react';
+import { useI18n } from '../i18n/locale';
 import * as THREE from 'three';
 import type { Building, RouteResult } from '../domain/model';
 import { boundCamera, dragCamera, panCamera, wheelCamera } from '../ui/camera';
@@ -12,6 +13,7 @@ const resources = (): Resources => ({ geometries: [], materials: [], textures: [
 const disposeResources = (value: Resources) => { value.geometries.forEach(item => item.dispose()); value.materials.forEach(item => item.dispose()); value.textures.forEach(item => item.dispose()); };
 
 export default function Diorama({ building, result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, gestureReset, onFailure, onCameraChange }: Props) {
+  const {locale,nodeLabelRu}=useI18n();
   const host = useRef<HTMLDivElement>(null);
   const runtime = useRef<{ update: (next: VisualState) => void } | null>(null);
   const latest = useRef<VisualState>({ result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled });
@@ -44,6 +46,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     const container = host.current;
     if (!container) return;
     let renderer: THREE.WebGLRenderer | undefined;
+    let failureStage='initialization';
     let resize: ResizeObserver | undefined;
     let intersection: IntersectionObserver | undefined;
     let disposed = false;
@@ -121,8 +124,8 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       if (renderer && !renderer.getContext().isContextLost()) renderer.forceContextLoss();
       renderer?.domElement.remove();
     };
-    const fail = () => { if (!disposed) { cleanup(); onFailure(); } };
-    const contextLost = (event: Event) => { event.preventDefault(); fail(); };
+    const fail = () => { if (!disposed) { document.documentElement.dataset.webglFailure=failureStage; cleanup(); onFailure(); } };
+    const contextLost = (event: Event) => { event.preventDefault(); failureStage='context-lost'; fail(); };
     const applyCamera = () => {
       const settings = boundCamera(state.camera); const angle = settings.yaw * Math.PI / 180;
       const baseHeight = settings.preset === 'top' ? 70 : settings.preset === 'front' ? 21 : 38;
@@ -140,7 +143,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     };
     const draw = () => {
       if (!renderer || !canRender()) return;
-      try { applyCamera(); renderer.render(scene, view); container.dataset.renderCount = String(++renderCount); dirty = false; }
+      try { failureStage='render'; applyCamera(); renderer.render(scene, view); container.dataset.renderCount = String(++renderCount); dirty = false; }
       catch { fail(); }
     };
     const settleFloor = (time: number) => {
@@ -263,7 +266,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       container.dataset.floor = String(state.floor); dirty = true; schedule();
     };
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'low-power' });
+      failureStage='context-creation'; renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'low-power' });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
       renderer.domElement.setAttribute('aria-hidden', 'true'); renderer.domElement.dataset.testid = 'diorama-canvas';
@@ -288,8 +291,8 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
         box(7, .65, 3.2, 15, h + .4, 18.5, ivory); box(4, .2, 1.2, 15, h + .82, 18.5, wood);
         for (const lift of ['a', 'b']) { const node = nodes.get(`lift-${lift}-${level.id}`)!; box(2.8, .8, 2.8, node.x, h + .4, node.z, dark); label(lift.toUpperCase(), node.x, h + 1.7, node.z, '#f7f2e4'); }
         for (let index = 0; index < 5; index++) box(2.6, .12 + index * .15, .55, 28, h + .05 + index * .075, 14.8 + index * .55, ivory);
-        label(`${level.id + 1} ЭТАЖ`, -2.6, h + .7, 18, '#d3e3dc');
-        for (const node of building.nodes.filter(item => item.floor === level.id && item.kind === 'room')) label(node.id.replace('room-', ''), node.x, h + 1.2, node.z);
+        label(`${level.id + 1} ${locale==='kk'?'ҚАБАТ':'ЭТАЖ'}`, -2.6, h + .7, 18, '#d3e3dc');
+        for (const node of building.nodes.filter(item => item.floor === level.id && item.kind === 'room')) label(/^room-\d+$/.test(node.id)?node.id.replace('room-', ''):nodeLabelRu(node.id,node.label,node.labelKk), node.x, h + 1.2, node.z);
       }
       parent = surroundings;
       for (const [x, z] of [[-2, 5], [-2, 14], [35, 7], [35, 19], [2, 26], [26, 26]]) {
@@ -311,12 +314,12 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       runtime.current = { update }; resizeScene(); update(latest.current);
     } catch { fail(); }
     return cleanup;
-  }, [building, onFailure]);
+  }, [building, onFailure, locale, nodeLabelRu]);
   const endGesture = (event: PointerEvent<HTMLDivElement>) => {
     pointers.current.delete(event.pointerId); event.currentTarget.dataset.dragging = String(pointers.current.size > 0);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
-  return <div ref={host} className="diorama" tabIndex={-1} style={{ touchAction: gesturesEnabled ? 'none' : 'pan-y pinch-zoom' }} data-gestures={String(gesturesEnabled)} role="img" aria-label="Авторская трёхмерная модель вымышленного здания. Стрелки показывают порядок маршрута, не положение человека. Все действия доступны кнопками, маршрут — в тексте и на схеме." data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}
+  return <div ref={host} className="diorama" tabIndex={-1} style={{ touchAction: gesturesEnabled ? 'none' : 'pan-y pinch-zoom' }} data-gestures={String(gesturesEnabled)} role="img" aria-label={locale==='kk'?'Ойдан шығарылған ғимараттың үшөлшемді моделі. Көрсеткілер адамның орнын емес, бағыт ретін көрсетеді. Барлық әрекет батырмалар арқылы қолжетімді.':'Авторская трёхмерная модель вымышленного здания. Стрелки показывают порядок маршрута, не положение человека. Все действия доступны кнопками, маршрут — в тексте и на схеме.'} data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}
     onContextMenu={event => event.preventDefault()}
     onPointerDown={event => {
       const touch = event.pointerType === 'touch';
