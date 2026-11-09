@@ -319,3 +319,6 @@
  .pres-root:not(.pres-large-text):not(.pres-print) .pres-stage:has(>.pres-slide-pilot),
  .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot{min-height:calc(100svh - 138px)}
 }
+@media(min-width:701px) and (min-height:801px) and (max-height:950px){
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot .pres-pilot-concept{--pilot-art-height:38vh}
+}

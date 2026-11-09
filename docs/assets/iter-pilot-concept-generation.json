@@ -30,5 +30,7 @@
   ],
   "runtimeBytes": 190308,
   "sha256": "40a697d8522dc310383090aa2d6736505fb9e5726ddcc0b0ef08e36b879e4431",
-  "assessment": "One coherent architectural concept still with ivory stone, muted teal glass and directional sunlight. No text, people, measurements, false UI or claims of surveyed geometry. Clearly labelled as an artistic future-pilot concept in RU/KK."
+  "assessment": "One coherent architectural concept still with ivory stone, muted teal glass and directional sunlight. No text, people, measurements, false UI or claims of surveyed geometry. Clearly labelled as an artistic future-pilot concept in RU/KK.",
+  "originalSha256": "40a697d8522dc310383090aa2d6736505fb9e5726ddcc0b0ef08e36b879e4431",
+  "runtimeSha256": "5b66ce8019c7da3edac5656ec3175a24b3981780517553b92b1ff5638d490e9c"
 }
