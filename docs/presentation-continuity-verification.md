@@ -70,5 +70,32 @@ and is not claimed fixed by this presentation revision.
 
 ## Publication and delivery
 
-Pending final exports, published-build verification and the new continuous
-desktop/mobile evidence recordings.
+The source and PDF revision was published as `a26b08a`. The canonical presentation
+served the expected production bundles; both PDF downloads returned HTTP 200 and
+matched the exact SHA-256 values in `presentation-pdf-verification.md`.
+
+Two continuous public evidence recordings were captured and reviewed:
+- Desktop Russian, 1366 x 768: 39.72 seconds, 993 encoded frames.
+- Mobile viewport/touch emulation in Kazakh, 390 x 844: 39.08 seconds, 977 frames.
+
+Both show 6 -> 7 -> 8, the actual filter rejection and allowed path, reverse
+navigation, and a rapid retarget during movement. MP4 and source WebM timelines
+and frame counts match; neither editing cuts nor speed changes were introduced.
+Decoded consecutive 40 ms frames were inspected at the key transitions.
+
+A supplementary intro/conditions recording exposed brief clipping of a projected
+mobile label. Follow-up `77b9c01` clamps the label to the visible viewport with an
+8 px margin while keeping its leader on the real projected anchor. Geometry and
+scene trajectories are unchanged. Four RU/KK containment tests at 375 x 667 and
+390 x 844 passed over 5,949 visible samples. Clamping was exercised on 110 frames;
+maximum measured leader-endpoint error was 0.035 px. Reduced motion and room
+204/205 labels were also checked. Typecheck, lint, 194 unit tests and build passed.
+The supplementary public recording was replaced after verifying this follow-up: 22.44 seconds, 561 encoded frames. The previously clipped interval was inspected in consecutive frames from 17.20 to 18.64 seconds; the label remains visible. Its MP4 and WebM decode without errors and have matching timelines.
+
+Rollback is preserved at `snapshot/presentation-0b7d0b5`. Source changes were
+staged explicitly, leaving unrelated README, documentation and media edits alone.
+No new generation: ITER expenditure remains 23.75 of the authorized 100 credits.
+
+The two existing PDF identities were updated to version 4 in the private delivery
+space. All three current MP4 recordings were saved successfully as native files.
+The prior introductory evidence with the clipped label is not the delivered file.
