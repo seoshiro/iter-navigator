@@ -8,17 +8,17 @@ import { boundCamera, dragCamera, panCamera, wheelCamera, CAMERA_HALF_HEIGHT } f
 import { createFloorArchitecture } from '../ui/architecture';
 import type { CameraState } from '../ui/camera';
 
-interface VisualState { expanded?: boolean; cameraTransitionId?: number; result: RouteResult; floor: 'all' | number; closedEdgeIds: string[]; camera: CameraState; motionAllowed: boolean; theme: 'dark' | 'light'; largerText: boolean; highlight: { nodeId: string; edgeId?: string } | null; gesturesEnabled: boolean }
+interface VisualState { routeReveal?:boolean; expanded?: boolean; cameraTransitionId?: number; result: RouteResult; floor: 'all' | number; closedEdgeIds: string[]; camera: CameraState; motionAllowed: boolean; theme: 'dark' | 'light'; largerText: boolean; highlight: { nodeId: string; edgeId?: string } | null; gesturesEnabled: boolean }
 interface Props extends VisualState { onSelectNode?: (id:string)=>void; building: Building; gestureReset: number; onFailure: () => void; onCameraChange: (value: CameraState) => void }
 interface Resources { geometries: THREE.BufferGeometry[]; materials: THREE.Material[]; textures: THREE.Texture[] }
 const resources = (): Resources => ({ geometries: [], materials: [], textures: [] });
 const disposeResources = (value: Resources) => { value.geometries.forEach(item => item.dispose()); value.materials.forEach(item => item.dispose()); value.textures.forEach(item => item.dispose()); };
 
-export default function Diorama({ building, result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, gestureReset, expanded = false, cameraTransitionId = 0, onFailure, onCameraChange }: Props) {
+export default function Diorama({ building, result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, gestureReset, expanded = false, routeReveal = false, cameraTransitionId = 0, onFailure, onCameraChange }: Props) {
   const {locale,nodeLabelRu}=useI18n();
   const host = useRef<HTMLDivElement>(null);
   const runtime = useRef<{ update: (next: VisualState) => void; interrupt: () => void } | null>(null);
-  const latest = useRef<VisualState>({ result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, expanded, cameraTransitionId });
+  const latest = useRef<VisualState>({ result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, expanded, routeReveal, cameraTransitionId });
   const pointers = useRef(new Map<number, { x: number; y: number; startX: number; startY: number; touch: boolean; button: number; axis: 'pending' | 'rotate' }>());
   useLayoutEffect(() => {
     const container = host.current; const ids = [...pointers.current.keys()]; pointers.current.clear();
@@ -26,10 +26,10 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     if (container) container.dataset.dragging = 'false';
   }, [gestureReset, gesturesEnabled]);
   useLayoutEffect(() => {
-    latest.current = { result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, expanded, cameraTransitionId };
+    latest.current = { result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, expanded, routeReveal, cameraTransitionId };
     runtime.current?.update(latest.current);
     if (host.current) host.current.dataset.dragging = String(pointers.current.size > 0);
-  }, [result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, expanded, cameraTransitionId]);
+  }, [result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, expanded, routeReveal, cameraTransitionId]);
   useEffect(() => {
     const container = host.current; if (!container) return;
     const wheel = (event: WheelEvent) => {
@@ -71,13 +71,19 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     const routes = new THREE.Group(); scene.add(routes);
     const nodes = new Map(building.nodes.map(node => [node.id, node]));
     const edges = new Map(building.edges.map(edge => [edge.id, edge]));
-    const offsets = building.floors.map(() => 0);
+    const offsets = building.floors.map(f=>state.floor==='all'?(state.expanded?f.id*5:0):(f.id>state.floor?14:0));
+    const floorAlpha:number[]=building.floors.map(f=>state.floor!=='all'&&f.id!==state.floor?0:state.routeReveal?.24:1);let alphaFrom=[...floorAlpha],alphaTo=[...floorAlpha];
+    const floorMaterials=new Map<number,{material:THREE.Material;base:number;depth?:THREE.MeshDepthMaterial}[]>();
+    const applyFloorAppearance=()=>{floorGroups.forEach((group,id)=>{const alpha=floorAlpha[id]??1;group.visible=alpha>.0001;
+      for(const entry of floorMaterials.get(id)??[]){const m=entry.material;m.opacity=entry.base*alpha;const transparent=m instanceof THREE.SpriteMaterial||m.opacity<.999;if(m.transparent!==transparent){m.transparent=transparent;m.needsUpdate=true;}m.depthWrite=!transparent;if(entry.depth){entry.depth.userData.fade.value=alpha*alpha;}}
+      group.children.forEach(object=>{if(object instanceof THREE.Sprite)object.visible=!state.routeReveal;});
+    });container.dataset.floorOpacity=JSON.stringify(floorAlpha);};
     let revealEnd = 0; let revealStart = 0; let offsetFrom = [...offsets]; let offsetTo = [...offsets];
     const floorOffset = (id:number) => offsets[id] ?? 0;
     const continuousOffset = (y:number) => {const level=Math.max(0,Math.min(offsets.length-1,(y-.45)/building.floorHeightM));const lo=Math.floor(level),hi=Math.ceil(level);return floorOffset(lo)*(1-(level-lo))+floorOffset(hi)*(level-lo);};
     const position = (id: string) => { const node = nodes.get(id)!; return new THREE.Vector3(node.x, node.floor * building.floorHeightM + .45, node.z); };
     const initialTarget = boundCamera(state.camera).target;
-    const target = new THREE.Vector3(initialTarget?.x ?? 16, initialTarget?.y ?? (state.floor === 'all' ? 4 : state.floor * building.floorHeightM), initialTarget?.z ?? 11);
+    const target = new THREE.Vector3(initialTarget?.x ?? 16, (initialTarget?.y ?? (state.floor === 'all' ? 4 : state.floor * building.floorHeightM)) + (state.floor === 'all' && state.expanded ? 5 : 0), initialTarget?.z ?? 11);
     const floorFrom = target.clone(); const floorTo = target.clone();
     const view = new THREE.OrthographicCamera(-27, 27, 22, -22, .1, 250);
     const material = (color: string, opacity = 1) => {
@@ -94,14 +100,14 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       const geometry = new THREE.BoxGeometry(sx, sy, sz); allocation.geometries.push(geometry);
       const mesh = new THREE.Mesh(geometry, value); mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
     };
-    const label = (text: string, x: number, y: number, z: number, color = '#233237') => {
+    const label = (text: string, x: number, y: number, z: number, color = '#233237', active=false) => {
       const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 128;
       const context = canvas.getContext('2d'); if (!context) return;
-      context.clearRect(0, 0, 512, 128); context.fillStyle = color; context.font = 'bold 64px system-ui'; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(text, 256, 64);
-      const texture = new THREE.CanvasTexture(canvas); allocation.textures.push(texture);
-      const value = new THREE.SpriteMaterial({ map: texture, depthTest: true }); allocation.materials.push(value);
+      context.clearRect(0, 0, 512, 128); if(active){context.fillStyle='#173d3d';context.roundRect(4,12,504,104,18);context.fill();} context.fillStyle = active?'#ffffff':color; context.font = 'bold 64px system-ui'; if(active){const font=Math.max(28,Math.min(64,64*470/Math.max(1,context.measureText(text).width)));context.font=`bold ${font}px system-ui`;} context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(text, 256, 64);
+      const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; allocation.textures.push(texture);
+      const value = new THREE.SpriteMaterial({ map: texture, depthTest: !active, depthWrite: false, toneMapped: !active }); allocation.materials.push(value);
       const sprite = new THREE.Sprite(value); sprite.position.set(x, y, z); sprite.scale.set(6.3 * (state.largerText ? 1.35 : 1), 1.6 * (state.largerText ? 1.35 : 1), 1); parent.add(sprite);
-      if (allocation === structureResources) structureLabels.push(sprite);
+      sprite.userData.activeBadge=active;sprite.renderOrder=active?30:0; if (allocation === structureResources) structureLabels.push(sprite);
     };
     const segment = (from: THREE.Vector3, to: THREE.Vector3, value: THREE.Material, radius = .2) => {
       const distance = from.distanceTo(to); if (!distance) return;
@@ -136,7 +142,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
           }
           const attribute=object.geometry.attributes.position!; const base=object.userData.base as Float32Array;const weights=object.userData.floorWeights as Float32Array;
           for(let i=0;i<attribute.count;i++) attribute.setY(i,base[i*3+1]!+offsetAt(weights[i]!*building.floorHeightM+.45)); attribute.needsUpdate=true; object.geometry.computeBoundingSphere();
-        } else {object.userData.baseY ??= object.position.y; object.position.y=object.userData.baseY+floorOffset(Math.round((object.userData.baseY-.45)/building.floorHeightM));}
+        } else {object.userData.baseY ??= object.position.y; object.position.y=object.userData.baseY+floorOffset(object.userData.anchorLevel??Math.round((object.userData.baseY-.45)/building.floorHeightM));}
       });
     };
     const canRender = () => !disposed && visible && document.visibilityState !== 'hidden';
@@ -171,6 +177,24 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       // Pan in the camera's screen plane so native up/down controls also work in the top preset.
       const offset = new THREE.Vector3(settings.panX, settings.panY, 0).applyQuaternion(view.quaternion);
       view.position.add(offset); view.zoom = settings.zoom; view.lookAt(target.clone().add(offset)); view.updateProjectionMatrix();
+      view.updateMatrixWorld();
+      const screenPoint=(point:THREE.Vector3)=>{const p=point.project(view);return {x:(p.x+1)*container.clientWidth/2,y:(1-p.y)*container.clientHeight/2};};
+      const routePixels=state.result.status==='ok'?state.result.nodeIds.map(id=>{const p=position(id);p.y+=floorOffset(nodes.get(id)!.floor);return screenPoint(p);}):[];
+      const intersects=(a:{x:number;y:number},b:{x:number;y:number},r:{x:number;y:number})=>{let lo=0,hi=1;const dx=b.x-a.x,dy=b.y-a.y;const ps=[-dx,dx,-dy,dy],qs=[a.x-r.x,r.x+142-a.x,a.y-r.y,r.y+44-a.y];for(let i=0;i<4;i++){if(Math.abs(ps[i]!)<.00001){if(qs[i]!<0)return false;}else{const t=qs[i]!/ps[i]!;if(ps[i]!<0)lo=Math.max(lo,t);else hi=Math.min(hi,t);if(lo>hi)return false;}}return true;};
+      const occupied:{x:number;y:number}[]=[];
+      for(const child of routes.children)if(child instanceof THREE.Sprite&&child.userData.activeBadge){
+        const unit=(view.top-view.bottom)/view.zoom/Math.max(1,container.clientHeight);child.scale.set(130*unit,32*unit,1);const node=nodes.get(child.userData.badgeNode);if(!node)continue;
+        child.position.copy(position(node.id));child.position.y+=floorOffset(node.floor);const anchor=screenPoint(child.position.clone());
+        const candidates=[[90,0],[-90,0],[0,-44],[0,44],[90,-44],[-90,-44],[90,44],[-90,44]];
+        let best=candidates[0]!,score=Infinity;
+        for(const candidate of candidates){const r={x:anchor.x+candidate[0]!-71,y:anchor.y-candidate[1]!-22};let cost=candidates.indexOf(candidate);
+          if(r.x<4||r.x+142>container.clientWidth-4||r.y<4||r.y+44>container.clientHeight-4)cost+=10000;
+          for(let i=1;i<routePixels.length;i++)if(intersects(routePixels[i-1]!,routePixels[i]!,r))cost+=1000;
+          for(const other of occupied)if(Math.abs(other.x-r.x)<142&&Math.abs(other.y-r.y)<44)cost+=1000;
+          if(cost<score){score=cost;best=candidate;}
+        }
+        occupied.push({x:anchor.x+best[0]!-71,y:anchor.y-best[1]!-22});child.position.add(new THREE.Vector3(best[0]!*unit,best[1]!*unit,0).applyQuaternion(view.quaternion));
+      }
       container.dataset.camera = JSON.stringify(settings); container.dataset.cameraTarget = JSON.stringify(target.toArray());
     };
     const draw = () => {
@@ -179,6 +203,8 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
         if(import.meta.env.DEV && !cameraEnd && !revealEnd && !floorEnd && performance.now()>=burstEnd){
         const projectedBounds=(objects:THREE.Object3D[])=>{let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;for(const object of objects){if(!object.visible)continue;const bounds=new THREE.Box3().setFromObject(object);if(bounds.isEmpty())continue;for(const x of [bounds.min.x,bounds.max.x])for(const y of [bounds.min.y,bounds.max.y])for(const z of [bounds.min.z,bounds.max.z]){const p=new THREE.Vector3(x,y,z).project(view);minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}}return {minX,minY,maxX,maxY};};
         container.dataset.routeScreenBounds=JSON.stringify(projectedBounds(routes.children));
+        container.dataset.routeScreenPoints=JSON.stringify(state.result.status==='ok'?state.result.nodeIds.map(id=>{const node=nodes.get(id)!;const p=position(id);p.y+=floorOffset(node.floor);p.project(view);return {id,x:(p.x+1)*container.clientWidth/2,y:(1-p.y)*container.clientHeight/2};}):[]);
+        container.dataset.activeBadgeBounds=JSON.stringify(routes.children.filter(o=>o instanceof THREE.Sprite&&o.userData.activeBadge).map(o=>{const p=o.position.clone().project(view);return {id:o.userData.badgeNode,x:(p.x+1)*container.clientWidth/2-65,y:(1-p.y)*container.clientHeight/2-16,width:130,height:32};}));
         container.dataset.modelScreenBounds=JSON.stringify(projectedBounds([...floorGroups.values()]));
         }
         container.dataset.renderStats = JSON.stringify({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,dpr:renderer.getPixelRatio(),shadowMap:1024}); container.dataset.renderCount = String(++renderCount); dirty = false; }
@@ -200,7 +226,8 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       }
       if(revealEnd){const t=Math.min(1,(time-revealStart)/(revealEnd-revealStart)),k=1-(1-t)**3;
         offsets.forEach((_,i)=>offsets[i]=offsetFrom[i]!+(offsetTo[i]!-offsetFrom[i]!)*k);
-        floorGroups.forEach((group,id)=>{group.position.y=floorOffset(id);group.visible=state.floor==='all'||id===state.floor||t<1;});deformRoutes();
+        floorAlpha.forEach((_,i)=>floorAlpha[i]=alphaFrom[i]!+(alphaTo[i]!-alphaFrom[i]!)*k);
+        floorGroups.forEach((group,id)=>{group.position.y=floorOffset(id);});applyFloorAppearance();deformRoutes();
         container.dataset.floorOffsets=JSON.stringify(offsets);if(t===1)revealEnd=0;else easing=true;
       }
       const running = state.motionAllowed && time < burstEnd && orderedSegments.length > 0;
@@ -226,7 +253,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       else { if (moving) moving.visible = false; if (dirty) draw(); container.dataset.animating = 'false'; }
     };
     const suspend = () => {
-      stop(); burstEnd = 0; floorEnd = 0; cameraEnd = 0; liveCamera = cameraTo; revealEnd = 0; offsets.forEach((_,i)=>offsets[i]=offsetTo[i]!); floorGroups.forEach((group,id)=>{group.position.y=floorOffset(id);group.visible=state.floor==='all'||id===state.floor;}); deformRoutes(); target.copy(floorTo); if (moving) moving.visible = false; dirty = true;
+      stop(); burstEnd = 0; floorEnd = 0; cameraEnd = 0; liveCamera = cameraTo; revealEnd = 0; offsets.forEach((_,i)=>offsets[i]=offsetTo[i]!); floorAlpha.forEach((_,i)=>floorAlpha[i]=alphaTo[i]!); floorGroups.forEach((group,id)=>{group.position.y=floorOffset(id);}); applyFloorAppearance(); deformRoutes(); target.copy(floorTo); if (moving) moving.visible = false; dirty = true;
       for (const id of pointers.current.keys()) if (container.hasPointerCapture(id)) container.releasePointerCapture(id);
       pointers.current.clear(); container.dataset.dragging = 'false';
     };
@@ -281,6 +308,8 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
         if (state.floor !== 'all' && from.floor !== state.floor && to.floor !== state.floor) continue;
         const middle = position(edge.from).add(position(edge.to)).multiplyScalar(.5); label('×', middle.x, middle.y + 1, middle.z, '#ffc777');
       }
+      const badgeIds=state.routeReveal&&state.result.status==='ok'?[state.result.nodeIds[0]!,state.result.nodeIds.at(-1)!]:state.highlight?[state.highlight.nodeId]:[];
+      for(const id of new Set(badgeIds)){const node=nodes.get(id);if(!node)continue;label(nodeLabelRu(node.id,node.label,node.labelKk),node.x,node.floor*building.floorHeightM+2.8,node.z,'#fff',true);const badge=routes.children.at(-1)!;badge.userData.anchorLevel=node.floor;badge.userData.badgeNode=id;}
       const geometry = new THREE.ConeGeometry(.3, .8, 3); allocation.geometries.push(geometry);
       moving = new THREE.Mesh(geometry, cyan); moving.renderOrder = 15; moving.visible = false; routes.add(moving);
       container.dataset.directionNodes = state.result.status === 'ok' ? state.result.nodeIds.join(',') : '';
@@ -291,13 +320,13 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       if (disposed) return;
       const now = performance.now(); settleFloor(now);
       const floorChanged = state.floor !== next.floor || state.expanded !== next.expanded || state.cameraTransitionId !== next.cameraTransitionId || JSON.stringify(state.camera.target) !== JSON.stringify(next.camera.target);
-      const revealChanged = state.floor !== next.floor || state.expanded !== next.expanded;
+      const revealChanged = state.floor !== next.floor || state.expanded !== next.expanded || state.routeReveal !== next.routeReveal;
       const autoCamera = state.cameraTransitionId !== next.cameraTransitionId;
       const cameraChanged = JSON.stringify(state.camera)!==JSON.stringify(next.camera);
       state = next;
       if(autoCamera && state.motionAllowed){cameraFrom=liveCamera;cameraTo=boundCamera(state.camera);cameraStart=now;cameraEnd=now+420;}
       else if(cameraChanged || !state.motionAllowed){liveCamera=boundCamera(state.camera);cameraEnd=0;}
-      if(revealChanged){offsetFrom=[...offsets];offsetTo=building.floors.map(f=>state.floor==='all'?(state.expanded?f.id*5:0):(f.id>state.floor?14:0));revealStart=now;revealEnd=state.motionAllowed&&canRender()?now+460:0;if(!revealEnd)offsets.forEach((_,i)=>offsets[i]=offsetTo[i]!);}
+      if(revealChanged){alphaFrom=[...floorAlpha];alphaTo=building.floors.map(f=>state.floor!=='all'&&f.id!==state.floor?0:state.routeReveal?.24:1);offsetFrom=[...offsets];offsetTo=building.floors.map(f=>state.floor==='all'?(state.expanded?f.id*5:0):(f.id>state.floor?14:0));revealStart=now;revealEnd=state.motionAllowed&&canRender()?now+460:0;if(!revealEnd){offsets.forEach((_,i)=>offsets[i]=offsetTo[i]!);floorAlpha.forEach((_,i)=>floorAlpha[i]=alphaTo[i]!);}}
 
       for (const sprite of structureLabels) sprite.scale.set(6.3 * (state.largerText ? 1.35 : 1), 1.6 * (state.largerText ? 1.35 : 1), 1);
       if (floorChanged) {
@@ -307,16 +336,16 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
         floorStart = now; floorEnd = state.motionAllowed && canRender() && autoCamera ? now + 420 : 0;
         if (!floorEnd) target.copy(floorTo);
       }
-      floorGroups.forEach((group, id) => { group.visible = state.floor === 'all' || id === state.floor || revealEnd > now; group.position.y = floorOffset(id); });
-      floorSlabs.forEach(slab => { slab.opacity = 1; });
-      const signature = JSON.stringify([state.result.status === 'ok' ? [state.result.nodeIds, state.result.uncertainEdgeIds] : [], state.floor, state.expanded, state.closedEdgeIds, state.highlight, state.largerText]);
+      floorGroups.forEach((group, id) => { group.position.y = floorOffset(id); });
+      applyFloorAppearance();
+      const signature = JSON.stringify([state.result.status === 'ok' ? [state.result.nodeIds, state.result.uncertainEdgeIds] : [], state.floor, state.expanded, state.routeReveal, state.closedEdgeIds, state.highlight, state.largerText]);
       if (signature !== routeSignature) {
         routeSignature = signature; rebuildRoutes(); deformRoutes(); burstStart = now;
         burstEnd = state.motionAllowed && canRender() && orderedSegments.length ? now + 1600 : 0;
       }
-      if (!state.motionAllowed) { stop(); revealEnd=0; offsets.forEach((_,i)=>offsets[i]=offsetTo[i]!); floorGroups.forEach((group,id)=>{group.position.y=floorOffset(id);group.visible=state.floor==='all'||id===state.floor;}); deformRoutes(); floorEnd = 0; target.copy(floorTo); burstEnd = 0; if (moving) moving.visible = false; }
+      if (!state.motionAllowed) { stop(); revealEnd=0; offsets.forEach((_,i)=>offsets[i]=offsetTo[i]!); floorAlpha.forEach((_,i)=>floorAlpha[i]=alphaTo[i]!); floorGroups.forEach((group,id)=>{group.position.y=floorOffset(id);}); applyFloorAppearance(); deformRoutes(); floorEnd = 0; target.copy(floorTo); burstEnd = 0; if (moving) moving.visible = false; }
       scene.background = new THREE.Color(state.theme === 'dark' ? '#222e32' : '#e2e9e5');
-      container.dataset.floor = String(state.floor); container.dataset.floorMode = state.floor !== 'all' ? 'focused' : state.expanded ? 'expanded' : 'assembled'; container.dataset.floorOffsets = JSON.stringify(building.floors.map(f => floorOffset(f.id))); container.dataset.cameraTransition = String(state.cameraTransitionId); dirty = true; schedule();
+      container.dataset.routeReveal=String(Boolean(state.routeReveal)); container.dataset.floor = String(state.floor); container.dataset.floorMode = state.floor !== 'all' ? 'focused' : state.expanded ? 'expanded' : 'assembled'; container.dataset.floorOffsets = JSON.stringify(building.floors.map(f => floorOffset(f.id))); container.dataset.cameraTransition = String(state.cameraTransitionId); dirty = true; schedule();
     };
     try {
       failureStage='context-creation'; renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'low-power' });
@@ -351,6 +380,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
           const inset=(n:typeof a)=>level.id>0&&(n.kind==='lift'||n.kind==='stairs')?1.8:0;
           const start=inset(a),end=inset(b); const span=Math.max(.01,length-start-end);
           const ribbon=box(span,.018,1.65,(a.x+b.x)/2+ux*(start-end)/2,h+.025,(a.z+b.z)/2+uz*(start-end)/2,circulation);ribbon.rotation.y=-Math.atan2(b.z-a.z,b.x-a.x);
+          for(const side of [-1,1]){const border=box(Math.max(.01,span-2.4),.012,.035,ribbon.position.x-uz*side*.825,h+.04,ribbon.position.z+ux*side*.825,wood);border.rotation.y=ribbon.rotation.y;}
         }
         // Rear glazed elevation creates a readable architectural silhouette; open front remains a cutaway.
         for(let bay=0;bay<8;bay++) {const x=2+bay*4;
@@ -364,7 +394,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
         box(32, .6, .25, 16, h + .22, 0, ivory); box(.25, .6, 23, 0, h + .22, 11.5, ivory); box(.25, .6, 23, 32, h + .22, 11.5, ivory);
         const architecture = createFloorArchitecture(building, level.id);
         for (const room of architecture.rooms) box(room.width,.06,room.depth,room.x,h+.02,room.z,roomFinish);
-        for (const w of architecture.walls) box(Math.max(.16,Math.abs(w.x2-w.x1)),1.65,Math.max(.16,Math.abs(w.z2-w.z1)),(w.x1+w.x2)/2,h+.825,(w.z1+w.z2)/2,wall);
+        for (const w of architecture.walls) {box(Math.max(.16,Math.abs(w.x2-w.x1)),1.65,Math.max(.16,Math.abs(w.z2-w.z1)),(w.x1+w.x2)/2,h+.825,(w.z1+w.z2)/2,wall);box(Math.max(.19,Math.abs(w.x2-w.x1)),.08,Math.max(.19,Math.abs(w.z2-w.z1)),(w.x1+w.x2)/2,h+.06,(w.z1+w.z2)/2,wood);}
         for (const door of architecture.doors) {
           const horizontal=door.axis==='x';
           box(horizontal?door.width:.18,.035,horizontal?.18:door.width,door.x,h+.09,door.z,wood);
@@ -440,6 +470,12 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
         }
       };
       floorGroups.forEach(compact);compact(surroundings);
+      floorGroups.forEach((group,id)=>{const clones=new Map<THREE.Material,THREE.Material>();const entries:{material:THREE.Material;base:number;depth?:THREE.MeshDepthMaterial}[]=[];
+        group.children.forEach(object=>{if(object instanceof THREE.Sprite){entries.push({material:object.material,base:object.material.opacity});return;}if(!(object instanceof THREE.Mesh)||Array.isArray(object.material))return;const original=object.material;const clone:THREE.Material=clones.get(original)??original.clone();if(!clones.has(original)){clones.set(original,clone);structureResources.materials.push(clone);}object.material=clone;
+          if(original===floorSlabs.get(id))floorSlabs.set(id,clone as THREE.MeshStandardMaterial);
+          const depth=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking});depth.alphaHash=true;depth.userData.fade={value:1};depth.onBeforeCompile=shader=>{shader.uniforms.uFloorFade=depth.userData.fade;shader.fragmentShader='uniform float uFloorFade;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <alphahash_fragment>','diffuseColor.a *= uFloorFade;\n#include <alphahash_fragment>');};depth.customProgramCacheKey=()=> 'floor-shadow-fade-v1';object.customDepthMaterial=depth;structureResources.materials.push(depth);entries.push({material:clone,base:clone.opacity,depth});
+        });floorMaterials.set(id,entries);
+      });
       container.dataset.materialSource='procedural-loading';
       const stone=new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}textures/iter-limestone.webp`,texture=>{
         if(disposed){texture.dispose();return;}
