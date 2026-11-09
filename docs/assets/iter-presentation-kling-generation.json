@@ -1,0 +1,46 @@
+{
+  "provider": "Higgsfield",
+  "model": "kling4_0",
+  "jobId": "4553f75e-c902-4cd6-b85e-10f1eb1e6ab7",
+  "status": "completed",
+  "attempts": 1,
+  "quotedCreditsExact": 19.5,
+  "requestedDurationSeconds": 6,
+  "actualDurationSeconds": 6.04,
+  "resolution": "1920x1080",
+  "framesPerSecond": 24,
+  "frames": 145,
+  "sourceCommit": "fe38525fcf2cb30b2a0816e62efe31ecae1a141a",
+  "references": [
+    {
+      "role": "start_image",
+      "path": "public/presentation/media/intro-start.png",
+      "sha256": "f7fd2055d6aa9a9994609882a39148b461a9aec22e856626b2e0fc1d463ca781"
+    },
+    {
+      "role": "end_image",
+      "path": "public/presentation/media/intro-end.png",
+      "sha256": "266351bacc80fb5736e65ef5ff08f0c5c3a4ba32047dc9676984250b1a377910"
+    }
+  ],
+  "prompt": "Animate the exact existing architectural maquette in the supplied first and last frames. One calm continuous 12-degree architectural camera orbit from the first reference to the last over 6 seconds, gently easing to a complete stop. Keep orthographic projection, camera scale and zoom constant. Match both endpoint frames exactly. Preserve all three floors, exact number and positions of walls, the two elevator volumes, stairs, openings, columns, trees, dark podium and every material. Preserve the same soft unchanging illumination and uniform warm off-white background. The building is completely rigid: no morphing, bending, reconstruction or added architecture. No camera shake, cuts, perspective distortion or zoom. No people, labels, text, room numbers, routes, UI or extra objects. No stylistic transformation. No music, speech or sound; silent output.",
+  "parameters": {
+    "model": "kling4_0",
+    "mode": "image-to-video",
+    "duration": 6,
+    "resolution": "1080p",
+    "aspect_ratio": "16:9",
+    "count": 1
+  },
+  "originalFile": "docs/assets/iter-presentation-kling-original.mp4",
+  "postprocessing": {
+    "operation": "Remove audio with video stream copy",
+    "ffmpegArguments": "-c:v copy -an -movflags +faststart",
+    "videoReencoded": false,
+    "originalAudio": "AAC stereo 44100 Hz",
+    "outputAudio": "none"
+  },
+  "runtimeFile": "public/presentation/media/intro-kling.mp4",
+  "runtimeSha256": "3268a446466d5edbccfb4eb6046b1e315959b55cb9e3cbf5cf8963b93cb33d53",
+  "assessment": "Six sampled keyframes retain the existing building silhouette and arrangement. End frame and live 1920x1080 projection reviewed side by side: matching contours and scale; slightly softer generated shading. Continuous in-browser handoff verification is tracked separately."
+}

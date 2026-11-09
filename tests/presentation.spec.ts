@@ -148,6 +148,8 @@ test('language survives transitions, direct URL and reload without losing scene'
 
 test('live route, closure and unknown-data controls use model results without changing the navigator scenario', async ({ page }) => {
   await open(page, 'route');
+  await active(page).locator('details summary').click();
+  await active(page).locator('button[type="submit"]').click();
   const route = page.getByTestId('presentation-route-result');
   await expect(route).toHaveAttribute('data-distance', '40');
   await expect(route).toHaveAttribute('data-route-ids', /lift-a/);
@@ -220,7 +222,7 @@ test('a single live model stops rendering when hidden; no automatic media naviga
   await expect(model).toHaveAttribute('data-animating', 'false');
   await page.getByTestId('presentation-next').click(); await page.getByTestId('presentation-next').click();
   await expect(active(page)).toHaveAttribute('data-scene', 'uncertainty');
-  await page.waitForTimeout(500);
+  await expect(page.getByTestId('presentation-root')).toHaveAttribute('data-settled', 'true');
   const before = await model.getAttribute('data-render-count');
   await page.waitForTimeout(600);
   expect(await model.getAttribute('data-render-count')).toBe(before);
@@ -243,10 +245,10 @@ test('five building phases control the real model and reset to the route', async
   await page.emulateMedia({ reducedMotion: 'reduce' }); await open(page, 'building');
   const model = page.locator('.diorama'); const phases = page.locator('.pres-model-phases button');
   await expect(phases).toHaveCount(5);
-  await phases.nth(0).click(); await expect(model).toHaveAttribute('data-floor-mode', 'assembled'); await expect(model).toHaveAttribute('data-route-ids', '');
+  await phases.nth(0).click(); await expect(model).toHaveAttribute('data-floor-mode', 'assembled'); await expect.poll(async () => JSON.parse((await model.getAttribute('data-director-pose'))!).routeProgress).toBe(0);
   await phases.nth(1).click(); await expect(model).toHaveAttribute('data-floor-mode', 'expanded');
-  await phases.nth(2).click(); await expect(model).toHaveAttribute('data-floor', '1');
-  await phases.nth(3).click(); await expect(model).toHaveAttribute('data-floor', '1');
+  await phases.nth(2).click(); await expect.poll(async () => JSON.parse((await model.getAttribute('data-director-pose'))!).focusFloor1).toBe(1);
+  await phases.nth(3).click(); await expect.poll(async () => JSON.parse((await model.getAttribute('data-director-pose'))!).focusFloor1).toBe(1);
   await phases.nth(4).click(); await expect(model).toHaveAttribute('data-floor-mode', 'expanded'); await expect(model).toHaveAttribute('data-route-ids', /lift-a/);
 });
 
@@ -389,7 +391,7 @@ for (const [width, height] of [[1920, 1080], [1366, 768], [390, 844], [375, 667]
 for (const [width, height] of [[390, 844], [375, 667]]) for (const lang of ['ru', 'kk']) test(`ordinary mobile slide gate ${width}x${height} ${lang}`, async ({ page }, info) => {
   await page.setViewportSize({ width: width!, height: height! }); await page.emulateMedia({ reducedMotion: 'reduce' });
   await open(page, 'intro', lang);
-  const visualSelectors = ['[data-testid="presentation-model"]', '.pres-barriers', '.pres-plan-panel', '[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '.pres-doors', '.pres-phone-figure', '.pres-pipeline', '.pres-pilot-layout', '[data-testid="presentation-model"]'];
+  const visualSelectors = ['[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '.pres-doors', '.pres-phone-figure', '.pres-pipeline', '.pres-pilot-layout', '[data-testid="presentation-model"]'];
   for (const [index, scene] of scenes.entries()) {
     await expect(active(page)).toHaveAttribute('data-scene', scene);
     await page.evaluate(() => scrollTo(0, 0)); await frames(page);
@@ -399,7 +401,7 @@ for (const [width, height] of [[390, 844], [375, 667]]) for (const lang of ['ru'
     expect(visual.y + visual.height, `${scene} significant visual stays above footer`).toBeLessThanOrEqual(footer.y + 1);
     if (scene === 'building') {
       const meta = (await active(page).locator('.pres-route-meta').boundingBox())!;
-      expect(meta.y, 'Route metadata must not overlap the model or its caption').toBeGreaterThanOrEqual(visual.y + visual.height - 1);
+      expect(meta.y + meta.height <= visual.y + 1 || meta.y >= visual.y + visual.height - 1, 'Route metadata must not overlap the model').toBe(true);
     }
     const title = (await active(page).getByRole('heading').first().boundingBox())!;
     expect(title.y + title.height).toBeLessThanOrEqual(footer.y);
@@ -417,6 +419,7 @@ test('mobile CDP horizontal swipe navigates; vertical touch scroll and select in
   await expect(active(page)).toHaveAttribute('data-scene', 'barriers');
   const cdp = await context.newCDPSession(page);
   await swipe(page, cdp, -160, 2); await expect(active(page)).toHaveAttribute('data-scene', 'route');
+  await active(page).locator('details summary').click();
   const select = active(page).locator('select').first();
   await select.focus(); await page.keyboard.press('ArrowDown');
   await expect(active(page)).toHaveAttribute('data-scene', 'route');
@@ -531,6 +534,7 @@ test('presentation publication root and trailing slash survive reload', async ({
 });
 
 async function pilotGeometry(page: Page) {
+  await expect(page.getByTestId('presentation-root')).toHaveAttribute('data-settled', 'true');
   await frames(page);
   await noHorizontalOverflow(page);
   const viewport = page.viewportSize()!;
@@ -599,7 +603,8 @@ for (const [width, height] of [[1366, 768], [1536, 864], [375, 667], [390, 844]]
     await expect(page.locator('html')).toHaveAttribute('lang', other === 'kk' ? 'kk-KZ' : 'ru-RU');
     await expect(pilot(page)).toHaveAttribute('data-artwork-loaded', 'true');
     expect(await page.locator('canvas').count()).toBeLessThanOrEqual(1);
-    await expect(page.getByTestId('presentation-model')).toHaveAttribute('data-visible', 'false');
+    await expect(page.getByTestId('presentation-model')).toHaveAttribute('data-visible', 'true');
+    await expect(page.getByTestId('presentation-root')).toHaveAttribute('data-settled', 'true');
   });
 }
 

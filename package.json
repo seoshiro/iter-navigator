@@ -22,6 +22,7 @@
     "test:mobile-3d": "playwright test --config=tests/mobile-3d.config.ts"
   },
   "dependencies": {
+    "gsap": "3.15.1",
     "pg": "8.23.1",
     "qrcode": "1.5.4",
     "react": "19.3.0",
