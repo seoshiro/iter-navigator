@@ -628,3 +628,14 @@ footer { font-size:.75rem; padding:20px 0; }
 @media (max-width:700px) and (max-height:720px) {
   :root[data-text-size="large"] .walk-mode .floor-plans { max-height:140px; }
 }
+/* Search results keep selected foreground and background as a paired token. */
+.room-results button[aria-pressed="true"] { background:var(--selected); color:var(--selected-text); border-color:var(--selected); }
+.room-results button[aria-pressed="true"] small { color:inherit; }
+
+/* Touch controls are next to the model, never hidden behind a disclosure. */
+.scene-touch-controls { padding:0 18px 12px; }
+.scene-touch-controls>div { display:flex; flex-wrap:wrap; gap:6px; }
+.scene-touch-controls button { min-height:44px; }
+.scene-touch-controls button[aria-label] { min-width:44px; font-size:1.15rem; }
+.scene-touch-controls p { margin:8px 0 0; color:var(--muted); font-size:.75rem; line-height:1.45; }
+@media(max-width:700px) { .scene-touch-controls { padding:0 12px 10px; } .scene-touch-controls p { font-size:.75rem; } }

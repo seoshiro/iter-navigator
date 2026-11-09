@@ -18,7 +18,8 @@
     "test": "vitest run",
     "test:browser": "playwright test --config=playwright.upgrade.config.ts",
     "test:journal": "playwright test --config=tests/journal-upgrade.config.ts",
-    "test:architecture": "playwright test --config=tests/architecture.config.ts"
+    "test:architecture": "playwright test --config=tests/architecture.config.ts",
+    "test:mobile-3d": "playwright test --config=tests/mobile-3d.config.ts"
   },
   "dependencies": {
     "pg": "8.23.1",

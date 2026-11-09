@@ -192,3 +192,14 @@ for (const width of [375, 390]) for (const theme of ['dark', 'light']) test(`man
   const allStepsBounds = (await page.locator('.guidance-primary-actions').boundingBox())!;
   expect(allStepsBounds.y + allStepsBounds.height, 'Whole-route review controls').toBeLessThanOrEqual(height + 1);
 });
+
+test('real material loads without blocking the route; missing texture keeps the working 3D fallback', async ({ page }) => {
+  await page.goto('/'); await expect(scene(page)).toHaveAttribute('data-material-source','higgsfield-limestone');
+  await expect(result(page).locator('.distance')).toHaveText('40м'); await settled(page);
+  const stats=JSON.parse((await scene(page).getAttribute('data-render-stats'))!);
+  expect(stats.calls).toBeLessThan(200);
+  await page.route('**/textures/iter-limestone.webp',route=>route.abort('failed'));
+  await page.reload(); await expect(scene(page)).toHaveAttribute('data-material-source','procedural-fallback');
+  await expect(scene(page)).toHaveAttribute('data-render-count',/[1-9]\d*/);
+  await expect(result(page).locator('.distance')).toHaveText('40м');
+});
