@@ -123,6 +123,8 @@ test('manual navigation, boundaries, rapid keys, direct URL, reload and browser 
   await chooseScene(page, 9); await expect(page.getByTestId('presentation-next')).toBeDisabled();
   await page.keyboard.press('ArrowRight'); await expect(active(page)).toHaveAttribute('data-scene', 'finish');
   await page.goto('/presentation?scene=4&lang=ru'); await expect(active(page)).toHaveAttribute('data-scene', 'building');
+  await page.goto('/presentation/?scene=building&lang=kk'); await expect(active(page)).toHaveAttribute('data-scene', 'building');
+  await page.reload(); await expect(active(page)).toHaveAttribute('data-scene', 'building');
 });
 
 test('language survives transitions, direct URL and reload without losing scene', async ({ page }) => {
@@ -381,6 +383,10 @@ for (const [width, height] of [[390, 844], [375, 667]]) for (const lang of ['ru'
     const visual = (await page.locator(visualSelectors[index]!).boundingBox())!;
     const footer = (await page.locator('.pres-controls').boundingBox())!;
     expect(visual.y + visual.height, `${scene} significant visual stays above footer`).toBeLessThanOrEqual(footer.y + 1);
+    if (scene === 'building') {
+      const meta = (await active(page).locator('.pres-route-meta').boundingBox())!;
+      expect(meta.y, 'Route metadata must not overlap the model or its caption').toBeGreaterThanOrEqual(visual.y + visual.height - 1);
+    }
     const title = (await active(page).getByRole('heading').first().boundingBox())!;
     expect(title.y + title.height).toBeLessThanOrEqual(footer.y);
     await page.screenshot({ path: info.outputPath(`${scene}-phone-viewport.png`) });
