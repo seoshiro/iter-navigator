@@ -4,19 +4,20 @@ import { useI18n } from '../i18n/locale';
 import * as THREE from 'three';
 import type { Building, RouteResult } from '../domain/model';
 import { boundCamera, dragCamera, panCamera, wheelCamera } from '../ui/camera';
+import { createFloorArchitecture } from '../ui/architecture';
 import type { CameraState } from '../ui/camera';
 
-interface VisualState { result: RouteResult; floor: 'all' | number; closedEdgeIds: string[]; camera: CameraState; motionAllowed: boolean; theme: 'dark' | 'light'; largerText: boolean; highlight: { nodeId: string; edgeId?: string } | null; gesturesEnabled: boolean }
-interface Props extends VisualState { building: Building; gestureReset: number; onFailure: () => void; onCameraChange: (value: CameraState) => void }
+interface VisualState { expanded?: boolean; cameraTransitionId?: number; result: RouteResult; floor: 'all' | number; closedEdgeIds: string[]; camera: CameraState; motionAllowed: boolean; theme: 'dark' | 'light'; largerText: boolean; highlight: { nodeId: string; edgeId?: string } | null; gesturesEnabled: boolean }
+interface Props extends VisualState { onSelectNode?: (id:string)=>void; building: Building; gestureReset: number; onFailure: () => void; onCameraChange: (value: CameraState) => void }
 interface Resources { geometries: THREE.BufferGeometry[]; materials: THREE.Material[]; textures: THREE.Texture[] }
 const resources = (): Resources => ({ geometries: [], materials: [], textures: [] });
 const disposeResources = (value: Resources) => { value.geometries.forEach(item => item.dispose()); value.materials.forEach(item => item.dispose()); value.textures.forEach(item => item.dispose()); };
 
-export default function Diorama({ building, result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, gestureReset, onFailure, onCameraChange }: Props) {
+export default function Diorama({ building, result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, gestureReset, expanded = false, cameraTransitionId = 0, onFailure, onCameraChange }: Props) {
   const {locale,nodeLabelRu}=useI18n();
   const host = useRef<HTMLDivElement>(null);
-  const runtime = useRef<{ update: (next: VisualState) => void } | null>(null);
-  const latest = useRef<VisualState>({ result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled });
+  const runtime = useRef<{ update: (next: VisualState) => void; interrupt: () => void } | null>(null);
+  const latest = useRef<VisualState>({ result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, expanded, cameraTransitionId });
   const pointers = useRef(new Map<number, { x: number; y: number; touch: boolean; button: number }>());
   useLayoutEffect(() => {
     const container = host.current; const ids = [...pointers.current.keys()]; pointers.current.clear();
@@ -24,13 +25,13 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     if (container) container.dataset.dragging = 'false';
   }, [gestureReset]);
   useLayoutEffect(() => {
-    latest.current = { result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled };
+    latest.current = { result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, expanded, cameraTransitionId };
     runtime.current?.update(latest.current);
     if (!gesturesEnabled) for (const [id, pointer] of pointers.current) if (pointer.touch) {
       pointers.current.delete(id); if (host.current?.hasPointerCapture(id)) host.current.releasePointerCapture(id);
     }
     if (host.current) host.current.dataset.dragging = String(pointers.current.size > 0);
-  }, [result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled]);
+  }, [result, floor, closedEdgeIds, camera, motionAllowed, theme, largerText, highlight, gesturesEnabled, expanded, cameraTransitionId]);
   useEffect(() => {
     const container = host.current; if (!container) return;
     const wheel = (event: WheelEvent) => {
@@ -71,6 +72,10 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     const routes = new THREE.Group(); scene.add(routes);
     const nodes = new Map(building.nodes.map(node => [node.id, node]));
     const edges = new Map(building.edges.map(edge => [edge.id, edge]));
+    const offsets = building.floors.map(() => 0);
+    let revealEnd = 0; let revealStart = 0; let offsetFrom = [...offsets]; let offsetTo = [...offsets];
+    const floorOffset = (id:number) => offsets[id] ?? 0;
+    const continuousOffset = (y:number) => {const level=Math.max(0,Math.min(offsets.length-1,(y-.45)/building.floorHeightM));const lo=Math.floor(level),hi=Math.ceil(level);return floorOffset(lo)*(1-(level-lo))+floorOffset(hi)*(level-lo);};
     const position = (id: string) => { const node = nodes.get(id)!; return new THREE.Vector3(node.x, node.floor * building.floorHeightM + .45, node.z); };
     const initialTarget = boundCamera(state.camera).target;
     const target = new THREE.Vector3(initialTarget?.x ?? 16, initialTarget?.y ?? (state.floor === 'all' ? 4 : state.floor * building.floorHeightM), initialTarget?.z ?? 11);
@@ -81,11 +86,11 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       allocation.materials.push(value); return value;
     };
     const routeMaterial = (color: string) => {
-      const value = new THREE.MeshBasicMaterial({ color, transparent: true, depthTest: false, depthWrite: false, toneMapped: false });
+      const value = new THREE.MeshBasicMaterial({ color, transparent: true, depthTest: true, depthWrite: true, toneMapped: false });
       allocation.materials.push(value); return value;
     };
     const ivory = material('#ede6d4'); const wall = material('#faf5e8'); const wood = material('#aa8660');
-    const green = material('#577d62'); const dark = material('#65706c');
+    const green = material('#577d62'); const roomFinish = material('#d9dfd5');
     const box = (sx: number, sy: number, sz: number, x: number, y: number, z: number, value: THREE.Material) => {
       const geometry = new THREE.BoxGeometry(sx, sy, sz); allocation.geometries.push(geometry);
       const mesh = new THREE.Mesh(geometry, value); mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
@@ -95,7 +100,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       const context = canvas.getContext('2d'); if (!context) return;
       context.clearRect(0, 0, 512, 128); context.fillStyle = color; context.font = 'bold 64px system-ui'; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(text, 256, 64);
       const texture = new THREE.CanvasTexture(canvas); allocation.textures.push(texture);
-      const value = new THREE.SpriteMaterial({ map: texture, depthTest: false }); allocation.materials.push(value);
+      const value = new THREE.SpriteMaterial({ map: texture, depthTest: true }); allocation.materials.push(value);
       const sprite = new THREE.Sprite(value); sprite.position.set(x, y, z); sprite.scale.set(6.3 * (state.largerText ? 1.35 : 1), 1.6 * (state.largerText ? 1.35 : 1), 1); parent.add(sprite);
       if (allocation === structureResources) structureLabels.push(sprite);
     };
@@ -103,13 +108,38 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       const distance = from.distanceTo(to); if (!distance) return;
       const geometry = new THREE.CylinderGeometry(radius, radius, distance, 10); allocation.geometries.push(geometry);
       const mesh = new THREE.Mesh(geometry, value); mesh.position.copy(from).add(to).multiplyScalar(.5);
-      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), to.clone().sub(from).normalize()); mesh.renderOrder = value === amber ? 12 : 10; parent.add(mesh);
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), to.clone().sub(from).normalize()); mesh.userData.routeEndpoints = [from.y, to.y]; mesh.userData.routeLength = distance; mesh.renderOrder = value === amber ? 12 : 10; parent.add(mesh);
     };
     allocation = routeResources;
     let cyan = routeMaterial('#066b73'); let amber = routeMaterial('#a85d08');
     let moving: THREE.Mesh | undefined;
     let orderedSegments: { from: THREE.Vector3; to: THREE.Vector3; uncertain: boolean; visible: boolean }[] = [];
     let routeSignature = '';
+    let liveCamera = boundCamera(state.camera); let cameraFrom = liveCamera; let cameraTo = liveCamera; let cameraStart = 0; let cameraEnd = 0;
+    const deformRoutes = () => {
+      const offsetAt = (y:number) => {const level=Math.max(0,Math.min(offsets.length-1,(y-.45)/building.floorHeightM)); const lo=Math.floor(level), hi=Math.ceil(level);return (offsets[lo]??0)*(1-(level-lo))+(offsets[hi]??0)*(level-lo);};
+      routes.children.forEach(object => {
+        if (object === moving) return;
+        if (object instanceof THREE.Mesh) {
+          if (!object.userData.base) {
+            const attribute=object.geometry.attributes.position!;
+            const endpoints=object.userData.routeEndpoints as [number,number] | undefined;
+            const weights=new Float32Array(attribute.count);
+            const anchor=object.position.y;
+            for(let i=0;i<attribute.count;i++) {
+              if(endpoints) {
+                const t=Math.max(0,Math.min(1,attribute.getY(i)/object.userData.routeLength+.5));
+                weights[i]=(endpoints[0]+t*(endpoints[1]-endpoints[0])-.45)/building.floorHeightM;
+              } else weights[i]=object.userData.anchorLevel ?? Math.round((anchor-.45)/building.floorHeightM);
+            }
+            object.userData.floorWeights=weights;
+            object.updateMatrix(); object.geometry.applyMatrix4(object.matrix); object.position.set(0,0,0); object.quaternion.identity(); object.scale.set(1,1,1); object.updateMatrix(); object.userData.base = Float32Array.from(attribute.array);
+          }
+          const attribute=object.geometry.attributes.position!; const base=object.userData.base as Float32Array;const weights=object.userData.floorWeights as Float32Array;
+          for(let i=0;i<attribute.count;i++) attribute.setY(i,base[i*3+1]!+offsetAt(weights[i]!*building.floorHeightM+.45)); attribute.needsUpdate=true; object.geometry.computeBoundingSphere();
+        } else {object.userData.baseY ??= object.position.y; object.position.y=object.userData.baseY+floorOffset(Math.round((object.userData.baseY-.45)/building.floorHeightM));}
+      });
+    };
     const canRender = () => !disposed && visible && document.visibilityState !== 'hidden';
     const stop = () => { if (frame) cancelAnimationFrame(frame); frame = 0; container.dataset.animating = 'false'; };
     const cleanup = () => {
@@ -127,9 +157,12 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     const fail = () => { if (!disposed) { document.documentElement.dataset.webglFailure=failureStage; cleanup(); onFailure(); } };
     const contextLost = (event: Event) => { event.preventDefault(); failureStage='context-lost'; fail(); };
     const applyCamera = () => {
-      const settings = boundCamera(state.camera); const angle = settings.yaw * Math.PI / 180;
-      const baseHeight = settings.preset === 'top' ? 70 : settings.preset === 'front' ? 21 : 38;
-      const baseRadius = settings.preset === 'top' ? .1 : 52;
+      const settings = liveCamera; const angle = settings.yaw * Math.PI / 180;
+      const k=cameraEnd?1-(1-Math.min(1,(performance.now()-cameraStart)/(cameraEnd-cameraStart)))**3:1;
+      const oldHeight=cameraFrom.preset==='top'?70:cameraFrom.preset==='front'?21:38;
+      const newHeight=settings.preset==='top'?70:settings.preset==='front'?21:38;
+      const baseHeight=oldHeight+(newHeight-oldHeight)*k;
+      const oldRadius=cameraFrom.preset==='top'?.1:52; const newRadius=settings.preset==='top'?.1:52; const baseRadius=oldRadius+(newRadius-oldRadius)*k;
       const baselineElevation = Math.atan2(baseHeight, baseRadius);
       const elevation = !settings.tilt ? baselineElevation : Math.max(.18, Math.min(1.55, baselineElevation + settings.tilt * Math.PI / 180));
       const distance = Math.hypot(baseHeight, baseRadius);
@@ -143,7 +176,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     };
     const draw = () => {
       if (!renderer || !canRender()) return;
-      try { failureStage='render'; applyCamera(); renderer.render(scene, view); container.dataset.renderCount = String(++renderCount); dirty = false; }
+      try { failureStage='render'; applyCamera(); renderer.render(scene, view); container.dataset.renderStats = JSON.stringify({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,dpr:renderer.getPixelRatio(),shadowMap:1024}); container.dataset.renderCount = String(++renderCount); dirty = false; }
       catch { fail(); }
     };
     const settleFloor = (time: number) => {
@@ -156,7 +189,15 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     const animate = (time: number) => {
       frame = 0;
       if (!canRender()) return;
-      const easing = settleFloor(time);
+      let easing = settleFloor(time);
+      if(cameraEnd){const t=Math.min(1,(time-cameraStart)/(cameraEnd-cameraStart)); const k=1-(1-t)**3;
+        liveCamera={...cameraTo,yaw:cameraFrom.yaw+(cameraTo.yaw-cameraFrom.yaw)*k,zoom:cameraFrom.zoom+(cameraTo.zoom-cameraFrom.zoom)*k,panX:cameraFrom.panX+(cameraTo.panX-cameraFrom.panX)*k,panY:cameraFrom.panY+(cameraTo.panY-cameraFrom.panY)*k,tilt:(cameraFrom.tilt??0)+((cameraTo.tilt??0)-(cameraFrom.tilt??0))*k};if(t===1)cameraEnd=0;else easing=true;
+      }
+      if(revealEnd){const t=Math.min(1,(time-revealStart)/(revealEnd-revealStart)),k=1-(1-t)**3;
+        offsets.forEach((_,i)=>offsets[i]=offsetFrom[i]!+(offsetTo[i]!-offsetFrom[i]!)*k);
+        floorGroups.forEach((group,id)=>{group.position.y=floorOffset(id);group.visible=state.floor==='all'||id===state.floor||t<1;});deformRoutes();
+        container.dataset.floorOffsets=JSON.stringify(offsets);if(t===1)revealEnd=0;else easing=true;
+      }
       const running = state.motionAllowed && time < burstEnd && orderedSegments.length > 0;
       if (moving) {
         moving.visible = running;
@@ -164,7 +205,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
           const progress = Math.min(.999999, Math.max(0, (time - burstStart) / (burstEnd - burstStart))) * orderedSegments.length;
           const part = orderedSegments[Math.floor(progress)]!;
           // An explanatory direction marker follows ordered result nodes, never edge.from/to or a real position.
-          moving.position.copy(part.from).lerp(part.to, progress % 1); moving.position.y += .6;
+          moving.position.copy(part.from).lerp(part.to, progress % 1); moving.position.y += .6 + continuousOffset(moving.position.y);
           moving.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), part.to.clone().sub(part.from).normalize());
           moving.material = part.uncertain ? amber : cyan; moving.visible = part.visible;
         }
@@ -176,11 +217,11 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     const schedule = () => {
       if (!canRender() || frame) return;
       const now = performance.now();
-      if (state.motionAllowed && (floorEnd > now || burstEnd > now)) { container.dataset.animating = 'true'; frame = requestAnimationFrame(animate); }
+      if (state.motionAllowed && (floorEnd > now || burstEnd > now || revealEnd > now || cameraEnd > now)) { container.dataset.animating = 'true'; frame = requestAnimationFrame(animate); }
       else { if (moving) moving.visible = false; if (dirty) draw(); container.dataset.animating = 'false'; }
     };
     const suspend = () => {
-      stop(); burstEnd = 0; floorEnd = 0; target.copy(floorTo); if (moving) moving.visible = false; dirty = true;
+      stop(); burstEnd = 0; floorEnd = 0; cameraEnd = 0; liveCamera = cameraTo; revealEnd = 0; offsets.forEach((_,i)=>offsets[i]=offsetTo[i]!); floorGroups.forEach((group,id)=>{group.position.y=floorOffset(id);group.visible=state.floor==='all'||id===state.floor;}); deformRoutes(); target.copy(floorTo); if (moving) moving.visible = false; dirty = true;
       for (const id of pointers.current.keys()) if (container.hasPointerCapture(id)) container.releasePointerCapture(id);
       pointers.current.clear(); container.dataset.dragging = 'false';
     };
@@ -210,7 +251,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
             if (state.highlight?.edgeId === id) segment(start, end, selected, state.largerText ? .48 : .34);
             segment(start, end, cyan, state.largerText ? .32 : .2);
             const geometry = new THREE.ConeGeometry(.42, 1, 3); allocation.geometries.push(geometry);
-            const arrow = new THREE.Mesh(geometry, direction); arrow.position.copy(start).lerp(end, .72); arrow.position.y += .55;
+            const arrow = new THREE.Mesh(geometry, direction); arrow.position.copy(start).lerp(end, .72); arrow.position.y += .55; arrow.userData.anchorLevel=(start.y*.28+end.y*.72-.45)/building.floorHeightM;
             arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), end.clone().sub(start).normalize()); arrow.renderOrder = 14; routes.add(arrow);
           }
         }
@@ -244,26 +285,33 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     const update = (next: VisualState) => {
       if (disposed) return;
       const now = performance.now(); settleFloor(now);
-      const floorChanged = state.floor !== next.floor || JSON.stringify(state.camera.target) !== JSON.stringify(next.camera.target);
+      const floorChanged = state.floor !== next.floor || state.expanded !== next.expanded || state.cameraTransitionId !== next.cameraTransitionId || JSON.stringify(state.camera.target) !== JSON.stringify(next.camera.target);
+      const revealChanged = state.floor !== next.floor || state.expanded !== next.expanded;
+      const autoCamera = state.cameraTransitionId !== next.cameraTransitionId;
+      const cameraChanged = JSON.stringify(state.camera)!==JSON.stringify(next.camera);
       state = next;
+      if(autoCamera && state.motionAllowed){cameraFrom=liveCamera;cameraTo=boundCamera(state.camera);cameraStart=now;cameraEnd=now+420;}
+      else if(cameraChanged || !state.motionAllowed){liveCamera=boundCamera(state.camera);cameraEnd=0;}
+      if(revealChanged){offsetFrom=[...offsets];offsetTo=building.floors.map(f=>state.floor==='all'?(state.expanded?f.id*5:0):(f.id>state.floor?14:0));revealStart=now;revealEnd=state.motionAllowed&&canRender()?now+460:0;if(!revealEnd)offsets.forEach((_,i)=>offsets[i]=offsetTo[i]!);}
+
       for (const sprite of structureLabels) sprite.scale.set(6.3 * (state.largerText ? 1.35 : 1), 1.6 * (state.largerText ? 1.35 : 1), 1);
       if (floorChanged) {
         floorFrom.copy(target);
         const center = boundCamera(state.camera).target;
-        floorTo.set(center?.x ?? 16, center?.y ?? (state.floor === 'all' ? 4 : state.floor * building.floorHeightM), center?.z ?? 11);
-        floorStart = now; floorEnd = state.motionAllowed && canRender() ? now + 300 : 0;
+        floorTo.set(center?.x ?? 16, (center?.y ?? (state.floor === 'all' ? 4 : state.floor * building.floorHeightM)) + (state.floor === 'all' && state.expanded ? 5 : 0), center?.z ?? 11);
+        floorStart = now; floorEnd = state.motionAllowed && canRender() && autoCamera ? now + 420 : 0;
         if (!floorEnd) target.copy(floorTo);
       }
-      floorGroups.forEach((group, id) => { group.visible = state.floor === 'all' || id === state.floor; });
-      floorSlabs.forEach((slab, id) => { slab.opacity = id === 0 || state.floor !== 'all' ? .98 : .32; });
-      const signature = JSON.stringify([state.result.status === 'ok' ? [state.result.nodeIds, state.result.uncertainEdgeIds] : [], state.floor, state.closedEdgeIds, state.highlight, state.largerText]);
+      floorGroups.forEach((group, id) => { group.visible = state.floor === 'all' || id === state.floor || revealEnd > now; group.position.y = floorOffset(id); });
+      floorSlabs.forEach(slab => { slab.opacity = 1; });
+      const signature = JSON.stringify([state.result.status === 'ok' ? [state.result.nodeIds, state.result.uncertainEdgeIds] : [], state.floor, state.expanded, state.closedEdgeIds, state.highlight, state.largerText]);
       if (signature !== routeSignature) {
-        routeSignature = signature; rebuildRoutes(); burstStart = now;
+        routeSignature = signature; rebuildRoutes(); deformRoutes(); burstStart = now;
         burstEnd = state.motionAllowed && canRender() && orderedSegments.length ? now + 1600 : 0;
       }
-      if (!state.motionAllowed) { stop(); floorEnd = 0; target.copy(floorTo); burstEnd = 0; if (moving) moving.visible = false; }
+      if (!state.motionAllowed) { stop(); revealEnd=0; offsets.forEach((_,i)=>offsets[i]=offsetTo[i]!); floorGroups.forEach((group,id)=>{group.position.y=floorOffset(id);group.visible=state.floor==='all'||id===state.floor;}); deformRoutes(); floorEnd = 0; target.copy(floorTo); burstEnd = 0; if (moving) moving.visible = false; }
       scene.background = new THREE.Color(state.theme === 'dark' ? '#222e32' : '#e2e9e5');
-      container.dataset.floor = String(state.floor); dirty = true; schedule();
+      container.dataset.floor = String(state.floor); container.dataset.floorMode = state.floor !== 'all' ? 'focused' : state.expanded ? 'expanded' : 'assembled'; container.dataset.floorOffsets = JSON.stringify(building.floors.map(f => floorOffset(f.id))); container.dataset.cameraTransition = String(state.cameraTransitionId); dirty = true; schedule();
     };
     try {
       failureStage='context-creation'; renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'low-power' });
@@ -271,8 +319,8 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
       renderer.domElement.setAttribute('aria-hidden', 'true'); renderer.domElement.dataset.testid = 'diorama-canvas';
       renderer.domElement.addEventListener('webglcontextlost', contextLost); container.append(renderer.domElement);
-      scene.add(new THREE.HemisphereLight('#f7f2df', '#384b53', 2.6));
-      const sun = new THREE.DirectionalLight('#fff4dc', 3.2); sun.position.set(-10, 45, 25); sun.castShadow = true; shadow = sun.shadow;
+      scene.add(new THREE.HemisphereLight('#f7f2df', '#384b53', 1.8));
+      const sun = new THREE.DirectionalLight('#fff4dc', 2.1); sun.position.set(-10, 45, 25); sun.castShadow = true; shadow = sun.shadow;
       sun.shadow.mapSize.set(1024, 1024); Object.assign(sun.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40 }); scene.add(sun);
       allocation = structureResources;
       const surroundings = parent = new THREE.Group(); scene.add(surroundings);
@@ -280,16 +328,17 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
       for (const level of building.floors) {
         const group = parent = new THREE.Group(); scene.add(group); floorGroups.set(level.id, group);
         const h = level.id * building.floorHeightM;
-        const slab = material('#eee8d9', .98); floorSlabs.set(level.id, slab);
+        const slab = material('#eee8d9', 1); floorSlabs.set(level.id, slab);
         box(32, .22, 23, 16, h - .14, 11.5, slab);
         box(32, .6, .25, 16, h + .22, 0, ivory); box(.25, .6, 23, 0, h + .22, 11.5, ivory); box(.25, .6, 23, 32, h + .22, 11.5, ivory);
-        for (const roomX of [5, 13, 21]) {
-          box(6.4, .15, 5, roomX + 3, h + .07, 2.9, ivory); box(6.4, 1.5, .22, roomX + 3, h + .8, .6, wall);
-          box(.22, 1.5, 5, roomX, h + .8, 3, wall); box(.22, 1.5, 5, roomX + 6.4, h + .8, 3, wall);
-          box(2, .75, 1.2, roomX + 3, h + .45, 2, wood); box(.55, .4, .6, roomX + 3, h + .25, 3.4, dark);
+        const architecture = createFloorArchitecture(building, level.id);
+        for (const room of architecture.rooms) box(room.width,.06,room.depth,room.x,h+.02,room.z,roomFinish);
+        for (const w of architecture.walls) box(Math.max(.16,Math.abs(w.x2-w.x1)),1.65,Math.max(.16,Math.abs(w.z2-w.z1)),(w.x1+w.x2)/2,h+.825,(w.z1+w.z2)/2,wall);
+        for (const door of architecture.doors) box(door.axis==='x'?door.width:.18,.035,door.axis==='z'?door.width:.18,door.x,h+.09,door.z,wood);
+        for (const lift of ['a','b']) { const node=nodes.get(`lift-${lift}-${level.id}`)!;
+
+          label(lift.toUpperCase(),node.x,h+2.1,node.z-1.35,'#344a4a');
         }
-        box(7, .65, 3.2, 15, h + .4, 18.5, ivory); box(4, .2, 1.2, 15, h + .82, 18.5, wood);
-        for (const lift of ['a', 'b']) { const node = nodes.get(`lift-${lift}-${level.id}`)!; box(2.8, .8, 2.8, node.x, h + .4, node.z, dark); label(lift.toUpperCase(), node.x, h + 1.7, node.z, '#f7f2e4'); }
         for (let index = 0; index < 5; index++) box(2.6, .12 + index * .15, .55, 28, h + .05 + index * .075, 14.8 + index * .55, ivory);
         label(`${level.id + 1} ${locale==='kk'?'ҚАБАТ':'ЭТАЖ'}`, -2.6, h + .7, 18, '#d3e3dc');
         for (const node of building.nodes.filter(item => item.floor === level.id && item.kind === 'room')) label(/^room-\d+$/.test(node.id)?node.id.replace('room-', ''):nodeLabelRu(node.id,node.label,node.labelKk), node.x, h + 1.2, node.z);
@@ -305,16 +354,16 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
           const width = Math.max(container.clientWidth, 1); const height = Math.max(container.clientHeight, 1);
           renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
           renderer.setSize(width, height, false); const aspect = width / height;
-          view.left = -24 * aspect; view.right = 24 * aspect; view.top = 24; view.bottom = -24; view.updateProjectionMatrix(); dirty = true; schedule();
+          view.left = -21 * aspect; view.right = 21 * aspect; view.top = 21; view.bottom = -21; view.updateProjectionMatrix(); dirty = true; schedule();
         } catch { fail(); }
       };
       resize = new ResizeObserver(resizeScene); resize.observe(container);
       intersection = new IntersectionObserver(entries => { visible = entries.some(entry => entry.isIntersecting); if (!visible) suspend(); else schedule(); }); intersection.observe(container);
       document.addEventListener('visibilitychange', visibilityChanged);
-      runtime.current = { update }; resizeScene(); update(latest.current);
+      runtime.current = { update, interrupt: () => { cameraEnd=0; floorEnd=0; floorTo.copy(target); const snapshot={...liveCamera,target:{x:target.x,y:target.y-(state.floor==='all'&&state.expanded?5:0),z:target.z}}; latest.current={...latest.current,camera:snapshot}; onCameraChange(snapshot); } }; resizeScene(); update(latest.current);
     } catch { fail(); }
     return cleanup;
-  }, [building, onFailure, locale, nodeLabelRu]);
+  }, [building, onFailure, onCameraChange, locale, nodeLabelRu]);
   const endGesture = (event: PointerEvent<HTMLDivElement>) => {
     pointers.current.delete(event.pointerId); event.currentTarget.dataset.dragging = String(pointers.current.size > 0);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
@@ -324,6 +373,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     onPointerDown={event => {
       const touch = event.pointerType === 'touch';
       if (touch ? !gesturesEnabled || pointers.current.size >= 2 : !event.isPrimary || ![0, 1, 2].includes(event.button)) return;
+      runtime.current?.interrupt();
       pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY, touch, button: event.button });
       event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.dataset.dragging = 'true';
     }}
