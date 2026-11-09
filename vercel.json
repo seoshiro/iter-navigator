@@ -31,5 +31,15 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "destination": "/index.html",
+      "source": "/presentation"
+    },
+    {
+      "destination": "/index.html",
+      "source": "/presentation/"
+    }
   ]
 }
