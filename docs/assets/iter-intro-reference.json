@@ -1,0 +1,74 @@
+{
+  "start": {
+    "width": 1920,
+    "height": 1080,
+    "pose": {
+      "yaw": -50,
+      "zoom": 0.9,
+      "tilt": 0,
+      "panX": 0,
+      "panY": 0,
+      "targetX": 16,
+      "targetY": 4,
+      "targetZ": 11,
+      "spread": 0,
+      "cutaway": 0,
+      "routeProgress": 0,
+      "labels": 0,
+      "entrance": 0,
+      "stairs": 0,
+      "door": 0,
+      "lift": 0
+    },
+    "background": "#f2f1e9"
+  },
+  "end": {
+    "width": 1920,
+    "height": 1080,
+    "pose": {
+      "yaw": -38,
+      "zoom": 0.9,
+      "tilt": 0,
+      "panX": 0,
+      "panY": 0,
+      "targetX": 16,
+      "targetY": 4,
+      "targetZ": 11,
+      "spread": 0,
+      "cutaway": 0,
+      "routeProgress": 0,
+      "labels": 0,
+      "entrance": 0,
+      "stairs": 0,
+      "door": 0,
+      "lift": 0
+    },
+    "background": "#f2f1e9"
+  },
+  "originalSize": [
+    1344,
+    756
+  ],
+  "restoredSize": [
+    1344,
+    756
+  ],
+  "restoredPose": {
+    "yaw": -38,
+    "zoom": 0.9,
+    "tilt": 0,
+    "panX": 0,
+    "panY": 0,
+    "targetX": 16,
+    "targetY": 4,
+    "targetZ": 11,
+    "spread": 0,
+    "cutaway": 0,
+    "routeProgress": 0,
+    "labels": 0,
+    "entrance": 0,
+    "stairs": 0,
+    "door": 0,
+    "lift": 0
+  }
+}
