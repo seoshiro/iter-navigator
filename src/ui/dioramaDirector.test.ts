@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import buildingJson from '../data/building.json';
 import type { Building, Requirements } from '../domain/model';
 import { findRoute } from '../domain/routing';
-import { directorDoorAnchor, directorGraphEdges, createDioramaPose, routeElementProgress, snapshotDioramaPose, unitProgress } from './dioramaDirector';
+import { directorDoorAnchor, directorGraphEdges, directorGraphRejection, directorIntroProgress, createDioramaPose, routeElementProgress, snapshotDioramaPose, unitProgress } from './dioramaDirector';
 
 describe('presentation director channels', () => {
   it('omits the circular GSAP target cache from snapshots', () => {
@@ -58,5 +58,34 @@ describe('presentation evidence overlays', () => {
     expect(result.status).toBe('ok');
     if (result.status === 'ok') for (const id of result.edgeIds) expect(strict.find(e => e.edge.id === id)?.excluded).toBe(false);
     expect(directorGraphEdges(building, undefined, ['door-204']).find(e => e.edge.id === 'door-204')?.excluded).toBe(true);
+  });
+});
+
+describe('concrete presentation explanations', () => {
+  it('identifies a real measured-width violation without fabricating 205 evidence', () => {
+    expect(directorGraphRejection(building, requirements)).toEqual({edgeId:'narrow-204',widthM:.72,minWidthM:.9});
+    expect(directorGraphRejection(building, {...requirements,minWidthM:.7})).toBeNull();
+    expect(directorGraphRejection(building)).toBeNull();
+    const unknown = {...building,edges:building.edges.map(edge=>({...edge,widthM:{status:'unknown' as const,value:null,source:'unknown',checkedOn:null}}))};
+    expect(directorGraphRejection(unknown,requirements)).toBeNull();
+  });
+  it('clips the intro to a consecutive two-edge prefix, including reverse scrubbing', () => {
+    expect(directorIntroProgress(1,8)).toBe(.25);
+    expect(directorIntroProgress(.5,8)).toBe(.125);
+    expect(directorIntroProgress(0,8)).toBe(0);
+    expect(directorIntroProgress(1,1)).toBe(1);
+    expect(directorIntroProgress(1,0)).toBe(0);
+    const route=findRoute(building,'entrance','room-204',requirements,[]);
+    expect(route.status).toBe('ok');
+    if(route.status==='ok') {
+      const progress=directorIntroProgress(1,route.edgeIds.length);
+      expect(route.edgeIds.filter((_,i)=>routeElementProgress(progress,i,route.edgeIds.length)>0)).toEqual(route.edgeIds.slice(0,2));
+    }
+  });
+  it('starts all new overlay channels at zero and includes them in safe snapshots', () => {
+    const pose=createDioramaPose();
+    expect([pose.introGoal,pose.introRoute,pose.graphReject]).toEqual([0,0,0]);
+    Object.assign(pose,{introGoal:1,introRoute:.5,graphReject:.8});
+    expect(snapshotDioramaPose(pose)).toMatchObject({introGoal:1,introRoute:.5,graphReject:.8});
   });
 });

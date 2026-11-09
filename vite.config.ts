@@ -10,7 +10,7 @@ export default defineConfig({
       return { html, tags: [{ tag: 'meta', attrs: { name: REPORT_SERVICE_META_NAME, content: REPORT_PUBLIC_META_VALUE }, injectTo: 'head' }] };
     },
   }],
-  server: { host: '127.0.0.1', port: 5260, strictPort: true },
+  server: { host: '127.0.0.1', port: 5260, strictPort: true, watch: { ignored: ['**/.local/**', '**/test-results/**', '**/playwright-report/**'] } },
   preview: { host: '127.0.0.1', port: 4273, strictPort: true },
   test: { include: ['src/**/*.test.ts', 'tests/*.test.ts'], environment: 'node' },
 });

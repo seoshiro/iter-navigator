@@ -10,6 +10,7 @@ export interface DioramaPose {
   focusFloor0: number; focusFloor1: number; focusFloor2: number;
   entrance: number; stairs: number; door: number; lift: number;
   door205: number; graphOpacity: number; graphFilter: number;
+  introGoal: number; introRoute: number; graphReject: number;
 }
 export const createDioramaPose = (overrides: Partial<DioramaPose> = {}): DioramaPose => ({
   yaw: -38, zoom: 1, tilt: 0, panX: 0, panY: 0,
@@ -17,7 +18,8 @@ export const createDioramaPose = (overrides: Partial<DioramaPose> = {}): Diorama
   spread: 0, cutaway: 0, routeProgress: 0, labels: 0,
   focusFloor0: 0, focusFloor1: 0, focusFloor2: 0,
   entrance: 0, stairs: 0, door: 0, lift: 0,
-  door205: 0, graphOpacity: 0, graphFilter: 0, ...overrides,
+  door205: 0, graphOpacity: 0, graphFilter: 0,
+  introGoal: 0, introRoute: 0, graphReject: 0, ...overrides,
 });
 /** GSAP adds a circular _gsap cache. Never serialize/copy timeline internals. */
 export const snapshotDioramaPose = (pose: DioramaPose): DioramaPose => {
@@ -30,6 +32,8 @@ export interface DioramaCapture {
 }
 export interface DioramaDirectorController {
   apply(): void;
+  /** Call after apply(); host-normalized geometry bounds, unclamped; null when no floor is visible. */
+  bounds(): { left: number; top: number; right: number; bottom: number } | null;
   capture(options?: { width?: number; height?: number; clean?: boolean; background?: string }): DioramaCapture;
   project(nodeId: string): { x: number; y: number; visible: boolean } | null;
 }
@@ -72,3 +76,18 @@ export function directorGraphEdges(building: Building, requirements?: Requiremen
     return { edge, excluded: inspection.reasons.length > 0, uncertain: inspection.uncertain };
   });
 }
+
+/** A concrete known violation, never an inference from missing evidence. */
+export function directorGraphRejection(building: Building, requirements?: Requirements, closedEdgeIds: readonly string[] = []) {
+  if (!requirements) return null;
+  const closed = new Set(closedEdgeIds);
+  for (const edge of building.edges) {
+    if (edge.widthM.status === 'checked' && inspectEdge(edge, requirements, closed).reasons.includes('width')) {
+      return { edgeId: edge.id, widthM: edge.widthM.value, minWidthM: requirements.minWidthM };
+    }
+  }
+  return null;
+}
+/** Intro shows a short prefix of the actual solver result, not a decorative path. */
+export const directorIntroProgress = (progress: number, edgeCount: number) =>
+  edgeCount > 0 ? unitProgress(progress) * Math.min(2, edgeCount) / edgeCount : 0;

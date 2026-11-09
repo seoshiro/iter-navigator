@@ -2,8 +2,9 @@ import type { ReactNode } from 'react';
 import type { PresentationLanguage } from './content';
 import { presentationCopy } from './content';
 import { RouteInterface } from './RouteInterface';
-import { route204, route205Strict, route205Unknown } from './runtime';
+import { presentationBuilding, presentationRequirements, route204, route205Strict, route205Unknown } from './runtime';
 import './printRevision.css';
+import { directorGraphRejection } from '../ui/dioramaDirector';
 
 const ignoreSelection = (value: number | null) => { void value; };
 const asset = (name: string, lang: PresentationLanguage) => `/presentation/media/${name}${lang === 'kk' ? '-kk' : ''}.webp`;
@@ -12,8 +13,11 @@ const asset = (name: string, lang: PresentationLanguage) => `/presentation/media
 export function PrintScene({ index, lang, heading, note }: { index: number; lang: PresentationLanguage; heading: ReactNode; note: ReactNode }) {
   const t = (ru: string, kk: string) => lang === 'kk' ? kk : ru;
   const copy = presentationCopy[lang].scenes[index]!;
+  const rejection = directorGraphRejection(presentationBuilding, presentationRequirements);
+  const widthCm = rejection ? Math.round(rejection.widthM * 100) : null;
+  const minimumCm = rejection ? Math.round(rejection.minWidthM * 100) : null;
   const routeDistance = route204.status === 'ok' ? route204.distanceM : 0;
-  return <section className={`pres-slide pres-slide-${copy.id} pres-revised-print`} data-testid="presentation-scene" data-scene={copy.id} data-scene-number={index + 1} data-print-revision="actual-model-v2" aria-labelledby={`pres-title-${index}`}>
+  return <section className={`pres-slide pres-slide-${copy.id} pres-revised-print`} data-testid="presentation-scene" data-scene={copy.id} data-scene-number={index + 1} data-print-revision="continuity-v3" aria-labelledby={`pres-title-${index}`}>
     {index === 5 && <>
       <div className="pres-copy-column">{heading}
         <div className="pres-print-policies">
@@ -42,7 +46,7 @@ export function PrintScene({ index, lang, heading, note }: { index: number; lang
     {index === 7 && <>
       <div className="pres-wide-heading">{heading}</div>
       <div className="pres-print-graph-comparison" data-testid="print-graph-comparison">
-        <figure><div className="pres-print-figure-title"><span>01</span><strong>{t('Исходный граф здания', 'Ғимараттың бастапқы графы')}</strong></div><img width="1920" height="1080" src={asset('graph-source', lang)} alt={t('Настоящие узлы и связи учебной модели до отбора проходов', 'Өткелдерді іріктеуге дейінгі оқу моделінің нақты түйіндері мен байланыстары')} /><figcaption>{t('Точки и проходы из тех же данных, что использует навигатор.', 'Навигатор қолданатын деректердегі нүктелер мен өткелдер.')}</figcaption></figure>
+        <figure><div className="pres-print-figure-title"><span>01</span><strong>{t('Исключён узкий проход к 204', '204-ке тар өткел алынып тасталды')}</strong></div><img width="1920" height="1080" src={asset('graph-rejected', lang)} alt={t('Реальный проход narrow-204 выделен и исключён по проверенной ширине', 'Нақты narrow-204 өткелі белгіленіп, тексерілген ені бойынша алынып тасталды')} /><figcaption>{t(`narrow-204: ${widthCm} см < ${minimumCm} см. Это проход к 204, не дверь 205 с неизвестными данными.`, `narrow-204: ${widthCm} см < ${minimumCm} см. Бұл 204-ке өткел, деректері белгісіз 205 есігі емес.`)}</figcaption></figure>
         <figure><div className="pres-print-figure-title"><span>02</span><strong>{t(`После требований: путь ${routeDistance} м`, `Талаптардан кейін: ${routeDistance} м жол`)}</strong></div><img width="1920" height="1080" src={asset('graph-filtered-route', lang)} alt={t('Допустимые связи и настоящий маршрут к 204 через лифт A после применения требований', 'Талаптар қолданылғаннан кейінгі жарамды байланыстар және A лифті арқылы 204-ке нақты маршрут')} /><figcaption>{t('Отбор проходов → алгоритм Дейкстры → один результат в 2D, 3D и тексте.', 'Өткелдерді іріктеу → Дейкстра алгоритмі → 2D, 3D және мәтіндегі бір нәтиже.')}</figcaption></figure>
       </div>
       <div className="pres-print-graph-rules"><span>{t('Без ступеней', 'Сатысыз')}</span><span>{t('Ширина ≥ 90 см', 'Ені ≥ 90 см')}</span><span>{t('Уклон ≤ 5%', 'Көлбеу ≤ 5%')}</span><span>{t('Ровное покрытие', 'Тегіс жабын')}</span><span>{t('Неизвестное исключено', 'Белгісізі алынған')}</span></div>
