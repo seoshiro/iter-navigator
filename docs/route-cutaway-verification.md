@@ -6,6 +6,7 @@ This iteration changes only the existing architectural view. It does not change 
 
 - Show the whole route selects a readable oblique camera and an explicitly labelled transparent architectural section. The entrance, inter-floor connector and destination remain visible through the translucent floor context. The route itself retains depth testing.
 - Normal whole-building and focused-floor views remain available. Manual orbit and pinch limits remain unchanged. The special route view is not a claim of live position tracking or a measured real building.
+- Floor materials keep one transparent-capable shader variant from the first paint. Opacity and depth-write changes do not trigger a first-use shader compilation during floor selection.
 - Floor visibility animates from the current opacity/offset. Floor materials are isolated and the shadow pass uses the same fade, including interrupted transitions. A floor is removed only after reaching negligible opacity.
 - Active location labels maintain a stable screen size. Candidate positions avoid the actual projected path and each other. Canvas labels use sRGB; active labels are not tone mapped. The measured flat background/text contrast is 11.86:1 (#173d3d / #ffffff); antialiased edge pixels are not used for that ratio.
 - Corridor boundaries and room skirting follow existing graph-derived geometry. No new decorative assets or generated building geometry were added.
