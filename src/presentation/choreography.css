@@ -36,8 +36,8 @@
 .pres-route-disclosure[open]{background:#f2f1e9f7;z-index:4;max-height:340px;overflow:auto;padding:0 14px 14px;border:1px solid var(--pres-line);border-radius:7px}
 .pres-route-disclosure .pres-route-output{background:#f2f1e9}
 .pres-object-annotations{position:absolute;inset:0;z-index:3;pointer-events:none}
-.pres-object-annotations span{position:absolute;visibility:hidden;white-space:nowrap;transform:translate(-50%,-150%);font-size:11px;padding:6px 9px;background:#f2f1e9ed;border:1px solid #9ab7a6;border-radius:5px;color:#193d3b}
-.pres-object-annotations span:after{content:'';position:absolute;width:1px;height:20px;background:#457b65;top:100%;left:50%}
+.pres-object-annotations span{position:absolute;visibility:hidden;width:max-content;white-space:normal;overflow-wrap:anywhere;transform:translate(calc(-50% + var(--annotation-shift-x,0px)),-150%);font-size:11px;padding:6px 9px;background:#f2f1e9ed;border:1px solid #9ab7a6;border-radius:5px;color:#193d3b}
+.pres-object-annotations span:after{content:'';position:absolute;width:1px;height:var(--annotation-leader-length,20px);background:#457b65;top:100%;left:50%;transform:rotate(var(--annotation-leader-angle,0rad));transform-origin:top left}
 @media(max-width:700px){.pres-object-annotations span{font-size:8px;padding:3px 5px}}
 .pres-choreographed .pres-slide-route .pres-plan-panel{display:none}
 .pres-choreographed .pres-slide-route .pres-copy-column{width:35%;max-width:35%}

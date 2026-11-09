@@ -73,3 +73,37 @@ test('narrow delta long204 label and intro fallback375',async({page},info)=>{
  await page.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type:string,...args:unknown[]){if(type.includes('webgl'))return null;return Reflect.apply(original,this,[type,...args]);} as typeof original;});await page.emulateMedia({reducedMotion:'reduce'});
  for(const lang of ['ru','kk']){await page.goto(`/presentation?scene=intro&lang=${lang}`);await expect(page.getByTestId('presentation-fallback')).toBeVisible();await settled(page);const img=page.getByTestId('presentation-model').locator('img');await expect(img).toHaveAttribute('src',new RegExp(`intro-purpose${lang==='kk'?'-kk':''}\\.webp`));await expect.poll(()=>img.evaluate((e:HTMLImageElement)=>e.complete&&e.naturalWidth>0)).toBe(true);await page.screenshot({path:info.outputPath(`intro-fallback-${lang}.png`)});}
 });
+
+for(const [width,height] of [[375,667],[390,844]])for(const lang of ['ru','kk'])test(`anchor containment ${width} ${lang}`,async({page},info)=>{
+ await page.setViewportSize({width,height});await page.goto(`/presentation?scene=route&lang=${lang}`);await settled(page);
+ await page.evaluate(()=>{
+  const w=window as any;w.anchorSamples=[];w.anchorProbe=true;
+  const sample=()=>{
+   const host=document.querySelector<HTMLElement>('.pres-model')!,frame=host.getBoundingClientRect(),style=getComputedStyle(host),scaleX=frame.width/parseFloat(style.width),scaleY=frame.height/parseFloat(style.height);
+   for(const label of document.querySelectorAll<HTMLElement>('[data-anchor]')){
+    const css=getComputedStyle(label);if(css.visibility==='hidden'||Number(css.opacity)<.05)continue;
+    const box=label.getBoundingClientRect(),leader=getComputedStyle(label,'::after'),matrix=new DOMMatrix(leader.transform),length=parseFloat(leader.height);
+    const anchor={x:frame.left+parseFloat(label.style.left)*frame.width/100,y:frame.top+parseFloat(label.style.top)*frame.height/100};
+    const endpoint={x:box.left+box.width/2+matrix.c*length*scaleX,y:box.bottom-parseFloat(css.borderBottomWidth)*scaleY+matrix.d*length*scaleY};
+    w.anchorSamples.push({t:performance.now(),anchor:label.dataset.anchor,scene:document.querySelector<HTMLElement>('[data-testid=presentation-scene]')?.dataset.scene,left:box.left,right:box.right,viewport:innerWidth,shift:parseFloat(css.getPropertyValue('--annotation-shift-x')),overflow:label.scrollWidth-label.clientWidth,leaderError:Math.hypot(endpoint.x-anchor.x,endpoint.y-anchor.y),scaleX});
+   }
+   if(w.anchorProbe)requestAnimationFrame(sample);
+  };requestAnimationFrame(sample);
+ });
+ for(const condition of [1,2,0]){
+  await page.getByTestId(`condition-${condition}`).click();
+  if(condition===0){await page.waitForTimeout(220);await page.screenshot({path:info.outputPath('lift-to-stairs-220ms.png')});await page.waitForTimeout(180);await page.screenshot({path:info.outputPath('lift-to-stairs-400ms.png')});}
+  await settled(page);await expect(page.locator('[data-anchor]')).toBeVisible();
+ }
+ for(const condition of [2,0,1,2,0,1,0]){await page.getByTestId(`condition-${condition}`).click();await page.waitForTimeout(115);}await settled(page);
+ const go=async(index:number)=>{await page.getByTestId('presentation-picker').click();await page.locator('.pres-contents li button').nth(index).click();await settled(page);};
+ await go(5);await expect(page.locator('[data-anchor=door-205]')).toBeVisible();await page.getByTestId('presentation-unknown-toggle').click();await settled(page);await page.screenshot({path:info.outputPath('door-205.png')});
+ await page.keyboard.press('ArrowRight');await page.waitForTimeout(160);await page.keyboard.press('ArrowRight');await settled(page);
+ await page.locator('.pres-pipeline-step').nth(1).click();await settled(page);await expect(page.locator('[data-anchor=narrow-204]')).toBeVisible();await page.screenshot({path:info.outputPath('narrow-204.png')});
+ await page.emulateMedia({reducedMotion:'reduce'});await go(2);for(const condition of [1,2,0]){await page.getByTestId(`condition-${condition}`).click();await settled(page);await expect(page.locator('[data-anchor]')).toBeVisible();await page.waitForTimeout(50);}
+ const samples=await page.evaluate(()=>{const w=window as any;w.anchorProbe=false;return w.anchorSamples;});
+ writeFileSync(info.outputPath('anchor-containment.json'),JSON.stringify(samples,null,2));
+ expect(samples.length).toBeGreaterThan(30);
+ expect(samples.filter((s:any)=>s.left<7.5||s.right>s.viewport-7.5||s.overflow>1||s.leaderError>1).slice(0,15),'Every visible sampled badge stays on screen and its leader ends on the object').toEqual([]);
+ for(const anchor of ['stairs-0','lift-a-0','door-204','door-205','narrow-204'])expect(samples.some((s:any)=>s.anchor===anchor),anchor).toBe(true);
+});
