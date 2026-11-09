@@ -1,7 +1,6 @@
 {
-  "project": "ITER Navigator architectural refinement",
+  "project": "ITER Navigator and product presentation",
   "budgetTotal": 100,
-  "currentStageLimit": 44,
   "previousStageSpend": 0,
   "operation": {
     "provider": "Higgsfield",
@@ -36,7 +35,25 @@
     "runtimeBytes": 8908,
     "assessment": "Inspected source and actual assembled, expanded, focused and rotated Chrome scene. Fine low-contrast stone preserves route legibility. Accepted first result; no retry or other generation."
   },
-  "cumulativeITERStageSpend": 1.5,
-  "remainingCurrentStage": 42.5,
-  "remainingTotal": 98.5
+  "cumulativeITERStageSpend": 4.25,
+  "remainingTotal": 95.75,
+  "architecturalStage": {
+    "limit": 44,
+    "spent": 1.5,
+    "remaining": 42.5
+  },
+  "presentationOperations": [
+    {
+      "jobId": "cd20493b-6560-466d-934a-5587b412e16e",
+      "model": "gpt_image_2_6",
+      "status": "completed_accepted_in_presentation",
+      "credits": 2.75,
+      "quotedCreditsExact": 2.75,
+      "attempts": 1,
+      "purpose": "Editorial conceptual image for scene 9, future pilot. Not the current ITER building or surveyed architecture.",
+      "record": "docs/assets/iter-pilot-concept-generation.json",
+      "runtimeFile": "public/presentation/media/pilot-concept.webp"
+    }
+  ],
+  "presentationStageSpend": 2.75
 }

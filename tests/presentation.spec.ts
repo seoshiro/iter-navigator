@@ -24,6 +24,7 @@ async function open(page: Page, scene = 'intro', lang = 'ru') {
   await page.goto(`/presentation?scene=${scene}&lang=${lang}`);
   await expect(page.getByTestId('presentation-root')).toBeVisible();
   await expect(active(page)).toHaveAttribute('data-scene', scene);
+  await expect(page.locator('html')).toHaveAttribute('lang', lang === 'kk' ? 'kk-KZ' : 'ru-RU');
 }
 async function frames(page: Page) {
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
@@ -319,6 +320,11 @@ for (const [width, height] of [[1920, 1080], [1366, 768], [390, 844], [375, 667]
     await open(page, 'intro', lang);
     for (const [index, scene] of scenes.entries()) {
       await expect(active(page)).toHaveAttribute('data-scene', scene);
+      // Review the finished live scene, not a poster being intentionally hidden by its first frame.
+      if (['intro', 'building', 'detour', 'finish'].includes(scene)) {
+        await expect(page.getByTestId('presentation-model')).toHaveAttribute('data-ready', 'true');
+        await frames(page);
+      }
       for (const image of await page.locator('img').filter({ visible: true }).all()) {
         await expect.poll(() => image.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
       }
@@ -364,9 +370,16 @@ for (const [width, height] of [[1920, 1080], [1366, 768], [390, 844], [375, 667]
       await expect(page.getByTestId('presentation-detour-result')).toHaveAttribute('data-distance', '54');
       await expect(page.locator('.diorama')).toHaveAttribute('data-route-ids', /lift-b/);
       await frames(page);
-      const detourPoints = JSON.parse((await page.locator('.diorama').getAttribute('data-route-screen-points')) || '[]') as { x: number; y: number }[];
-      expect(detourPoints.length).toBeGreaterThan(3);
-      for (const point of detourPoints) { expect(point.x, 'B54 route x inside canvas').toBeGreaterThanOrEqual(0); expect(point.x, 'B54 route x inside canvas').toBeLessThanOrEqual(model.width); expect(point.y, 'B54 route y inside canvas').toBeGreaterThanOrEqual(0); expect(point.y, 'B54 route y inside canvas').toBeLessThanOrEqual(model.height); }
+      const projection = await page.locator('.diorama').getAttribute('data-route-screen-points');
+      // Projection diagnostics are explicitly DEV-only in Diorama. Production retains route IDs,
+      // render state, viewport geometry and actual screenshots for independent pixel review.
+      if (projection !== null) {
+        const detourPoints = JSON.parse(projection) as { x: number; y: number }[];
+        expect(detourPoints.length).toBeGreaterThan(3);
+        for (const point of detourPoints) { expect(point.x, 'B54 route x inside canvas').toBeGreaterThanOrEqual(0); expect(point.x, 'B54 route x inside canvas').toBeLessThanOrEqual(model.width); expect(point.y, 'B54 route y inside canvas').toBeGreaterThanOrEqual(0); expect(point.y, 'B54 route y inside canvas').toBeLessThanOrEqual(model.height); }
+      } else {
+        info.annotations.push({ type: 'production-observation', description: 'DEV-only route projections are absent; production framing is checked through viewport geometry and screenshots.' });
+      }
       await page.screenshot({ path: info.outputPath('detour-B54-viewport.png') });
     }
   }

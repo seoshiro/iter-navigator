@@ -1,0 +1,34 @@
+{
+  "provider": "Higgsfield",
+  "model": "gpt_image_2_6",
+  "jobId": "cd20493b-6560-466d-934a-5587b412e16e",
+  "status": "completed_accepted_in_presentation",
+  "purpose": "Editorial conceptual image for scene 9, future pilot. Not the current ITER building or surveyed architecture.",
+  "params": {
+    "model": "gpt_image_2_6",
+    "aspect_ratio": "4:3",
+    "count": 1,
+    "quality": "high",
+    "resolution": "2k",
+    "output_format": "png",
+    "prompt": "Create a refined architectural concept still for a future indoor wayfinding pilot presentation. An explicitly conceptual miniature architectural model, never a documentary photograph: one modest single-storey entrance and its short interior passage, open roof cutaway, viewed at a composed three-quarter elevated angle. Carefully crafted ivory limestone walls and pale warm mineral floors, one muted desaturated teal glass partition, clear honest spatial volumes, an unobstructed opening from foreground into the interior, and a single soft shaft of afternoon sunlight guiding the eye into the space. A few restrained wall masses and threshold details, no large building or city. Model sits on a shallow pale stone plinth on a seamless warm ivory studio ground. Museum-quality architectural model photography, tactile stone grain, precise edges, subtle translucent glass and delicate contact shadows, warm restrained editorial art direction. Asymmetric yet balanced composition, model occupies about 72 percent of frame, enough negative space around all sides, quiet tonal depth, visually compelling at small size. No people, no plants, no text, no lettering, no numerals, no logos, no arrows, no QR codes, no UI, no route overlays, no floor-plan measurements, no accessibility symbols, no claim of real surveyed geometry."
+  },
+  "costVerifiedBeforeGeneration": true,
+  "quotedCredits": 2.75,
+  "actualCreditsAtConfirmedPrice": 2.75,
+  "attempts": 1,
+  "originalFile": "docs/assets/iter-pilot-concept-original.png",
+  "originalDimensions": [
+    2336,
+    1744
+  ],
+  "originalBytes": 5607156,
+  "runtimeFile": "public/presentation/media/pilot-concept.webp",
+  "runtimeDimensions": [
+    1600,
+    1195
+  ],
+  "runtimeBytes": 190308,
+  "sha256": "40a697d8522dc310383090aa2d6736505fb9e5726ddcc0b0ef08e36b879e4431",
+  "assessment": "One coherent architectural concept still with ivory stone, muted teal glass and directional sunlight. No text, people, measurements, false UI or claims of surveyed geometry. Clearly labelled as an artistic future-pilot concept in RU/KK."
+}
