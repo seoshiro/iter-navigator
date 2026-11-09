@@ -259,3 +259,6 @@
  .pres-root:not(.pres-large-text):not(.pres-print) .pres-stage:has(>.pres-slide-detour),
  .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-detour{min-height:calc(100svh - 138px)}
 }
+@media(max-width:700px){
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-building .pres-copy{min-height:84px}
+}
