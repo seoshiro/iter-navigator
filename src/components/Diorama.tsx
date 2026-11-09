@@ -4,7 +4,7 @@ import { useI18n } from '../i18n/locale';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Building, RouteResult } from '../domain/model';
-import { boundCamera, dragCamera, panCamera, wheelCamera } from '../ui/camera';
+import { boundCamera, dragCamera, panCamera, wheelCamera, CAMERA_HALF_HEIGHT } from '../ui/camera';
 import { createFloorArchitecture } from '../ui/architecture';
 import type { CameraState } from '../ui/camera';
 
@@ -175,7 +175,13 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
     };
     const draw = () => {
       if (!renderer || !canRender()) return;
-      try { failureStage='render'; applyCamera(); renderer.render(scene, view); container.dataset.renderStats = JSON.stringify({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,dpr:renderer.getPixelRatio(),shadowMap:1024}); container.dataset.renderCount = String(++renderCount); dirty = false; }
+      try { failureStage='render'; applyCamera(); renderer.render(scene, view);
+        if(import.meta.env.DEV && !cameraEnd && !revealEnd && !floorEnd && performance.now()>=burstEnd){
+        const projectedBounds=(objects:THREE.Object3D[])=>{let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;for(const object of objects){if(!object.visible)continue;const bounds=new THREE.Box3().setFromObject(object);if(bounds.isEmpty())continue;for(const x of [bounds.min.x,bounds.max.x])for(const y of [bounds.min.y,bounds.max.y])for(const z of [bounds.min.z,bounds.max.z]){const p=new THREE.Vector3(x,y,z).project(view);minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}}return {minX,minY,maxX,maxY};};
+        container.dataset.routeScreenBounds=JSON.stringify(projectedBounds(routes.children));
+        container.dataset.modelScreenBounds=JSON.stringify(projectedBounds([...floorGroups.values()]));
+        }
+        container.dataset.renderStats = JSON.stringify({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,dpr:renderer.getPixelRatio(),shadowMap:1024}); container.dataset.renderCount = String(++renderCount); dirty = false; }
       catch { fail(); }
     };
     const settleFloor = (time: number) => {
@@ -449,7 +455,7 @@ export default function Diorama({ building, result, floor, closedEdgeIds, camera
           const width = Math.max(container.clientWidth, 1); const height = Math.max(container.clientHeight, 1);
           renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
           renderer.setSize(width, height, false); const aspect = width / height;
-          view.left = -21 * aspect; view.right = 21 * aspect; view.top = 21; view.bottom = -21; view.updateProjectionMatrix(); dirty = true; schedule();
+          view.left = -CAMERA_HALF_HEIGHT * aspect; view.right = CAMERA_HALF_HEIGHT * aspect; view.top = CAMERA_HALF_HEIGHT; view.bottom = -CAMERA_HALF_HEIGHT; view.updateProjectionMatrix(); dirty = true; schedule();
         } catch { fail(); }
       };
       resize = new ResizeObserver(resizeScene); resize.observe(container);

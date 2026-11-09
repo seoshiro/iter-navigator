@@ -222,7 +222,7 @@ function Planner({ building }: { building: Building }) {
     speech.controller.stop(); resetPlan();
     const scene = visualRef.current?.querySelector('.diorama');
     const bounds = scene?.getBoundingClientRect();
-    setExpanded(true); automaticCamera(fitRouteCamera(building, result.nodeIds, bounds ? bounds.width / bounds.height : 1));
+    setExpanded(true); automaticCamera(fitRouteCamera(building, result.nodeIds, bounds ? bounds.width / bounds.height : 1, camera));
     setGuidance({ key: routingKey, variant: selectedVariant, step: null }); setHighlight(null); setScenario(previous => ({ ...previous, floor: 'all' }));
   };
   const selectRoom=(id:string|null)=>{if(id===null){setSelectedRoom(null);return;}const node=nodeMap.get(id);if(!node)return;setSelectedRoom(id);speech.controller.stop();setGuidance({key:routingKey,variant:selectedVariant,step:null});setHighlight({nodeId:id});setScenario(previous=>({...previous,floor:node.floor}));automaticCamera(focusNodeCamera(building,id));};
@@ -239,7 +239,7 @@ function Planner({ building }: { building: Building }) {
     if (!good) return;
     if (step === null) { fitRoute(); confirm(guidanceRu.allShown); return; }
     const from = nodeMap.get(result.nodeIds[step]!)!; const to = nodeMap.get(result.nodeIds[step + 1]!)!;
-    if(from.floor!==to.floor)setExpanded(true); automaticCamera(from.floor !== to.floor ? fitRouteCamera(building, [from.id, to.id], 1) : focusNodeCamera(building, to.id));
+    if(from.floor!==to.floor)setExpanded(true); automaticCamera(from.floor !== to.floor ? fitRouteCamera(building, [from.id, to.id], (()=>{const box=visualRef.current?.querySelector('.diorama')?.getBoundingClientRect();return box?box.width/box.height:1;})(), camera) : focusNodeCamera(building, to.id));
     setScenario(previous => ({ ...previous, floor: from.floor !== to.floor ? 'all' : to.floor }));
     if (speech.enabled) readStep(step);
     if (focus) requestAnimationFrame(() => { const target = visualRef.current?.querySelector<HTMLElement | SVGSVGElement>(view === '3d' && !webglFailed ? '.diorama' : '.primary-plan .floor-card svg'); target?.focus({ preventScroll: true }); target?.scrollIntoView({ block: 'center', behavior: 'instant' }); });
