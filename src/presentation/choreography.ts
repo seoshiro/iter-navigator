@@ -23,7 +23,7 @@ export function scenePose(scene: number, phase = 4, condition = 0, compact = fal
   }
   if (scene === 5) return { ...base, yaw: 135, tilt:25, zoom: compact ? 1.15 : 1.5, targetX:24, targetY:7, targetZ:5, spread:.35, cutaway:1, focusFloor1:1, door205:1, routeProgress:unknown ? 1 : 0 };
   if (scene === 6) return { ...base, yaw: -28, spread: .6, cutaway: .8, routeProgress: 1, targetY: 6 };
-  if (scene === 7) return { ...base, yaw:-28, zoom:compact ? .82 : .82, spread:1, cutaway:1, targetY:6, graphOpacity: systemStep < 3 ? 1 : .2, graphFilter:systemStep > 0 ? 1 : 0, routeProgress:systemStep > 1 ? 1 : 0 };
+  if (scene === 7) return { ...base, yaw:-28, zoom:compact ? .82 : .82, spread:1, cutaway:1, targetY:6, graphOpacity: systemStep < 3 ? 1 : .2, graphFilter:systemStep > 0 ? 1 : 0, graphReject:systemStep === 1 ? 1 : 0, routeProgress:systemStep > 1 ? 1 : 0 };
   if (scene === 8) return { ...base, yaw: -12, spread: 0, cutaway: 0 };
   return base;
 }

@@ -1,49 +1,62 @@
-# Presentation PDF verification: actual model revision
+# Presentation PDF verification: continuity revision
 
-Verified 2026-11-09T19:47:59.918229+00:00 from the final source revision. Both PDFs were then checked on the canonical production address after deployment of commit `908deeebeb97ccfd94754eb90952136d9f8f4be0`: HTTP 200, byte-for-byte matching the local files and SHA-256 values below.
+Verified locally on 2026-11-09 at 21:49 UTC. Publication verification is recorded
+in `presentation-continuity-verification.md` after deployment.
 
-## Delivered files
+## Current files
 
-The two existing files were updated in place, not replaced by a separate presentation:
+The existing files are updated in place:
 
-- `public/presentation/ITER-Presentation-RU.pdf`
-- `public/presentation/ITER-Presentation-KK.pdf`
-
-| PDF | Bytes | Pages | Clickable links | SHA-256 |
+| File | Bytes | Pages | Links | SHA-256 |
 | --- | ---: | ---: | ---: | --- |
-| RU | 5,800,451 | 10 | 15 | `5260e1ace282649cb4c5ea2889337f4b23dcf9181f55b70d7e6c2bade8faa4da` |
-| KK | 5,805,568 | 10 | 15 | `e557523e00a11829fb97093001ab71d59dcace6dcfe0fe3ea90e12a2ba1d67d2` |
+| `public/presentation/ITER-Presentation-RU.pdf` | 6,431,484 | 10 | 15 | `ee0a228a6f63b3b174ebb3d55bd7ed3c1f0b4a0df0e4f1b650ba077af6949457` |
+| `public/presentation/ITER-Presentation-KK.pdf` | 6,436,261 | 10 | 15 | `c7d861f571fae355c6da116ff65bb237e79a0c5613e931c614f760dda5cf7cac` |
 
-## Pages 6 to 8 now use the actual product
+## Changes to static scenes
 
-- Page 6: the real door205 opening in the source model, with strict and unknown-permitted policy results. Unknown width/surface remain explicitly unknown. Its room-side yaw135 / tilt25 pose matches the accepted live scene; source geometry was not moved or replaced.
-- Page 7: the shared `RouteInterface`, containing the actual `FloorPlan` and compact `RouteGuidance`, showing the third route step at readable size. Manual step navigation is stated, without implying live position tracking.
-- Page 8: real unfiltered graph versus requirement-filtered graph and the 40 m lift-A route. The criteria and algorithm remain searchable text.
-- The new images also preserve the uncertainty/system scenes' meaning in the existing static WebGL fallback.
+- Page 1 uses a separate `intro-purpose` capture of the real entrance, goal and
+  solver-route prefix. The clean `building` poster used by the final scene remains
+  unchanged.
+- Page 6 uses the actual 205 opening, now locally highlighted. Its unknown width
+  and surface remain explicitly unknown; rendered geometry is not a measurement.
+- Page 7 retains the actual shared route interface and manual step guidance.
+- Page 8 shows the actual rejected `narrow-204` passage before the allowed graph
+  and 40 m route. The reason is computed from the model: 72 cm is below 90 cm.
+  The text explicitly distinguishes it from the unknown door 205.
+- The final `graph-filtered-route` capture matched the preceding version byte for
+  byte. It was not needlessly changed.
 
-New genuine captures: `door205-focus`, `graph-source`, `graph-filtered-route`, each with an RU and `-kk` WebP. All six are 1920 x 1080 exports from the settled application's director, `clean:false`. Graph capture uses temporary zoom0.76 for full-building margins; the original pose is restored in `finally`. Door205 uses the shared live pose without a static-only orientation. Capture JSON records original and exported poses. No generator or spending was used.
+The new genuine model captures are `intro-purpose`, `door205-focus` and
+`graph-rejected`, with Russian and Kazakh variants. No generated image or new
+credit expenditure was used. These also support relevant static fallbacks.
 
-## Verified
+## Verification performed
 
-- Exactly 10 pages per PDF, 1152 x 648 points, 16:9.
-- Russian and Kazakh text is selectable; all fonts are embedded. No replacement glyphs or text spans beyond the page.
-- Kazakh-specific codepoints were checked in extracted text.
-- All 20 pages rasterized and visually reviewed via contact sheets; revised pages 6, 7 and 8 also inspected at full resolution in both languages.
-- No blank scenes, missing images or clipped print content. The original building/route/detour posters retain their prior complete-geometry framing.
-- 15 clickable links per PDF; all distinct public targets returned HTTP200. Both final QR codes decode to `https://iter-navigator.vercel.app/`.
-- No browser page errors or request failures during print export.
-- Public PDFs are byte-for-byte copies of the verified candidates.
+- Exactly 10 pages in each document, 1152 x 648 points, 16:9.
+- Searchable Russian and Kazakh text, embedded fonts, Kazakh-specific codepoints.
+- No replacement glyphs, missing images or text spans beyond the pages detected.
+- All 20 pages rasterized and visually reviewed in contact sheets. Changed pages
+  1, 6 and 8 were additionally reviewed separately.
+- 15 clickable links per PDF. Both distinct public targets returned HTTP 200.
+- Both final QR codes decode to the published navigator address.
+- No page errors or failed requests during browser export.
+- Browser export instances closed before independent recording work resumed.
 
-## Scope and preservation
+The PDF preserves meaningful static states; it does not substitute for interactive
+or motion verification. No physical-phone or rendering-FPS claim follows from it.
 
-`PrintScenes.tsx` and `printRevision.css` are reached only by print scenes6–8; live composition is not replaced. `Presentation.tsx` adds only the print branch. The small `posterForScene` mapping adds current uncertainty/system fallback images. The live scene 5 pose change was verified separately through focused forward, reverse, rapid-transition and unknown-data checks.
+## Preservation and reproduction
 
-Previous approved PDFs and their evidence were preserved at `.local/presentation-pdf/previous-approved/20261109T190809Z/`. Original v1 posters remain in git and `.local/presentation-pdf/v1-poster-backup/`. No unrelated media was overwritten.
+Previous PDFs, posters and print sources are preserved privately in
+`.local/presentation-pdf/continuity-revision/previous-approved/` and git history.
+No unrelated media was overwritten.
 
-## Reproduction
+Private reproducibility scripts: `capture_continuity_assets.mjs`,
+`convert_continuity_assets.py`, `export.mjs`, and `verify.py` under
+`.local/presentation-pdf/`. The export directory is
+`.local/presentation-pdf/continuity-revision/`, containing capture evidence,
+validation JSON, both candidates, contact sheets and all full-page rasters.
 
-Use `.local/presentation-pdf/capture_revision_assets.mjs` (optional `--door-only`), `convert_revision_assets.py`, `export.mjs`, `verify.py`, and `finalize_revision.py`. Set `PRESENTATION_EXPORT_DIR` to `.local/presentation-pdf/composition-revision-candidate` for export/verification. Default source is `http://127.0.0.1:5380`.
-
-Candidate evidence includes `revision-capture-evidence.json`, `revision-poster-evidence.json`, `export-evidence.json`, `validation.json`, `visual-review.json`, `final-verification.json`, two contact sheets and all 20 full-page rasters. Capture/export browser instances are closed. The export verification is separate from the continuous production recordings.
-
-The PDF intentionally preserves meaningful static states, not animation or interactivity. Production hashes have been checked on `https://iter-navigator.vercel.app/presentation/ITER-Presentation-RU.pdf` and `https://iter-navigator.vercel.app/presentation/ITER-Presentation-KK.pdf`.
+Canonical PDF URLs:
+- https://iter-navigator.vercel.app/presentation/ITER-Presentation-RU.pdf
+- https://iter-navigator.vercel.app/presentation/ITER-Presentation-KK.pdf

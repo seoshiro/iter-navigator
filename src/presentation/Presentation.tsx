@@ -21,7 +21,7 @@ import './compositionRevision.css';
 import { RouteInterface } from './RouteInterface';
 import { PrintScene } from './PrintScenes';
 import { gsap } from 'gsap';
-import { createDioramaPose } from '../ui/dioramaDirector';
+import { createDioramaPose, directorGraphRejection } from '../ui/dioramaDirector';
 import type { DioramaDirectorController } from '../ui/dioramaDirector';
 import { scenePose, stageTransform } from './choreography';
 import { IntroFilm } from './IntroFilm';
@@ -134,6 +134,7 @@ export default function Presentation() {
   const pickerRef = useRef<HTMLButtonElement>(null);
   const notesTriggerRef = useRef<HTMLButtonElement>(null);
   const modelRef = useRef<HTMLDivElement>(null);
+  const mobileComposition = useRef({ top: 280, height: 250 });
   const [modelMounted, setModelMounted] = useState(() => MODEL_SCENES.has(readScene()));
   const [modelFailed, setModelFailed] = useState(false);
   const [modelReady, setModelReady] = useState(false);
@@ -166,6 +167,7 @@ export default function Presentation() {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [systemReduced, setSystemReduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [compactStage, setCompactStage] = useState(() => window.matchMedia('(max-width: 700px)').matches);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [contents, setContents] = useState(false);
   const [notes, setNotes] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -205,9 +207,9 @@ export default function Presentation() {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const onMotion = () => setSystemReduced(media.matches); media.addEventListener('change', onMotion);
     const layoutMedia = window.matchMedia('(max-width: 700px)');
-    const onLayout = () => setCompactStage(layoutMedia.matches); layoutMedia.addEventListener('change', onLayout);
+    const onLayout = () => { setCompactStage(layoutMedia.matches); setViewportWidth(window.innerWidth); }; layoutMedia.addEventListener('change', onLayout); window.addEventListener('resize', onLayout);
     const onFullscreen = () => setFullscreen(!!document.fullscreenElement); document.addEventListener('fullscreenchange', onFullscreen);
-    return () => { window.removeEventListener('popstate', onPop); media.removeEventListener('change', onMotion); layoutMedia.removeEventListener('change', onLayout); document.removeEventListener('fullscreenchange', onFullscreen); };
+    return () => { window.removeEventListener('popstate', onPop); media.removeEventListener('change', onMotion); layoutMedia.removeEventListener('change', onLayout); window.removeEventListener('resize', onLayout); document.removeEventListener('fullscreenchange', onFullscreen); };
   }, [setLocale]);
   useEffect(() => {
     document.documentElement.dataset.theme = 'light';
@@ -220,24 +222,32 @@ export default function Presentation() {
     const stage = rootRef.current?.querySelector<HTMLElement>('.pres-stage');
     const slide = stage?.querySelector<HTMLElement>('.pres-slide');
     if (!stage || !slide) return;
-    const layout = () => {
+    let resizeTween: gsap.core.Tween | undefined;
+    const layout = (animate = false) => {
+      const previous = mobileComposition.current;
       const height = scene === 0 ? stage.clientWidth * 9 / 16 : scene === 6 ? 185 : Math.max(150, Math.min(300, stage.clientHeight - slide.offsetHeight - 20));
       const initialModelTop = scene === 6 ? (slide.querySelector<HTMLElement>('.pres-copy-column')?.offsetHeight ?? 70) + 24 : slide.offsetHeight + 10;
+      mobileComposition.current = { top: initialModelTop, height };
       stage.style.setProperty('--model-top', `${initialModelTop}px`);
       stage.style.setProperty('--model-height', `${height}px`);
       stage.style.setProperty('--stage-reserve', `${height + 20}px`);
       // Posters/film are visible before lazy WebGL initialization. Direct URLs
       // need the final host composition before paint, never a tween from y=0.
-      if (transitionScene.current === null || (scene === 0 && !introDone)) gsap.set(modelRef.current, { top: initialModelTop, x: 0, y: 0, xPercent: 0, yPercent: 0, scale: 1 });
+      if (transitionScene.current === null || (scene === 0 && !introDone)) gsap.set(modelRef.current, { top: initialModelTop, height, x: 0, y: 0, xPercent: 0, yPercent: 0, scale: 1 });
+      else if (animate && (previous.top !== initialModelTop || previous.height !== height)) {
+        resizeTween?.kill();
+        resizeTween = gsap.to(modelRef.current, { top: initialModelTop, height, duration: presentationMotionAllowed ? .35 : 0, ease: 'power2.inOut', onUpdate: () => controller.current?.apply() });
+      }
     };
     layout();
-    const observer = new ResizeObserver(layout); observer.observe(slide);
-    return () => observer.disconnect();
-  }, [scene, compactStage, largeText, print, lang, introDone]);
+    const observer = new ResizeObserver(() => layout(true)); observer.observe(slide); observer.observe(stage);
+    return () => { observer.disconnect(); resizeTween?.kill(); };
+  }, [scene, compactStage, largeText, print, lang, introDone, presentationMotionAllowed]);
   useLayoutEffect(() => {
     if (print || (!directorReady && !modelFailed)) return;
     director.requirements = { ...requirements, allowUnknown: scene === 5 && unknown };
     const target = scenePose(scene, phase, condition, compactStage || largeText, systemStep, unknown);
+    if (scene === 0 && introDone) Object.assign(target, { yaw: -28, spread: .6, cutaway: .85, targetY: 4, entrance: 1, introGoal: 1, introRoute: 1 });
     const changingScene = transitionScene.current !== scene;
     if (changingScene) sceneEntrancePending.current = true;
     transitionScene.current = scene;
@@ -245,12 +255,20 @@ export default function Presentation() {
     const copyElements = rootRef.current?.querySelectorAll('.pres-slide .pres-copy-column, .pres-slide .pres-wide-heading');
     const routeMeta = rootRef.current?.querySelector('.pres-route-meta');
     const secondary = rootRef.current?.querySelectorAll('.pres-doors, .pres-route-interface, .pres-pipeline, .pres-system-aside, .pres-pilot-layout, .pres-slide .pres-copy-column > :not(.pres-copy), .pres-object-annotations');
+    // Only the incoming later-scene lanes cross the old model position. Never
+    // gate established condition controls or other independent interaction flows.
+    const informationSelector = scene === 6 ? '.pres-route-interface' : scene === 7 ? '.pres-pipeline-step, .pres-system-aside > *' : scene === 5 ? '.pres-segmented, .pres-uncertain-result, .pres-rule, .pres-slide .pres-scene-note' : null;
+    const information = informationSelector ? rootRef.current?.querySelectorAll<HTMLElement>(informationSelector) : undefined;
     const compact = compactStage || largeText;
-    const mobileTop = scene === 6 ? (rootRef.current?.querySelector<HTMLElement>('.pres-copy-column')?.offsetHeight ?? 70) + 24 : (rootRef.current?.querySelector<HTMLElement>('.pres-slide')?.offsetHeight ?? 260) + 10;
-    const composition = { ...stageTransform(scene, compact), left: compact ? '0%' : scene === 5 || scene === 7 ? '40%' : '30%', width: compact ? '100%' : scene === 5 || scene === 7 ? '60%' : '70%', top: compactStage && !largeText ? `${mobileTop}px` : largeText ? 'auto' : '50%' };
-    // GSAP may parse CSS translateY(-50%) as a pixel offset at fractional heights.
-    // Our composition owns percentage translation; never retain that pixel residual.
-    gsap.set(host, { x: 0, y: 0 });
+    const mobileTop = mobileComposition.current.top;
+    const desktopHeight = Math.max(parseFloat(host ? getComputedStyle(host).minHeight : '0') || 0, (host?.parentElement?.clientWidth ?? viewportWidth) * (scene === 5 || scene === 7 ? .6 : .7) * 9 / 16);
+    const composition = { ...stageTransform(scene, compact), left: compact ? '0%' : scene === 5 || scene === 7 ? '40%' : '30%', width: compact ? '100%' : scene === 5 || scene === 7 ? '60%' : '70%', top: compactStage && !largeText ? `${mobileTop}px` : largeText ? 'auto' : '50%', height: largeText ? 'auto' : compactStage ? mobileComposition.current.height : desktopHeight };
+    // Numeric desktop height avoids GSAP resolving 'auto' against the old width
+    // then clearing it at completion, which caused a second endpoint scale jump.
+    // Inline height survives the scene commit. CSS variables describe only the
+    // destination: changing them must never resize the camera before this tween.
+    // Normalize authored CSS only on first mount, never reset an interrupted pose.
+    if (!host?.style.transform) gsap.set(host, { x: 0, y: 0 });
     if (modelFailed) {
       Object.assign(pose.current, target);
       gsap.set(host, composition);
@@ -263,19 +281,42 @@ export default function Presentation() {
       setSettled(true);
       return;
     }
+    const revealInformation = () => {
+      if (!host || !information || !presentationMotionAllowed) return;
+      const bounds = controller.current?.bounds();
+      if (!bounds) return;
+      const frame = host.getBoundingClientRect();
+      const buildingBox = { left: frame.left + bounds.left * frame.width, right: frame.left + bounds.right * frame.width, top: frame.top + bounds.top * frame.height, bottom: frame.top + bounds.bottom * frame.height };
+      information.forEach(element => {
+        const box = element.getBoundingClientRect();
+        const overlaps = box.width > 0 && box.height > 0 && box.left < buildingBox.right + 8 && box.right > buildingBox.left - 8 && box.top < buildingBox.bottom + 8 && box.bottom > buildingBox.top - 8;
+        // Reveal each occupied lane independently as the real model leaves it,
+        // while the rotation continues. Never cover a moving model with a panel.
+        gsap.set(element, { autoAlpha: overlaps ? 0 : 1 });
+        element.dataset.compositionReady = String(!overlaps);
+      });
+    };
     const apply = () => {
       controller.current?.apply();
+      revealInformation();
       if (host) {
         host.dataset.routeProgress = String(pose.current.routeProgress); host.dataset.yaw = String(pose.current.yaw);
         host.querySelectorAll<HTMLElement>('[data-anchor]').forEach(label => {
           const point = controller.current?.project(label.dataset.anchor!);
-          label.style.visibility = point?.visible ? 'visible' : 'hidden';
+          const introOpacity = scene === 0 ? label.dataset.anchor === 'entrance' ? pose.current.entrance : pose.current.introGoal : 1;
+          label.style.visibility = point?.visible && introOpacity > .05 ? 'visible' : 'hidden';
+          label.style.opacity = String(introOpacity);
           if (point) { label.style.left = `${point.x * 100}%`; label.style.top = `${point.y * 100}%`; }
         });
       }
     };
     setSettled(false);
-    const timeline = gsap.timeline({ onComplete: () => { sceneEntrancePending.current = false; setSettled(true); } });
+    const timeline = gsap.timeline({ onComplete: () => {
+      sceneEntrancePending.current = false;
+      // Conservative building bounds must never make settled controls inaccessible.
+      information?.forEach(element => { gsap.set(element, { autoAlpha: 1 }); element.dataset.compositionReady = 'true'; });
+      setSettled(true);
+    } });
     if (!presentationMotionAllowed) {
       if (scene === 4) { renderedClosedRef.current = closed; setRenderedClosed(closed); }
       Object.assign(pose.current, target); apply(); gsap.set(host, composition);
@@ -285,19 +326,26 @@ export default function Presentation() {
       sceneEntrancePending.current = false;
       setSettled(true);
     } else {
-      timeline.to(host, { ...composition, duration: 1.05, ease: 'power3.inOut' }, 0);
+      timeline.to(host, { ...composition, duration: 1.05, ease: 'power2.inOut' }, 0);
       const routeProgress = target.routeProgress;
       const { routeProgress: _progress, ...geometry } = target;
       void _progress;
-      timeline.to(pose.current, { ...geometry, ...(routeProgress ? {} : { routeProgress: 0 }), duration: 1.05, ease: 'power3.inOut', onUpdate: apply }, 0);
+      const introReveal = scene === 0 && introDone;
+      timeline.to(pose.current, { ...geometry, ...(introReveal ? { entrance: pose.current.entrance, introGoal: pose.current.introGoal, introRoute: pose.current.introRoute } : {}), ...(routeProgress ? {} : { routeProgress: 0 }), duration: 1.05, ease: 'power3.inOut', onUpdate: apply }, 0);
+      if (introReveal) {
+        timeline.to(pose.current, { entrance: 1, duration: .55, onUpdate: apply }, .12);
+        timeline.to(pose.current, { introGoal: 1, duration: .55, onUpdate: apply }, .65);
+        timeline.to(pose.current, { introRoute: 1, duration: 1.1, ease: 'none', onUpdate: apply }, 1.15);
+      }
       if (copyElements) gsap.set(copyElements, { opacity: 1, y: 0 });
       if (secondary && (changingScene || sceneEntrancePending.current)) {
-        // Spatial safety and route-result completion are different milestones.
-        // Once controls can appear, a click must never restart their entrance.
-        timeline.call(() => { sceneEntrancePending.current = false; }, [], 1.05);
-        timeline.fromTo(secondary, { autoAlpha: 0 }, { autoAlpha: 1, duration: .25 }, 1.05);
+        // Keep information readable while the model travels. Opaque text lanes
+        // prevent overlap without waiting for the camera or fading button contrast.
+        gsap.set(secondary, { autoAlpha: 1 });
+        sceneEntrancePending.current = false;
       }
       else if (secondary) gsap.set(secondary, { autoAlpha: 1 });
+      revealInformation();
       if (scene === 4 && closed !== renderedClosedRef.current) {
         timeline.to(pose.current, { routeProgress: 0, duration: .28, ease: 'power2.in', onUpdate: apply }, 0);
         timeline.call(() => {
@@ -313,7 +361,7 @@ export default function Presentation() {
     const onVisibility = () => { if (document.hidden) timeline.progress(1); };
     document.addEventListener('visibilitychange', onVisibility);
     return () => { timeline.kill(); document.removeEventListener('visibilitychange', onVisibility); };
-  }, [scene, phase, condition, closed, print, directorReady, modelFailed, presentationMotionAllowed, largeText, compactStage, systemStep, unknown, lang, director]);
+  }, [scene, phase, condition, closed, print, directorReady, modelFailed, presentationMotionAllowed, largeText, compactStage, systemStep, unknown, lang, director, introDone, viewportWidth]);
   useEffect(() => { document.title = `ITER · ${lang === 'kk' ? 'Таныстырылым' : 'Презентация'} · ${scene + 1}/10`; }, [lang, scene]);
   useEffect(() => {
     if (print) return;
@@ -371,6 +419,7 @@ export default function Presentation() {
   }
   function touchStart(event: TouchEvent) { if (event.touches.length !== 1 || isInteractive(event.target)) { touch.current = null; return; } const point = event.touches[0]!; touch.current = { x: point.clientX, y: point.clientY }; }
   function touchEnd(event: TouchEvent) { const origin = touch.current; touch.current = null; const point = event.changedTouches[0]; if (!origin || !point) return; const dx = point.clientX - origin.x, dy = point.clientY - origin.y; if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(sceneRef.current + (dx < 0 ? 1 : -1)); }
+  const graphRejection = directorGraphRejection(building, { ...requirements, allowUnknown: false }, EMPTY_EDGES);
   const shared = { lang, qr, closed, setClosed: changeClosure, unknown, setUnknown, reveal, setReveal, phase, setPhase, setRecording, modelFailed, condition, setCondition, systemStep, setSystemStep, guidanceStep, setGuidanceStep, routeSettled: settled || modelFailed };
   if (print) return <div ref={rootRef} className="pres-root pres-print" data-testid="presentation-root" data-print="true" lang={lang === 'kk' ? 'kk-KZ' : 'ru-RU'}>{copy.scenes.map((item, index) => <div className="pres-print-page" key={item.id}><div className="pres-print-brand">ITER <span>{t('Навигация с учётом условий', 'Шарттарды ескеретін навигация')}</span><b>RU / KK</b></div><Scene {...shared} index={index} print /><div className="pres-print-footer"><a href={PUBLIC_NAVIGATOR_URL}>iter-navigator.vercel.app</a><span>{t('Учебный прототип · вымышленное здание', 'Оқу прототипі · ойдан шығарылған ғимарат')}</span><b>{String(index + 1).padStart(2, '0')} / 10</b></div></div>)}</div>;
   return <div ref={rootRef} className={`pres-root pres-choreographed${largeText ? ' pres-large-text' : ''}`} data-testid="presentation-root" data-current-scene={SCENE_IDS[scene]} data-settled={settled && (directorReady || modelFailed) && readyMediaKey === String(scene) + ':' + lang} data-motion={presentationMotionAllowed ? 'on' : 'off'} lang={lang === 'kk' ? 'kk-KZ' : 'ru-RU'}>
@@ -383,6 +432,8 @@ export default function Presentation() {
         {recording && scene === 3 && <div className="pres-recording">{recordingFailed ? <><Poster index={3} lang={lang} /><p role="status">{t('Запись не загрузилась. Показан конечный вид маршрута.', 'Жазба жүктелмеді. Маршруттың соңғы көрінісі көрсетілді.')}</p></> : <video ref={recordingRef} data-testid="presentation-video" src="/presentation/media/model-reveal.mp4" poster="/presentation/media/model-reveal-poster.webp" controls autoPlay playsInline preload="metadata" onError={() => setRecordingFailed(true)} />}<p>{t('Запись реального приложения · интерфейс на русском · без звука', 'Нақты қолданба жазбасы · интерфейс орыс тілінде · дыбыссыз')}</p><button onClick={() => { recordingRef.current?.pause(); setRecording(false); }}>{t('Вернуться к живой модели', 'Тірі модельге оралу')}</button></div>}
         {modelFailed && <p className="pres-model-fallback" data-testid="presentation-fallback">{t('Статичный вид модели · WebGL недоступен', 'Модельдің статикалық көрінісі · WebGL қолжетімсіз')}</p>}
         {scene === 2 && !modelFailed && directorReady && <div className="pres-object-annotations" aria-label={t("Условия прохода", "Өту шарттары")}><span key={condition} data-anchor={condition === 0 ? 'stairs-0' : condition === 1 ? 'door-204' : 'lift-a-0'}>{condition === 0 ? t('Лестница · не подходит', 'Баспалдақ · жарамсыз') : condition === 1 ? t('Дверь 204 · 105 см', '204 есігі · 105 см') : t('Лифт A · без ступеней', 'A лифті · сатысыз')}</span></div>}
+        {scene === 0 && introDone && !modelFailed && directorReady && <div className="pres-object-annotations pres-intro-annotations" aria-label={t('Вход, цель и начало маршрута', 'Кіреберіс, мақсат және жолдың басы')}><span data-anchor="entrance">{t('Вход · начало пути', 'Кіреберіс · жолдың басы')}</span><span data-anchor="room-204">{t('Цель · аудитория 204', 'Мақсат · 204-аудитория')}</span></div>}
+        {scene === 7 && systemStep === 1 && graphRejection && !modelFailed && directorReady && <div className="pres-object-annotations"><span data-anchor={graphRejection.edgeId}>{t('Узкий проход к 204 исключён: ', '204-ке апаратын тар өткел алынып тасталды: ')}{Math.round(graphRejection.widthM * 100)} {t('см', 'см')} &lt; {Math.round(graphRejection.minWidthM * 100)} {t('см', 'см')}</span></div>}
         {scene === 5 && !modelFailed && directorReady && <div className="pres-object-annotations"><span data-anchor="door-205">{t('Дверь 205 · ширина неизвестна', '205 есігі · ені белгісіз')}</span></div>}
         {scene === 4 && !modelFailed && directorReady && <div className="pres-object-annotations"><span data-anchor="lift-a-0">{closed ? t('Лифт A закрыт · симуляция', 'A лифті жабық · симуляция') : t('Лифт A доступен', 'A лифті қолжетімді')}</span></div>}
         {scene === 3 && phase === 3 && !modelFailed && directorReady && <div className="pres-object-annotations"><span data-anchor="door-204">{t('Аудитория 204 · 2 этаж', '204-аудитория · 2-қабат')}</span></div>}

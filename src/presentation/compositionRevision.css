@@ -63,7 +63,7 @@
 @media(max-width:700px){
  .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-stage{height:calc(100svh - 135px)!important;min-height:0;overflow:visible}
  .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-slide{min-height:0!important;height:auto;padding:18px 22px 0}
- .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-model{top:var(--model-top,280px);bottom:auto;width:100%;left:0;height:var(--model-height,250px)!important;aspect-ratio:auto;min-height:0;transform:none}
+ .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-model{top:var(--model-top,280px);bottom:auto;width:100%;left:0;height:var(--model-height,250px);aspect-ratio:auto;min-height:0;transform:none}
  .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-stage{padding-bottom:0}
  .pres-root.pres-choreographed:not(.pres-print) .pres-slide .pres-copy-column{max-width:100%;width:100%;display:block}
  .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-feature-list,.pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-text-link{display:none}
@@ -103,3 +103,15 @@
  .pres-root.pres-choreographed:not(.pres-print) .pres-slide-route h1{font-size:25px}
  .pres-root.pres-choreographed:not(.pres-print) .pres-model-caption{display:none}
 }
+
+/* The foreground/background pair changes atomically. Interpolating only the
+   background made white labels disappear on white (and dark labels on dark). */
+.pres-root.pres-choreographed button{transition:transform 150ms ease,box-shadow 150ms ease}
+/* Information reads during motion instead of waiting for the camera to settle.
+   Solid surfaces reserve the text lanes even while an old pose travels past. */
+.pres-root.pres-choreographed:not(.pres-print) .pres-slide :is(.pres-copy,.pres-pipeline-step,.pres-system-aside > *){background:var(--pres-bg)}
+.pres-root.pres-choreographed .pres-intro-annotations span{transition:none}
+
+.pres-root.pres-choreographed:not(.pres-print) .pres-pipeline-step[aria-pressed=true]{background:#dce8dc}
+
+.pres-root.pres-choreographed .pres-condition-actions button>span{opacity:.8}

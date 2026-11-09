@@ -9,8 +9,10 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Building, RouteResult } from '../domain/model';
 import { boundCamera, dragCamera, panCamera, wheelCamera, CAMERA_HALF_HEIGHT } from '../ui/camera';
 import { createFloorArchitecture } from '../ui/architecture';
+import { cacheDirectorFloorBounds, projectDirectorBounds } from '../ui/directorBounds';
+import type { CachedFloorBounds } from '../ui/directorBounds';
 import type { CameraState } from '../ui/camera';
-import { directorDoorAnchor, directorGraphEdges, routeElementProgress, snapshotDioramaPose, unitProgress } from '../ui/dioramaDirector';
+import { directorDoorAnchor, directorGraphEdges, directorGraphRejection, directorIntroProgress, routeElementProgress, snapshotDioramaPose, unitProgress } from '../ui/dioramaDirector';
 import type { DioramaDirector, DioramaDirectorController } from '../ui/dioramaDirector';
 
 interface VisualState { routeReveal?:boolean; expanded?: boolean; cameraTransitionId?: number; result: RouteResult; floor: 'all' | number; closedEdgeIds: string[]; camera: CameraState; motionAllowed: boolean; theme: 'dark' | 'light'; largerText: boolean; highlight: { nodeId: string; edgeId?: string } | null; gesturesEnabled: boolean }
@@ -71,12 +73,14 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
     let allocation = structureResources;
     let parent = new THREE.Group(); scene.add(parent);
     const floorGroups = new Map<number, THREE.Group>();
+    let cachedFloorBounds: CachedFloorBounds[] = [];
     const floorSlabs = new Map<number, THREE.MeshStandardMaterial>();
     const structureLabels: THREE.Sprite[] = [];
     const routes = new THREE.Group(); scene.add(routes);
     const accents = new THREE.Group(); scene.add(accents);
     const graph = new THREE.Group(); scene.add(graph);
     let graphSignature = "";
+    let rejectionLine: LineSegments2 | undefined;
     const graphBuckets: { line: LineSegments2; ids: string[]; excluded: boolean }[] = [];
     const graphNodes: { points: THREE.Points; ids: string[] }[] = [];
     const nodes = new Map(building.nodes.map(node => [node.id, node]));
@@ -223,6 +227,7 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
             return { id: o.userData.anchorId, x: (p.x + 1) / 2, y: (1 - p.y) / 2, inFrustum: Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1 && Math.abs(p.z) <= 1, active: o.visible, bounds: o.visible ? projectedBounds([o]) : null };
           }));
           container.dataset.directorBoundsFrame = String(renderCount + 1);
+          container.dataset.directorCamera = JSON.stringify({left:view.left,right:view.right,top:view.top,bottom:view.bottom,zoom:view.zoom,viewportWidth:container.clientWidth,viewportHeight:container.clientHeight,frame:renderCount+1});
         }
         }
         container.dataset.renderStats = JSON.stringify({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,dpr:renderer.getPixelRatio(),shadowMap:1024}); container.dataset.renderCount = String(++renderCount); dirty = false; }
@@ -341,6 +346,14 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
     const applyDirector = () => {
       if (!director || disposed) return;
       const pose = director.pose;
+      // Host height/top are timeline-driven: use this frame's actual dimensions before projection.
+      if (renderer) {
+        const width = Math.max(1, container.clientWidth), height = Math.max(1, container.clientHeight);
+        const size = renderer.getSize(new THREE.Vector2());
+        if (size.x !== width || size.y !== height) renderer.setSize(width, height, false);
+        view.left = -CAMERA_HALF_HEIGHT * width / height; view.right = -view.left;
+        view.top = CAMERA_HALF_HEIGHT; view.bottom = -CAMERA_HALF_HEIGHT; view.updateProjectionMatrix();
+      }
       stop(); cameraEnd = floorEnd = revealEnd = burstEnd = 0;
       liveCamera = { preset: 'overview', yaw: pose.yaw, zoom: Math.max(.2, Math.min(4, pose.zoom)), tilt: pose.tilt, panX: pose.panX, panY: pose.panY };
       cameraFrom = cameraTo = liveCamera;
@@ -361,10 +374,11 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
       for (const sprite of structureLabels) { sprite.visible = pose.labels > .001; sprite.material.opacity = unitProgress(pose.labels); }
       if (offsetsChanged) deformRoutes();
       const count = state.result.status === 'ok' ? state.result.edgeIds.length : 0;
-      routes.visible = pose.routeProgress > 0;
+      const routeProgress = Math.max(unitProgress(pose.routeProgress), directorIntroProgress(pose.introRoute, count));
+      routes.visible = routeProgress > 0;
       for (const object of routes.children) {
         if (object === moving || object instanceof THREE.Sprite) { object.visible = false; continue; }
-        const alpha = routeElementProgress(pose.routeProgress, object.userData.routeIndex ?? 0, count);
+        const alpha = routeElementProgress(routeProgress, object.userData.routeIndex ?? 0, count);
         object.visible = alpha > .001 && alpha >= (object.userData.routeAt ?? 0);
         if (object instanceof THREE.Mesh && !Array.isArray(object.material)) {
           if (!object.userData.directorMaterial) {
@@ -421,13 +435,37 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
           attribute.needsUpdate = true;
         }
       }
+      if (rejectionLine) {
+        const rejected = directorGraphRejection(building, director.requirements, state.closedEdgeIds);
+        const amount = unitProgress(pose.graphReject) * unitProgress(pose.graphOpacity);
+        rejectionLine.visible = !!rejected && amount > .001;
+        rejectionLine.material.opacity = amount;
+        rejectionLine.material.resolution.set(Math.max(1, container.clientWidth), Math.max(1, container.clientHeight));
+        if (rejected) {
+          const edge = edges.get(rejected.edgeId)!;
+          const a = position(edge.from), b = position(edge.to);
+          a.y += floorOffset(nodes.get(edge.from)!.floor); b.y += floorOffset(nodes.get(edge.to)!.floor);
+          // This is the actual edge, with short crossbars marking its rejection.
+          const mid = a.clone().lerp(b, .5); const side = new THREE.Vector3(b.z-a.z, 0, a.x-b.x).normalize().multiplyScalar(.65);
+          const start = rejectionLine.geometry.getAttribute('instanceStart'), end = rejectionLine.geometry.getAttribute('instanceEnd');
+          [[a,b],[mid.clone().add(side),mid.clone().sub(side)]].forEach(([from,to], i) => {
+            start.setXYZ(i,from!.x,from!.y,from!.z); end.setXYZ(i,to!.x,to!.y,to!.z);
+          }); start.needsUpdate = end.needsUpdate = true;
+        }
+        container.dataset.graphRejectedEdge = rejected?.edgeId ?? '';
+      }
       for (const object of accents.children) {
-        const amount = object.userData.anchorId === 'door-205' ? Math.max(unitProgress(pose.door205), object.userData.nodeId === (state.result.status === 'ok' ? state.result.nodeIds.at(-1) : 'room-204') ? unitProgress(pose.door) : 0) : unitProgress(pose[object.userData.channel as 'entrance' | 'stairs' | 'door' | 'lift']);
+        let amount = object.userData.anchorId === 'door-205' ? Math.max(unitProgress(pose.door205), object.userData.nodeId === (state.result.status === 'ok' ? state.result.nodeIds.at(-1) : 'room-204') ? unitProgress(pose.door) : 0) : unitProgress(pose[object.userData.channel as 'entrance' | 'stairs' | 'door' | 'lift']);
         const destination = state.result.status === 'ok' ? state.result.nodeIds.at(-1) : 'room-204';
+        if (object.userData.channel === 'introGoal') {
+          amount = unitProgress(pose.introGoal);
+          const node = nodes.get(destination!);
+          if (node) { object.position.copy(position(node.id)); object.userData.baseY = object.position.y; object.userData.floor = node.floor; }
+        }
         const single = object.userData.channel === 'stairs' ? object.userData.nodeId === 'stairs-0' : object.userData.channel === 'lift' ? object.userData.nodeId === 'lift-a-0' : object.userData.channel !== 'door' || object.userData.nodeId === destination;
         object.visible = amount > .001 && (single || (object.userData.anchorId === 'door-205' && unitProgress(pose.door205) > .001));
         object.position.y = object.userData.baseY + floorOffset(object.userData.floor);
-        object.scale.setScalar(1 + amount * .15);
+        object.scale.setScalar(object.userData.fixedOpening ? 1 : 1 + amount * .15);
         ((object as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = amount * .85;
       }
       scene.background = new THREE.Color(state.theme === 'dark' ? '#222e32' : '#e2e9e5');
@@ -439,11 +477,19 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
     };
     const directorController: DioramaDirectorController = {
       apply: applyDirector,
+      bounds: () => { applyCamera(); return projectDirectorBounds(cachedFloorBounds, view); },
       project: id => {
         const accent = accents.children.find(object => object.userData.anchorId === id);
         if (accent) {
           applyCamera(); const point = accent.position.clone().project(view);
           return { x: (point.x + 1) / 2, y: (1 - point.y) / 2, visible: Math.abs(point.x) <= 1 && Math.abs(point.y) <= 1 && Math.abs(point.z) <= 1 };
+        }
+        const edge = edges.get(id);
+        if (edge) {
+          applyCamera(); const a = position(edge.from), b = position(edge.to);
+          a.y += floorOffset(nodes.get(edge.from)!.floor); b.y += floorOffset(nodes.get(edge.to)!.floor);
+          const point = a.lerp(b,.5).project(view);
+          return { x: (point.x+1)/2, y: (1-point.y)/2, visible: Math.abs(point.x)<=1 && Math.abs(point.y)<=1 && Math.abs(point.z)<=1 };
         }
         const node = nodes.get(id); if (!node) return null;
         applyCamera(); const point = position(id); point.y += floorOffset(node.floor); point.project(view);
@@ -643,6 +689,34 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
         });floorMaterials.set(id,entries);
       });
       if (director) {
+        cachedFloorBounds = [...floorGroups.values()].map(cacheDirectorFloorBounds);
+        const rejectionGeometry = new LineSegmentsGeometry(); rejectionGeometry.setPositions(new Float32Array(12));
+        const rejectionMaterial = new LineMaterial({ color: '#a44e3a', linewidth: 5, transparent: true, opacity: 0, depthWrite: false, depthTest: false, toneMapped: false });
+        rejectionLine = new LineSegments2(rejectionGeometry, rejectionMaterial); rejectionLine.frustumCulled = false; rejectionLine.renderOrder = 8; graph.add(rejectionLine);
+        structureResources.geometries.push(rejectionGeometry); structureResources.materials.push(rejectionMaterial);
+        const goalGeometry = new THREE.TorusGeometry(.8,.1,8,48);
+        const goalMaterial = new THREE.MeshBasicMaterial({ color: '#19747b', transparent: true, opacity: 0, depthTest: false, depthWrite: false });
+        const goal = new THREE.Mesh(goalGeometry,goalMaterial); goal.rotation.x=-Math.PI/2; goal.renderOrder=18;
+        goal.userData={channel:'introGoal',baseY:0,floor:0}; accents.add(goal);
+        structureResources.geometries.push(goalGeometry); structureResources.materials.push(goalMaterial);
+        // Frame the actual 205 opening. Its illustrative architectural span is not evidence of width.
+        const anchor205 = directorDoorAnchor(building,'door-205');
+        if (anchor205) {
+          const opening = createFloorArchitecture(building,anchor205.floor).doors.find(d=>d.x===anchor205.x&&d.z===anchor205.z);
+          if (opening) {
+            const frameGroup = new THREE.Group(); const priorParent=parent; parent=frameGroup;
+            const glow = new THREE.MeshBasicMaterial({ color:'#d6a64f',transparent:true,opacity:0,depthTest:false,depthWrite:false,toneMapped:false });
+            structureResources.materials.push(glow);
+            const horizontal=opening.axis==='x', h=anchor205.floor*building.floorHeightM;
+            for(const side of [-1,1]) box(.13,1.95,.13,anchor205.x+(horizontal?side*opening.width/2:0),h+.98,anchor205.z+(horizontal?0:side*opening.width/2),glow);
+            box(horizontal?opening.width+.13:.13,.13,horizontal?.13:opening.width+.13,anchor205.x,h+1.98,anchor205.z,glow);
+            box(horizontal?opening.width:.4,.035,horizontal?.4:opening.width,anchor205.x,h+.12,anchor205.z,glow);
+            parent=priorParent;
+            for(const object of [...frameGroup.children]) {
+              object.userData={channel:'door205',anchorId:'door-205-frame',baseY:object.position.y,floor:anchor205.floor,fixedOpening:true};object.renderOrder=19;accents.add(object);
+            }
+          }
+        }
         for (let i = 0; i < 4; i++) {
           const geometry = new LineSegmentsGeometry();
           geometry.setPositions(new Float32Array(building.edges.length * 6));
