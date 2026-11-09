@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import type { Page, CDPSession } from '@playwright/test';
 import { presentationCopy } from '../src/presentation/content';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { validateBuilding } from '../src/domain/validation';
 import { defaultScenario } from '../src/domain/storage';
 import { findRoute } from '../src/domain/routing';
@@ -490,6 +491,44 @@ test('navigator retains A40, B54, strict both-lifts closure, RU/KK, 2D/3D and re
 // Run with --grep "pilot artwork" and a distinct PRESENTATION_QA_RUN to retain the original 35-test evidence.
 const pilotAsset = '**/presentation/media/pilot-concept.webp';
 const pilot = (page: Page) => page.getByTestId('presentation-pilot-concept');
+
+for (const lang of ['ru', 'kk']) test(`presentation publication direct PDF and language link ${lang}`, async ({ page }, info) => {
+  await open(page, 'pilot', lang);
+  const link = page.locator('.pres-utilities>a');
+  const file = `/presentation/ITER-Presentation-${lang.toUpperCase()}.pdf`;
+  await expect(link).toHaveAttribute('href', file);
+  await expect(link).toHaveAttribute('aria-label', lang === 'ru' ? 'Открыть PDF презентации на русском языке' : 'Таныстырылымның қазақша PDF нұсқасын ашу');
+  const response = await page.request.get(file);
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toMatch(/^application\/pdf(?:;|$)/i);
+  const body = await response.body();
+  expect(body.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+  const sha256 = (data: Buffer) => createHash('sha256').update(data).digest('hex');
+  const digest = sha256(body);
+  expect(digest).toBe(sha256(readFileSync(new URL(`../public${file}`, import.meta.url))));
+  await info.attach('verified-pdf', { body: JSON.stringify({ url: response.url(), contentType: response.headers()['content-type'], bytes: body.length, sha256: digest }), contentType: 'application/json' });
+  const other = lang === 'ru' ? 'kk' : 'ru';
+  await page.getByTestId(`presentation-language-${other}`).click();
+  await expect(link).toHaveAttribute('href', `/presentation/ITER-Presentation-${other.toUpperCase()}.pdf`);
+  await expect(link).toHaveAttribute('aria-label', other === 'ru' ? 'Открыть PDF презентации на русском языке' : 'Таныстырылымның қазақша PDF нұсқасын ашу');
+});
+
+test('presentation publication root and trailing slash survive reload', async ({ page }, info) => {
+  await page.goto('/');
+  await expect(page.getByTestId('route-result').locator('.distance')).toHaveText('40м');
+  await page.reload();
+  await expect(page.getByTestId('route-result')).toHaveAttribute('data-route-ids', /lift-a/);
+  await expect(page.getByTestId('route-result').locator('.distance')).toHaveText('40м');
+  await page.screenshot({ path: info.outputPath('root-reloaded.png') });
+  await page.goto('/presentation/?scene=pilot&lang=kk');
+  await expect(active(page)).toHaveAttribute('data-scene', 'pilot');
+  await expect(pilot(page)).toHaveAttribute('data-artwork-loaded', 'true');
+  await page.reload();
+  await expect(active(page)).toHaveAttribute('data-scene', 'pilot');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'kk-KZ');
+  await expect(pilot(page)).toHaveAttribute('data-artwork-loaded', 'true');
+  await page.screenshot({ path: info.outputPath('trailing-slash-reloaded.png') });
+});
 
 async function pilotGeometry(page: Page) {
   await frames(page);
