@@ -145,3 +145,12 @@ test('revised fallback door205 and graph posters RU KK',async({page},info)=>{
   if(scene==='uncertainty'){await page.getByTestId('presentation-unknown-toggle').click();await settled(page);await expect(page.getByTestId('presentation-uncertainty-result')).toHaveAttribute('data-route-status','ok');}
  }
 });
+
+test('fresh compact skip reduced initial placement',async({page},info)=>{
+ for(const mode of ['skip','reduce']){
+  await page.setViewportSize(mode==='skip'?{width:375,height:667}:{width:390,height:844});await page.emulateMedia({reducedMotion:mode==='reduce'?'reduce':'no-preference'});
+  await page.addInitScript(()=>{const state={frames:[] as {t:number,gap:number}[],running:true};(window as unknown as {initialPlacement:typeof state}).initialPlacement=state;const start=performance.now();const sample=()=>{const h=document.querySelector<HTMLElement>('.pres-model'),c=document.querySelector<HTMLElement>('.pres-slide .pres-copy-column');if(h&&c&&h.querySelector('canvas,video')){const hs=getComputedStyle(h);if(hs.visibility!=='hidden'&&Number(hs.opacity)>0)state.frames.push({t:performance.now(),gap:h.getBoundingClientRect().top-c.getBoundingClientRect().bottom});}if(performance.now()-start<4500)requestAnimationFrame(sample);};requestAnimationFrame(sample);});
+  await page.goto(`/presentation?scene=intro&lang=${mode==='skip'?'ru':'kk'}`);if(mode==='skip'){await expect(page.getByTestId('presentation-intro-film')).toBeVisible();await page.keyboard.press('Escape');}await settled(page);await page.waitForTimeout(1500);
+  const data=await page.evaluate(()=>(window as unknown as {initialPlacement:{frames:{t:number,gap:number}[]}}).initialPlacement.frames);writeFileSync(info.outputPath(`first-visible-${mode}.json`),JSON.stringify(data,null,2));expect(data.length).toBeGreaterThan(0);expect(Math.min(...data.map(x=>x.gap))).toBeGreaterThanOrEqual(-1);await page.screenshot({path:info.outputPath(`first-visible-${mode}.png`)});
+ }
+});
