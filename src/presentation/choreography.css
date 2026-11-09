@@ -1,0 +1,107 @@
+/* One 16:9 stage survives every scene. Its projection also frames the intro film. */
+.pres-choreographed:not(.pres-print) .pres-stage{isolation:isolate;overflow:hidden;min-height:calc(100svh - 138px)}
+.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-stage{height:calc(100svh - 138px)}
+/* Tall desktops retain the original 86px header and 76px control bar. */
+@media(min-width:1001px) and (min-height:781px){
+ .pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-stage{height:calc(100svh - 163px);min-height:calc(100svh - 163px)}
+}
+@media(min-width:1800px) and (min-height:781px){
+ .pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-stage{height:calc(100svh - 181px);min-height:calc(100svh - 181px)}
+}
+.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-slide{min-height:100%!important;height:100%}
+.pres-root.pres-choreographed:not(.pres-print) .pres-model{position:absolute;left:30%;right:auto;top:50%;bottom:auto;width:70%;height:auto;aspect-ratio:16/9;max-width:none;transform:translateY(-50%);z-index:0;overflow:visible;pointer-events:none;background:transparent;border:0;border-radius:0;box-shadow:none}
+.pres-choreographed .pres-live-model,.pres-choreographed .pres-live-model>.diorama{width:100%;height:100%}
+.pres-choreographed .pres-model>.pres-poster{position:absolute;inset:0}
+.pres-choreographed .pres-slide{z-index:1;position:relative;pointer-events:none;background:transparent!important}
+.pres-choreographed .pres-slide :is(button,a,input,select,textarea){pointer-events:auto}
+.pres-choreographed .pres-recording{pointer-events:auto}
+.pres-root.pres-choreographed:not(.pres-print) .pres-model:has(.pres-recording){z-index:3}
+.pres-choreographed .pres-slide .pres-copy-column{max-width:35%;width:35%;position:relative}
+.pres-choreographed .pres-slide-barriers .pres-copy-column{margin-left:63%;width:35%;max-width:35%}
+.pres-choreographed .pres-slide-barriers .pres-copy h1{font-size:clamp(22px,2.5vw,38px)}
+.pres-choreographed .pres-slide-barriers .pres-body{display:none}
+.pres-question{font-size:clamp(28px,3.2vw,48px);line-height:1.07;letter-spacing:-1.6px;margin:26px 0;color:var(--pres-ink)}
+.pres-condition-tags{display:flex;gap:8px;flex-wrap:wrap;font-size:12px}
+.pres-condition-tags span{border:1px solid var(--pres-line);border-radius:20px;padding:7px 10px}
+.pres-condition-actions{display:flex;gap:8px;margin:24px 0 20px;max-width:363px}
+.pres-condition-actions button{display:flex;flex:1;min-width:0;flex-wrap:wrap;align-items:center;gap:8px;min-height:72px;padding:12px;text-align:left;border:1px solid #b9c9bb;background:#f2f1e9;font-size:14px;line-height:1.2}
+.pres-condition-actions button>span{font-size:10px;opacity:.65;width:100%}
+.pres-condition-actions button>b{margin-left:auto;font-weight:400}
+.pres-condition-actions button[aria-pressed=true]{background:#214d43;color:#fffdf6;border-color:#214d43}
+.pres-condition-explanation{min-height:130px}
+.pres-condition-explanation strong{font-size:clamp(24px,2.4vw,36px);font-weight:450;line-height:1.2;letter-spacing:-.7px}
+.pres-condition-explanation p{font-size:16px;line-height:1.55;margin-top:12px;max-width:34ch;color:var(--pres-muted)}
+.pres-route-disclosure{position:relative;pointer-events:auto;max-width:100%;margin-top:18px}
+.pres-route-disclosure summary{list-style-position:inside;font-size:13px;min-height:44px;cursor:pointer;padding:12px 0;text-decoration:underline;text-underline-offset:4px}
+.pres-route-disclosure[open]{background:#f2f1e9f7;z-index:4;max-height:340px;overflow:auto;padding:0 14px 14px;border:1px solid var(--pres-line);border-radius:7px}
+.pres-route-disclosure .pres-route-output{background:#f2f1e9}
+.pres-object-annotations{position:absolute;inset:0;z-index:3;pointer-events:none}
+.pres-object-annotations span{position:absolute;visibility:hidden;white-space:nowrap;transform:translate(-50%,-150%);font-size:11px;padding:6px 9px;background:#f2f1e9ed;border:1px solid #9ab7a6;border-radius:5px;color:#193d3b}
+.pres-object-annotations span:after{content:'';position:absolute;width:1px;height:20px;background:#457b65;top:100%;left:50%}
+@media(max-width:700px){.pres-object-annotations span{font-size:8px;padding:3px 5px}}
+.pres-choreographed .pres-slide-route .pres-plan-panel{display:none}
+.pres-choreographed .pres-slide-route .pres-copy-column{width:35%;max-width:35%}
+.pres-choreographed .pres-slide-route h1{font-size:clamp(29px,3.3vw,48px)}
+.pres-choreographed .pres-slide-route .pres-body{font-size:16px;max-width:31ch}
+.pres-choreographed .pres-slide-route .pres-route-form{gap:10px;margin-top:15px}
+.pres-choreographed .pres-slide-route .pres-route-output{margin-top:14px}
+.pres-choreographed .pres-slide-route .pres-route-output strong{font-size:40px}
+.pres-choreographed .pres-slide-route .pres-route-output p{font-size:12px}
+.pres-choreographed .pres-model-caption{bottom:4%;left:12%;font-size:9px}
+.pres-choreographed[data-motion] .pres-slide .pres-copy{animation:none!important}
+.pres-intro-film{position:absolute;inset:0;z-index:4;pointer-events:auto;opacity:1;background:var(--pres-bg)}
+.pres-intro-film[data-playing=true]{opacity:1}
+.pres-intro-film video{width:100%;height:100%;display:block;object-fit:contain;mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent),linear-gradient(180deg,transparent,#000 5%,#000 95%,transparent);mask-composite:intersect}
+.pres-intro-film button{position:absolute;bottom:5%;right:5%;border:1px solid #b7c6bd;border-radius:24px;background:#f6f4e9ed;color:#163e3b;min-height:44px;padding:9px 16px;font-size:13px}
+.pres-intro-film button span{margin-left:12px;opacity:.6;font-size:10px}
+@media(max-width:700px){
+ .pres-root.pres-choreographed:not(.pres-print) .pres-stage{min-height:calc(100svh - 135px)}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-model{left:0;top:auto;bottom:0;width:100%;height:auto!important;aspect-ratio:16/9;transform:none}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide{min-height:calc(100svh - 135px);padding:20px 22px calc(56.25vw + 12px);display:block}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide .pres-copy-column{width:100%;max-width:100%;margin-left:0}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide h1{font-size:29px}
+ .pres-question{font-size:29px;line-height:1.08;margin:18px 0;max-width:18ch}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-route .pres-body{display:none}
+ .pres-condition-actions{margin:18px 0 16px;gap:6px}
+ .pres-condition-actions button{font-size:13px;padding:9px;min-height:64px}
+ .pres-condition-explanation{min-height:105px}
+ .pres-condition-explanation strong{font-size:26px}
+ .pres-condition-explanation p{font-size:14px;margin-top:9px}
+ .pres-route-disclosure{margin-top:8px}
+ .pres-route-disclosure[open]{max-height:230px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-route .pres-route-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-route-form select{font-size:12px;min-height:38px;width:100%;padding:6px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-route-form button{grid-column:1/-1;min-height:40px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-route .pres-route-output{margin-top:10px;padding:8px 0}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-route .pres-route-output strong{font-size:28px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-route .pres-text-link{font-size:12px;margin-top:5px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-building .pres-route-meta{margin:24px 0 20px;display:flex;max-width:none}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-building .pres-route-meta strong{font-size:38px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-building .pres-route-meta span{font-size:13px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-building .pres-model-phases{margin-top:12px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-building .pres-copy{min-height:0}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-model-caption{bottom:4px;font-size:7px}
+}
+.pres-root.pres-choreographed.pres-large-text .pres-slide .pres-copy-column{width:100%;max-width:100%;margin:0}
+.pres-root.pres-choreographed.pres-large-text .pres-model{position:relative;left:0;top:auto;width:100%;transform:none!important;aspect-ratio:16/9}
+/* Preserve the same canvas rectangle on short phones; compact only the conditions copy. */
+@media(max-width:700px) and (max-height:740px){
+ .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-slide-route{padding-top:12px}
+ .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-slide-route h1{font-size:26px;line-height:1.08}
+ .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-condition-actions{margin:10px 0;gap:6px}
+ .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-condition-actions button{min-height:52px;padding:7px 9px;gap:5px;font-size:12px}
+ .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-condition-explanation{min-height:82px}
+ .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-condition-explanation strong{font-size:24px;line-height:1.15}
+ .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-condition-explanation p{font-size:13px;line-height:1.4;margin-top:6px}
+ .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-route-disclosure{margin-top:0}
+ .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-route-disclosure summary{font-size:12px;padding:11px 0;min-height:44px}
+ .pres-root.pres-choreographed:not(.pres-print):not(.pres-large-text) .pres-slide-route .pres-scene-note{margin-top:6px!important;padding-top:6px;font-size:10px;line-height:1.35}
+}
+
+/* Static exports show the complete route and separate the distance from its lift caption. */
+.pres-print .pres-route-disclosure[open]{max-height:none;overflow:visible;border:0;background:transparent;padding:0}
+.pres-print .pres-route-disclosure>summary{display:none}
+.pres-print .pres-route-disclosure .pres-route-form{margin-top:0}
+.pres-print .pres-detour-numbers{align-items:baseline;gap:22px}
+.pres-print .pres-detour-numbers>strong{white-space:nowrap}
+.pres-print .pres-detour-numbers>.pres-detour-via{font-size:22px;line-height:1.35;letter-spacing:0;max-width:14ch}

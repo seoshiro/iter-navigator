@@ -17,7 +17,7 @@ export const route205Unknown = findRoute(presentationBuilding, 'entrance', 'room
 export const noVisibleRoute: RouteResult = { status: 'no-route', excluded: [] };
 export const PUBLIC_NAVIGATOR_URL = 'https://iter-navigator.vercel.app/';
 export const SCENE_IDS = ['intro', 'barriers', 'route', 'building', 'detour', 'uncertainty', 'mobile', 'system', 'pilot', 'finish'] as const;
-export const MODEL_SCENES = new Set([0, 3, 4, 9]);
+export const MODEL_SCENES = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
 export function readScene(search = window.location.search): number {
   const value = new URLSearchParams(search).get('scene');

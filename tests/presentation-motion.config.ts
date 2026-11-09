@@ -1,0 +1,3 @@
+import { defineConfig } from '@playwright/test';
+const run = new Date().toISOString().replace(/[:.]/g,'-');
+export default defineConfig({testDir:'.',testMatch:'presentation-motion.spec.ts',workers:1,fullyParallel:false,timeout:60000,outputDir:`../.local/presentation-motion-qa/${run}`,reporter:[['list']],use:{baseURL:process.env.MOTION_BASE_URL||'http://127.0.0.1:5380',channel:'chrome',viewport:{width:1366,height:768},trace:'retain-on-failure',video:process.env.MOTION_RECORD==='1'?{mode:'on',size:process.env.MOTION_MOBILE==='1'?{width:390,height:844}:{width:1366,height:768}}:'off'}});

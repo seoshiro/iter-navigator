@@ -1,0 +1,77 @@
+/* Later chapters change the same model's role without remounting its canvas. */
+.pres-choreographed .pres-detour-via{font-size:20px;line-height:1.4;letter-spacing:0;max-width:12ch;color:var(--pres-muted)}
+.pres-choreographed .pres-detour-working{font-size:26px;line-height:1.3;letter-spacing:-.5px;max-width:14ch}
+.pres-choreographed .pres-detour-numbers{min-height:90px;align-items:center}
+.pres-choreographed .pres-model:is([data-model-scene=uncertainty],[data-model-scene=mobile],[data-model-scene=system],[data-model-scene=pilot]) .pres-model-caption{display:none}
+.pres-choreographed .pres-slide-uncertainty .pres-doors{position:absolute;right:5%;top:48%;width:49%;gap:20px;padding:0}
+.pres-choreographed .pres-slide-uncertainty .pres-door-drawing{height:130px;max-width:95px}
+.pres-choreographed .pres-slide-uncertainty .pres-door>strong{font-size:35px;margin-top:10px}
+.pres-choreographed .pres-slide-uncertainty .pres-door-caption{font-size:11px;margin-top:7px}
+.pres-choreographed .pres-slide-mobile .pres-copy-column{align-self:flex-start;padding-top:18px;width:42%;max-width:42%}
+.pres-choreographed .pres-slide-mobile .pres-copy h1{font-size:clamp(32px,3.5vw,50px)}
+.pres-choreographed .pres-slide-mobile .pres-body{font-size:18px;max-width:33ch}
+.pres-choreographed .pres-slide-mobile .pres-phone-figure{position:absolute;right:7%;top:4%;width:27%;margin:0}
+.pres-choreographed .pres-slide-mobile .pres-phone{width:260px;max-width:100%;margin:auto}
+.pres-choreographed .pres-slide-mobile .pres-phone>img{max-height:440px;object-fit:contain}
+.pres-choreographed .pres-slide-mobile .pres-feature-list{display:flex;flex-wrap:wrap;gap:8px;max-width:360px;margin:20px 0 10px}
+.pres-choreographed .pres-slide-mobile .pres-feature-list li{border:1px solid var(--pres-line);border-radius:20px;padding:5px 10px}
+.pres-choreographed .pres-slide-mobile .pres-feature-list li>span{display:none}
+.pres-choreographed .pres-slide-mobile .pres-feature-list p{font-size:12px;line-height:1.3}
+.pres-choreographed .pres-slide-mobile .pres-scene-note{max-width:38ch}
+.pres-choreographed .pres-slide-system{display:block;padding-top:40px}
+.pres-choreographed .pres-slide-system .pres-wide-heading{max-width:62%}
+.pres-choreographed .pres-slide-system h1{font-size:clamp(32px,3.6vw,52px)}
+.pres-choreographed .pres-slide-system .pres-body{font-size:18px}
+.pres-choreographed .pres-slide-system .pres-pipeline{margin-top:64px;padding:18px 0 26px;gap:32px}
+.pres-choreographed .pres-slide-system .pres-pipeline-step h3{font-size:25px;margin:16px 0 10px}
+.pres-choreographed .pres-slide-system .pres-pipeline-step p{font-size:14px}
+.pres-choreographed .pres-slide-system .pres-system-aside{margin-top:10px}
+.pres-choreographed .pres-slide-system .pres-system-aside>p{font-size:18px}
+.pres-choreographed .pres-slide-pilot{display:block;padding-top:30px}
+.pres-choreographed .pres-slide-pilot .pres-pilot-heading{max-width:65%}
+.pres-choreographed .pres-slide-pilot .pres-pilot-heading h1{font-size:clamp(32px,3.4vw,49px)}
+.pres-choreographed .pres-slide-pilot .pres-pilot-heading .pres-body{font-size:18px}
+.pres-choreographed .pres-slide-pilot .pres-pilot-layout{margin-top:28px;grid-template-columns:1fr 1fr;gap:60px}
+.pres-choreographed .pres-slide-pilot .pres-pilot-concept{--pilot-art-height:270px}
+.pres-choreographed .pres-slide-pilot .pres-pilot-steps p{font-size:23px}
+.pres-choreographed .pres-slide-pilot .pres-pilot-steps li{padding:20px 0}
+@media(max-width:700px){
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile{align-content:start}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-detour .pres-detour-numbers{margin:20px 0 12px;min-height:65px;font-size:62px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-detour .pres-detour-via{font-size:15px;max-width:11ch}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-detour .pres-detour-working{font-size:22px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-uncertainty .pres-copy-column{max-width:100%;width:100%}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-uncertainty .pres-body{display:none}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-uncertainty .pres-segmented{margin-top:14px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-uncertainty .pres-uncertain-result{font-size:17px;margin-top:14px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-uncertainty .pres-rule{font-size:12px;margin-top:10px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-uncertainty .pres-doors{position:relative;top:auto;right:auto;width:100%;margin-top:16px;gap:12px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-uncertainty .pres-door-drawing{height:60px;max-width:50px;border-width:2px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-uncertainty .pres-door>strong{font-size:24px;margin-top:4px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-uncertainty .pres-door>b{font-size:10px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-uncertainty .pres-door>p{font-size:9px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-uncertainty .pres-door-caption{font-size:9px;margin-top:4px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-copy-column{width:100%;max-width:100%;padding:0}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-copy h1{font-size:29px;max-width:100%}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-phone-figure{right:12px;top:135px;width:48%}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-phone{width:100%;border-width:5px;border-radius:23px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-phone>img{max-height:280px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-feature-list{display:block;max-width:43%;margin-top:25px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-feature-list li{padding:8px 0;border:none}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-feature-list p{font-size:13px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-text-link{font-size:11px;display:block;max-width:42%;line-height:1.5}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-scene-note{display:none}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-mobile .pres-phone-figure figcaption{display:block;font-size:9px;line-height:1.35;margin-top:8px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-system .pres-wide-heading{max-width:100%}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-system .pres-pipeline{margin-top:20px;padding:0;gap:0}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-system .pres-pipeline-step{padding:10px 0}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-system .pres-pipeline-step h3{font-size:17px;margin:0}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-system .pres-pipeline-step p{font-size:11px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-system .pres-system-aside>p{font-size:13px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-pilot .pres-pilot-heading{max-width:100%}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-pilot .pres-pilot-heading h1{font-size:27px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-pilot .pres-pilot-layout{margin-top:14px;gap:10px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-pilot .pres-pilot-concept{--pilot-art-height:140px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-pilot .pres-pilot-steps p{font-size:12px}
+ .pres-root.pres-choreographed:not(.pres-print) .pres-slide-pilot .pres-pilot-steps li{padding:8px 0}
+}

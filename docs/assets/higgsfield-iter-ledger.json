@@ -35,8 +35,8 @@
     "runtimeBytes": 8908,
     "assessment": "Inspected source and actual assembled, expanded, focused and rotated Chrome scene. Fine low-contrast stone preserves route legibility. Accepted first result; no retry or other generation."
   },
-  "cumulativeITERStageSpend": 4.25,
-  "remainingTotal": 95.75,
+  "cumulativeITERStageSpend": 23.75,
+  "remainingTotal": 76.25,
   "architecturalStage": {
     "limit": 44,
     "spent": 1.5,
@@ -53,7 +53,28 @@
       "purpose": "Editorial conceptual image for scene 9, future pilot. Not the current ITER building or surveyed architecture.",
       "record": "docs/assets/iter-pilot-concept-generation.json",
       "runtimeFile": "public/presentation/media/pilot-concept.webp"
+    },
+    {
+      "localId": "presentation-kling-intro-001",
+      "model": "kling4_0",
+      "status": "completed_accepted_in_presentation",
+      "purpose": "Six-second architectural intro from actual ITER start/end renders, ending in the first live model pose.",
+      "quotedCreditsExact": 19.5,
+      "count": 1,
+      "durationSeconds": 6,
+      "resolution": "1080p",
+      "jobId": "4553f75e-c902-4cd6-b85e-10f1eb1e6ab7",
+      "submittedCreditsAtConfirmedPrice": 19.5,
+      "referenceCommit": "fe38525fcf2cb30b2a0816e62efe31ecae1a141a",
+      "credits": 19.5,
+      "attempts": 1,
+      "record": "docs/assets/iter-presentation-kling-generation.json",
+      "runtimeFile": "public/presentation/media/intro-kling.mp4"
     }
   ],
-  "presentationStageSpend": 2.75
+  "presentationStageSpend": 22.25,
+  "pendingOperations": [],
+  "reservedCredits": 0,
+  "availableAfterReservations": 76.25,
+  "committedIncludingPending": 23.75
 }
