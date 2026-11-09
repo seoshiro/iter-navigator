@@ -7,15 +7,18 @@
   "floors": [
     {
       "id": 0,
-      "label": "1 этаж"
+      "label": "1 этаж",
+      "labelKk": "1-қабат"
     },
     {
       "id": 1,
-      "label": "2 этаж"
+      "label": "2 этаж",
+      "labelKk": "2-қабат"
     },
     {
       "id": 2,
-      "label": "3 этаж"
+      "label": "3 этаж",
+      "labelKk": "3-қабат"
     }
   ],
   "nodes": [
@@ -26,7 +29,8 @@
       "x": 3,
       "z": 21,
       "kind": "entrance",
-      "selectable": true
+      "selectable": true,
+      "labelKk": "Негізгі кіреберіс"
     },
     {
       "id": "lobby-0",
@@ -35,7 +39,8 @@
       "x": 8,
       "z": 15,
       "kind": "junction",
-      "selectable": true
+      "selectable": true,
+      "labelKk": "Холл · 1-қабат"
     },
     {
       "id": "lift-a-0",
@@ -44,7 +49,8 @@
       "x": 8,
       "z": 7,
       "kind": "lift",
-      "selectable": false
+      "selectable": false,
+      "labelKk": "A лифті · 1-қабат"
     },
     {
       "id": "lift-b-0",
@@ -53,7 +59,8 @@
       "x": 24,
       "z": 7,
       "kind": "lift",
-      "selectable": false
+      "selectable": false,
+      "labelKk": "B лифті · 1-қабат"
     },
     {
       "id": "stairs-0",
@@ -62,7 +69,8 @@
       "x": 28,
       "z": 16,
       "kind": "stairs",
-      "selectable": false
+      "selectable": false,
+      "labelKk": "Баспалдақ · 1-қабат"
     },
     {
       "id": "lift-a-1",
@@ -71,7 +79,8 @@
       "x": 8,
       "z": 7,
       "kind": "lift",
-      "selectable": false
+      "selectable": false,
+      "labelKk": "A лифті · 2-қабат"
     },
     {
       "id": "lift-b-1",
@@ -80,7 +89,8 @@
       "x": 24,
       "z": 7,
       "kind": "lift",
-      "selectable": false
+      "selectable": false,
+      "labelKk": "B лифті · 2-қабат"
     },
     {
       "id": "stairs-1",
@@ -89,16 +99,18 @@
       "x": 28,
       "z": 16,
       "kind": "stairs",
-      "selectable": false
+      "selectable": false,
+      "labelKk": "Баспалдақ · 2-қабат"
     },
     {
       "id": "hall-1",
-      "label": "Галерея · 2 этаж",
+      "label": "Холл · 2 этаж",
       "floor": 1,
       "x": 16,
       "z": 11,
       "kind": "junction",
-      "selectable": false
+      "selectable": true,
+      "labelKk": "Холл · 2-қабат"
     },
     {
       "id": "east-1-node",
@@ -107,7 +119,8 @@
       "x": 24,
       "z": 11,
       "kind": "junction",
-      "selectable": false
+      "selectable": false,
+      "labelKk": "Шығыс өткелі · 2-қабат"
     },
     {
       "id": "room-204",
@@ -116,7 +129,8 @@
       "x": 16,
       "z": 3,
       "kind": "room",
-      "selectable": true
+      "selectable": true,
+      "labelKk": "204-аудитория"
     },
     {
       "id": "room-205",
@@ -125,7 +139,8 @@
       "x": 24,
       "z": 3,
       "kind": "room",
-      "selectable": true
+      "selectable": true,
+      "labelKk": "205-аудитория · деректер белгісіз"
     },
     {
       "id": "lift-a-2",
@@ -134,7 +149,8 @@
       "x": 8,
       "z": 7,
       "kind": "lift",
-      "selectable": false
+      "selectable": false,
+      "labelKk": "A лифті · 3-қабат"
     },
     {
       "id": "lift-b-2",
@@ -143,7 +159,8 @@
       "x": 24,
       "z": 7,
       "kind": "lift",
-      "selectable": false
+      "selectable": false,
+      "labelKk": "B лифті · 3-қабат"
     },
     {
       "id": "stairs-2",
@@ -152,7 +169,8 @@
       "x": 28,
       "z": 16,
       "kind": "stairs",
-      "selectable": false
+      "selectable": false,
+      "labelKk": "Баспалдақ · 3-қабат"
     },
     {
       "id": "hall-2",
@@ -161,7 +179,8 @@
       "x": 16,
       "z": 11,
       "kind": "junction",
-      "selectable": false
+      "selectable": false,
+      "labelKk": "Дәліз · 3-қабат"
     },
     {
       "id": "room-301",
@@ -169,6 +188,67 @@
       "floor": 2,
       "x": 16,
       "z": 3,
+      "kind": "room",
+      "selectable": true,
+      "labelKk": "301 оқу залы"
+    },
+    {
+      "id": "room-wardrobe",
+      "label": "Гардероб",
+      "labelKk": "Киім ілетін орын",
+      "floor": 0,
+      "x": 3,
+      "z": 16,
+      "kind": "room",
+      "selectable": true
+    },
+    {
+      "id": "room-medical",
+      "label": "Медпункт",
+      "labelKk": "Медициналық пункт",
+      "floor": 0,
+      "x": 3,
+      "z": 8,
+      "kind": "room",
+      "selectable": true
+    },
+    {
+      "id": "room-canteen",
+      "label": "Столовая",
+      "labelKk": "Асхана",
+      "floor": 0,
+      "x": 17,
+      "z": 21,
+      "kind": "room",
+      "selectable": true
+    },
+    {
+      "id": "room-toilets",
+      "label": "Санузел",
+      "labelKk": "Дәретхана",
+      "floor": 0,
+      "x": 30,
+      "z": 21,
+      "kind": "room",
+      "selectable": true
+    },
+    {
+      "id": "room-library",
+      "label": "Библиотека",
+      "labelKk": "Кітапхана",
+      "floor": 1,
+      "x": 12,
+      "z": 20,
+      "kind": "room",
+      "selectable": true
+    },
+    {
+      "id": "room-dean",
+      "label": "Деканат",
+      "labelKk": "Деканат",
+      "floor": 1,
+      "x": 23,
+      "z": 20,
       "kind": "room",
       "selectable": true
     }
@@ -855,6 +935,192 @@
         "source": "Авторская вымышленная модель «Просвет», версия 1; реального обследования не было",
         "checkedOn": null
       }
+    },
+    {
+      "id": "door-wardrobe",
+      "from": "lobby-0",
+      "to": "room-wardrobe",
+      "type": "door",
+      "lengthM": 6,
+      "widthM": {
+        "status": "checked",
+        "value": 1.05,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "door-medical",
+      "from": "lobby-0",
+      "to": "room-medical",
+      "type": "door",
+      "lengthM": 9,
+      "widthM": {
+        "status": "checked",
+        "value": 1.05,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "door-canteen",
+      "from": "lobby-0",
+      "to": "room-canteen",
+      "type": "door",
+      "lengthM": 12,
+      "widthM": {
+        "status": "checked",
+        "value": 1.05,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "door-toilets",
+      "from": "lobby-0",
+      "to": "room-toilets",
+      "type": "door",
+      "lengthM": 24,
+      "widthM": {
+        "status": "checked",
+        "value": 1.05,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "door-library",
+      "from": "hall-1",
+      "to": "room-library",
+      "type": "door",
+      "lengthM": 10,
+      "widthM": {
+        "status": "checked",
+        "value": 1.05,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      }
+    },
+    {
+      "id": "door-dean",
+      "from": "hall-1",
+      "to": "room-dean",
+      "type": "door",
+      "lengthM": 12,
+      "widthM": {
+        "status": "checked",
+        "value": 1.05,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "slopePercent": {
+        "status": "checked",
+        "value": 0,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "surface": {
+        "status": "checked",
+        "value": "smooth",
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      },
+      "stepFree": {
+        "status": "checked",
+        "value": true,
+        "source": "Вымышленный учебный пример ITER, версия 1; не результат обследования",
+        "checkedOn": null
+      }
     }
   ],
   "closureGroups": [
@@ -864,7 +1130,8 @@
       "edgeIds": [
         "lift-a-01",
         "lift-a-12"
-      ]
+      ],
+      "labelKk": "A лифті"
     },
     {
       "id": "lift-b",
@@ -872,14 +1139,16 @@
       "edgeIds": [
         "lift-b-01",
         "lift-b-12"
-      ]
+      ],
+      "labelKk": "B лифті"
     },
     {
       "id": "east-passage",
       "label": "Восточный проход · 2 этаж",
       "edgeIds": [
         "east-1"
-      ]
+      ],
+      "labelKk": "Шығыс өткелі · 2-қабат"
     }
   ]
 }

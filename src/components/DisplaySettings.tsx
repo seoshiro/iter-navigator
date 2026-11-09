@@ -1,10 +1,11 @@
 import type { DisplayPreferences } from '../ui/preferences';
-import { ru } from '../i18n/ru';
+import { useI18n } from '../i18n/locale';
 import type { LocalSpeech } from '../ui/speech';
-import { guidanceRu, speechRu } from '../i18n/guidance-ru';
+
 
 interface Props { preferences: DisplayPreferences; onChange: (value: DisplayPreferences) => void; systemReduced: boolean; warning: boolean; speech: LocalSpeech; expanded: boolean; onExpandedChange: (expanded: boolean) => void }
 export function DisplaySettings({ preferences, onChange, systemReduced, warning, speech, expanded, onExpandedChange }: Props) {
+  const { ru, guidanceRu, speechRu, locale, storageWarning } = useI18n();
   return <section id="display-settings" tabIndex={-1} className="display-settings" data-workspace-panel="displayPanel" aria-label={ru.display.title}>
     <div className="speech-controls"><label className="check-row"><input type="checkbox" checked={speech.enabled} onChange={event => speech.controller.setEnabled(event.target.checked)} />{guidanceRu.enable}</label><button type="button" onClick={speech.controller.stop}>{guidanceRu.stop}</button></div>
     <p role="status" aria-live="polite" data-testid="speech-status">{speechRu[speech.status]}</p><details open={expanded}>
@@ -17,5 +18,5 @@ export function DisplaySettings({ preferences, onChange, systemReduced, warning,
       <label>{guidanceRu.voice}<select value={speech.voices.some(voice => voice.voiceURI === speech.preferences.voiceURI) ? speech.preferences.voiceURI : ''} onChange={event => speech.changePreferences({ ...speech.preferences, voiceURI: event.target.value })}><option value="">{guidanceRu.defaultVoice}</option>{speech.voices.map(voice => <option key={voice.voiceURI} value={voice.voiceURI}>{voice.name}</option>)}</select></label>
     </fieldset>
     <p className="display-help">{systemReduced ? ru.display.systemReduced : ru.display.motionHint}</p>
-  </details>{warning && <p className="warning" role="status">{ru.display.storageWarning}</p>}{speech.warning && <p className="warning" role="status">{guidanceRu.storageWarning}</p>}</section>;
+  </details>{storageWarning && <p className="warning" role="status">{locale === 'kk' ? 'Тіл баптауы сақталмады. Ол осы бетте ғана қолданылады.' : 'Не удалось сохранить язык. Он действует в этой вкладке.'}</p>}{warning && <p className="warning" role="status">{ru.display.storageWarning}</p>}{speech.warning && <p className="warning" role="status">{guidanceRu.storageWarning}</p>}</section>;
 }

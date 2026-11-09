@@ -1,4 +1,6 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from 'react';
+import { localeLanguage, useLocale } from '../i18n/locale';
+import type { Locale } from '../i18n/locale';
 import { loadSpeechPreferences, defaultSpeechPreferences, saveSpeechPreferences } from './speech-preferences';
 import type { SpeechPreferences } from './speech-preferences';
 
@@ -11,12 +13,13 @@ export interface SpeechPort {
   removeEventListener(type: 'voiceschanged', listener: () => void): void;
 }
 export type SpeechStatus = 'unsupported' | 'loading' | 'unavailable' | 'ready' | 'speaking' | 'stopped' | 'error';
+export const matchesLocalLanguage = (voice: LocalVoice, locale: Locale) => voice.localService && voice.lang.toLowerCase().replaceAll('_', '-').split('-')[0] === locale;
 export class SpeechController {
   private generation = 0;
   private loadingExpired = false;
   private listeners = new Set<() => void>();
   private state: { enabled: boolean; status: SpeechStatus; voices: LocalVoice[] };
-  constructor(private port: SpeechPort | null, private preferences: SpeechPreferences) {
+  constructor(private port: SpeechPort | null, private preferences: SpeechPreferences, private locale: Locale = 'ru') {
     this.state = { enabled: false, status: port ? 'loading' : 'unsupported', voices: [] };
   }
   getSnapshot = () => this.state;
@@ -25,7 +28,7 @@ export class SpeechController {
   refreshVoices = () => {
     try {
       const available = this.port?.getVoices() ?? [];
-      const voices = available.filter(voice => voice.localService && /^ru(?:[-_]|$)/i.test(voice.lang));
+      const voices = available.filter(voice => matchesLocalLanguage(voice, this.locale));
       const status = this.state.status;
       this.update({ voices, status: status === 'speaking' || status === 'error' ? status : voices.length ? 'ready' : !available.length && status === 'loading' && !this.loadingExpired ? 'loading' : 'unavailable' });
     } catch { this.stop(); this.update({ status: 'error' }); }
@@ -39,6 +42,12 @@ export class SpeechController {
       if (this.state.status === 'loading') this.update({ status: 'unavailable' });
     }, 5000);
     return () => { clearTimeout(deadline); try { this.port?.removeEventListener('voiceschanged', this.refreshVoices); } catch { /* A failed native cleanup must not break the planner. */ } this.stop(); };
+  }
+  setLocale(locale: Locale) {
+    if (locale === this.locale) return;
+    this.stop(); this.locale = locale;
+    this.update({ voices: [], status: this.port ? 'loading' : 'unsupported' });
+    if (this.port) this.refreshVoices();
   }
   setEnabled(enabled: boolean) { this.stop(); this.update({ enabled }); }
   setPreferences(preferences: SpeechPreferences) { this.stop(); this.preferences = preferences; }
@@ -57,7 +66,7 @@ export class SpeechController {
       let phrase: SpeechPhrase;
       try { phrase = this.port!.makePhrase(texts[index++]!); } catch { this.stop(); this.update({ status: 'error' }); return; }
       const current = ++segment;
-      phrase.lang = 'ru-RU'; phrase.rate = this.preferences.rate; phrase.voice = voice;
+      phrase.lang = localeLanguage(this.locale); phrase.rate = this.preferences.rate; phrase.voice = voice;
       phrase.onend = () => { if (generation === this.generation && current === segment) { segment++; next(); } };
       phrase.onerror = () => { if (generation === this.generation && current === segment) { this.stop(); this.update({ status: 'error' }); } };
       this.update({ status: 'speaking' });
@@ -78,12 +87,21 @@ function nativePort(): SpeechPort | null {
       removeEventListener: (_, listener) => synth.removeEventListener('voiceschanged', listener) };
   } catch { return null; }
 }
-export function useLocalSpeech() {
-  const [initial] = useState(() => { try { return loadSpeechPreferences(window.localStorage); } catch { return { preferences: defaultSpeechPreferences(), warning: true }; } });
+export function useLocalSpeech(selectedLocale?: Locale) {
+  const context = useLocale();
+  const locale = selectedLocale ?? context.locale;
+  const [initial] = useState(() => { try { return loadSpeechPreferences(window.localStorage, locale); } catch { return { preferences: defaultSpeechPreferences(), warning: true }; } });
   const [preferences, setPreferences] = useState(initial.preferences);
   const [warning, setWarning] = useState(initial.warning);
-  const [controller] = useState(() => new SpeechController(nativePort(), initial.preferences));
+  const [controller] = useState(() => new SpeechController(nativePort(), initial.preferences, locale));
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot);
+  useLayoutEffect(() => {
+    controller.setLocale(locale);
+    let loaded;
+    try { loaded = loadSpeechPreferences(window.localStorage, locale); }
+    catch { loaded = { preferences: defaultSpeechPreferences(), warning: true }; }
+    controller.setPreferences(loaded.preferences); setPreferences(loaded.preferences); setWarning(loaded.warning);
+  }, [controller, locale]);
   useEffect(() => {
     const disconnect = controller.connect();
     const hidden = () => { if (document.hidden) controller.stop(); };
@@ -92,7 +110,7 @@ export function useLocalSpeech() {
   }, [controller]);
   const changePreferences = (value: SpeechPreferences) => {
     controller.setPreferences(value); setPreferences(value);
-    try { if (!saveSpeechPreferences(value, window.localStorage)) setWarning(true); } catch { setWarning(true); }
+    try { if (!saveSpeechPreferences(value, window.localStorage, locale)) setWarning(true); } catch { setWarning(true); }
   };
   return { ...state, controller, preferences, changePreferences, warning };
 }

@@ -4,7 +4,7 @@ export type Evidence<T> =
 export type EdgeType = 'corridor' | 'door' | 'ramp' | 'lift' | 'stairs';
 export type Surface = 'smooth' | 'rough';
 export interface BuildingNode {
-  id: string; label: string; floor: number; x: number; z: number;
+  id: string; label: string; labelKk?: string; floor: number; x: number; z: number;
   kind: 'entrance' | 'room' | 'junction' | 'lift' | 'stairs'; selectable: boolean;
 }
 export interface BuildingEdge {
@@ -14,8 +14,8 @@ export interface BuildingEdge {
 }
 export interface Building {
   version: 1; fictional: true; source: string; surveyedOn: null; floorHeightM: number;
-  floors: { id: number; label: string }[]; nodes: BuildingNode[]; edges: BuildingEdge[];
-  closureGroups: { id: string; label: string; edgeIds: string[] }[];
+  floors: { id: number; label: string; labelKk?: string }[]; nodes: BuildingNode[]; edges: BuildingEdge[];
+  closureGroups: { id: string; label: string; labelKk?: string; edgeIds: string[] }[];
 }
 export interface Requirements {
   avoidStairs: boolean; minWidthM: number; maxSlopePercent: number;
