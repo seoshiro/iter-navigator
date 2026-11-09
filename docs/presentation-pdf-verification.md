@@ -1,6 +1,6 @@
 # Presentation PDF verification: actual model revision
 
-Verified 2026-11-09T19:47:59.918229+00:00 from the final local presentation working tree. Production deployment and existing Space file replacement remain the parent's responsibility.
+Verified 2026-11-09T19:47:59.918229+00:00 from the final source revision. Both PDFs were then checked on the canonical production address after deployment of commit `908deeebeb97ccfd94754eb90952136d9f8f4be0`: HTTP 200, byte-for-byte matching the local files and SHA-256 values below.
 
 ## Delivered files
 
@@ -36,7 +36,7 @@ New genuine captures: `door205-focus`, `graph-source`, `graph-filtered-route`, e
 
 ## Scope and preservation
 
-`PrintScenes.tsx` and `printRevision.css` are reached only by print scenes6–8; live composition is not replaced. `Presentation.tsx` adds only the print branch. The small `posterForScene` mapping adds current uncertainty/system fallback images. The live scene5 pose change was made separately by the UI worker and accepted through focused QA.
+`PrintScenes.tsx` and `printRevision.css` are reached only by print scenes6–8; live composition is not replaced. `Presentation.tsx` adds only the print branch. The small `posterForScene` mapping adds current uncertainty/system fallback images. The live scene 5 pose change was verified separately through focused forward, reverse, rapid-transition and unknown-data checks.
 
 Previous approved PDFs and their evidence were preserved at `.local/presentation-pdf/previous-approved/20261109T190809Z/`. Original v1 posters remain in git and `.local/presentation-pdf/v1-poster-backup/`. No unrelated media was overwritten.
 
@@ -44,6 +44,6 @@ Previous approved PDFs and their evidence were preserved at `.local/presentation
 
 Use `.local/presentation-pdf/capture_revision_assets.mjs` (optional `--door-only`), `convert_revision_assets.py`, `export.mjs`, `verify.py`, and `finalize_revision.py`. Set `PRESENTATION_EXPORT_DIR` to `.local/presentation-pdf/composition-revision-candidate` for export/verification. Default source is `http://127.0.0.1:5380`.
 
-Candidate evidence includes `revision-capture-evidence.json`, `revision-poster-evidence.json`, `export-evidence.json`, `validation.json`, `visual-review.json`, `final-verification.json`, two contact sheets and all 20 full-page rasters. Capture/export browser instances are closed. No duplicate screenshot matrix and no Space upload were performed.
+Candidate evidence includes `revision-capture-evidence.json`, `revision-poster-evidence.json`, `export-evidence.json`, `validation.json`, `visual-review.json`, `final-verification.json`, two contact sheets and all 20 full-page rasters. Capture/export browser instances are closed. The export verification is separate from the continuous production recordings.
 
-The PDF intentionally preserves meaningful static states, not animation or interactivity. Final production hashes must still be checked after deployment.
+The PDF intentionally preserves meaningful static states, not animation or interactivity. Production hashes have been checked on `https://iter-navigator.vercel.app/presentation/ITER-Presentation-RU.pdf` and `https://iter-navigator.vercel.app/presentation/ITER-Presentation-KK.pdf`.
