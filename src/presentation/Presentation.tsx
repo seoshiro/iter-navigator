@@ -14,6 +14,7 @@ import {
   PUBLIC_NAVIGATOR_URL, SCENE_IDS, MODEL_SCENES, navigatorLink, readScene, posterForScene,
 } from './runtime';
 import './presentation.css';
+import { PilotConcept } from './PilotConcept';
 
 const Diorama = lazy(() => import('../components/Diorama'));
 const EMPTY_EDGES: string[] = [];
@@ -102,7 +103,7 @@ function Scene({ index, lang, print = false, qr, closed, setClosed, unknown, set
       [t('Поиск пути', 'Жолды іздеу'), t('Алгоритм Дейкстры', 'Дейкстра алгоритмі'), '03'],
       [t('Представление', 'Көрсету'), '2D · 3D · ' + t('текст', 'мәтін'), '04'],
     ].map(([title, body, number], i) => <div className="pres-pipeline-step" key={number}><span>{number}</span><h3>{title}</h3><p>{body}</p>{i < 3 && <i aria-hidden="true">→</i>}</div>)}</div><div className="pres-system-aside"><span className="pres-pill">{t('Не AI', 'AI емес')}</span><p>{t('Один граф. Одни требования. Проверяемый результат.', 'Бір граф. Бірдей талаптар. Тексерілетін нәтиже.')}</p><div><b>{t('Журнал сообщений', 'Хабарламалар журналы')}</b><span>{t('Отдельно от графа. Сообщение не меняет маршрут автоматически.', 'Графтан бөлек. Хабарлама маршрутты автоматты өзгертпейді.')}</span></div></div>{note}</>}
-    {index === 8 && <><div className="pres-pilot-heading"><span className="pres-pill pres-amber">{t('Следующий шаг · план', 'Келесі қадам · жоспар')}</span>{heading}</div><div className="pres-pilot-layout"><div className="pres-pilot-number">1<span>{t('этаж', 'қабат')}</span><p>{t('Начать с проверяемого масштаба', 'Тексерілетін ауқымнан бастау')}</p></div><ol className="pres-pilot-steps">{copy.bullets.map((item, i) => <li key={i}><span>{String(i + 1).padStart(2, '0')}</span><p>{item}</p></li>)}</ol></div>{note}</>}
+    {index === 8 && <><div className="pres-pilot-heading"><span className="pres-pill pres-amber">{t('Следующий шаг · план', 'Келесі қадам · жоспар')}</span>{heading}</div><div className="pres-pilot-layout"><PilotConcept lang={lang} /><ol className="pres-pilot-steps">{copy.bullets.map((item, i) => <li key={i}><span>{String(i + 1).padStart(2, '0')}</span><p>{item}</p></li>)}</ol></div>{note}</>}
     {index === 9 && <><div className="pres-copy-column">{heading}<div className="pres-finish-brand" aria-hidden="true">ITER<span>↗</span></div><a className="pres-primary pres-open-navigator" href={PUBLIC_NAVIGATOR_URL}>{t('Открыть навигатор', 'Навигаторды ашу')}<span aria-hidden="true">↗</span></a><div className="pres-qr"><a href={PUBLIC_NAVIGATOR_URL} aria-label={t('Открыть ITER по адресу QR-кода', 'QR-код мекенжайы бойынша ITER-ді ашу')}>{qr ? <img src={qr} width="168" height="168" alt={t('QR-код: открыть ITER', 'QR-код: ITER-ді ашу')} /> : <span className="pres-qr-placeholder">ITER ↗</span>}</a><div><strong>{t('Продолжить на своём экране', 'Өз экраныңызда жалғастыру')}</strong><a href={PUBLIC_NAVIGATOR_URL}>iter-navigator.vercel.app</a></div></div>{note}</div>{print && <Poster index={index} lang={lang} className="pres-static-model" />}</>}
   </section>;
 }
@@ -206,7 +207,7 @@ export default function Presentation() {
   }, []);
   useEffect(() => {
     if (print) return;
-    const images = [scene - 1, scene, scene + 1].filter(index => index >= 0 && index < 10).map(index => { const image = new Image(); image.src = index === 6 ? `/presentation/media/mobile-steps${lang === 'kk' ? '-kk' : ''}.webp` : posterForScene(index, lang); return image; });
+    const images = [scene - 1, scene, scene + 1].filter(index => index >= 0 && index < 10).map(index => { const image = new Image(); image.src = index === 8 ? '/presentation/media/pilot-concept.webp' : index === 6 ? `/presentation/media/mobile-steps${lang === 'kk' ? '-kk' : ''}.webp` : posterForScene(index, lang); return image; });
     return () => { images.forEach(image => { image.onload = null; image.onerror = null; }); };
   }, [scene, lang, print]);
   useEffect(() => {

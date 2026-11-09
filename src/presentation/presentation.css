@@ -267,3 +267,55 @@
 .pres-print .pres-slide-system h1{max-width:none}
 .pres-print .pres-slide-system .pres-pipeline{padding-top:12px;padding-bottom:22px}
 .pres-print .pres-slide-system .pres-pipeline-step h3{margin-top:24px;margin-bottom:12px}
+/* The pilot artwork is a labelled future concept, not the measured navigation model. */
+.pres-slide-pilot .pres-pilot-heading .pres-copy{max-width:none}
+.pres-slide-pilot .pres-pilot-heading h1{max-width:none}
+.pres-slide-pilot .pres-pilot-heading .pres-body{max-width:none}
+.pres-slide-pilot .pres-pilot-layout{grid-template-columns:auto 1fr;gap:6vw;align-items:center}
+.pres-pilot-concept{--pilot-art-height:clamp(300px,42vh,450px);margin:0;min-width:0;width:calc(var(--pilot-art-height) * 1600 / 1195);max-width:100%;justify-self:start}
+.pres-pilot-art{position:relative;height:var(--pilot-art-height);background:transparent;border-radius:7px;overflow:hidden}
+.pres-pilot-art>img{width:100%;height:100%;display:block;object-fit:contain}
+.pres-pilot-floor-badge{position:absolute;left:20px;bottom:18px;display:flex;align-items:baseline;gap:8px;border:1px solid #c1cfc1;border-radius:30px;padding:7px 13px;background:#f5f4eae8;color:var(--pres-ink);font-size:24px;line-height:1;font-weight:450;backdrop-filter:blur(8px)}
+.pres-pilot-floor-badge>span{font-size:12px;letter-spacing:.3px}
+.pres-pilot-concept>figcaption{margin-top:12px;font-size:11px;line-height:1.45;color:var(--pres-muted)}
+.pres-pilot-art-fallback{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;padding:20px;color:var(--pres-muted)}
+.pres-pilot-art-fallback>strong{font-size:92px;font-weight:300;line-height:1;color:var(--pres-ink)}
+.pres-pilot-art-fallback>span{font-size:17px}.pres-pilot-art-fallback>small{font-size:11px}
+@media(min-width:701px) and (max-height:800px){
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot{gap:20px}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-pilot-heading>.pres-pill{margin-bottom:14px}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot h1{font-size:46px}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot .pres-body{margin-top:14px!important}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot .pres-pilot-concept{--pilot-art-height:315px}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot .pres-pilot-steps p{font-size:25px}
+}
+@media(max-width:700px){
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot{padding:18px 22px;gap:12px;justify-content:center}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot .pres-pilot-heading>.pres-pill{margin-bottom:10px}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot h1{font-size:26px;max-width:none}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot .pres-pilot-layout{display:flex;flex-direction:column;gap:13px;margin:0}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-pilot-concept{--pilot-art-height:180px;align-self:center}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-pilot-art{border-radius:5px}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-pilot-floor-badge{left:10px;bottom:10px;padding:5px 9px;font-size:20px;gap:6px}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-pilot-floor-badge>span{font-size:10px}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-pilot-concept>figcaption{font-size:10px;line-height:1.4;margin-top:7px}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot .pres-pilot-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;width:100%}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot .pres-pilot-steps li{display:block;border-top:1px solid var(--pres-line);border-bottom:0;padding:9px 0 0}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot .pres-pilot-steps li>span{display:block;font-size:10px;margin-bottom:6px}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot .pres-pilot-steps p{font-size:13px;line-height:1.35}
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot .pres-scene-note{margin-top:0!important;padding-top:8px}
+ .pres-large-text .pres-slide-pilot .pres-pilot-layout{display:flex;flex-direction:column;gap:25px}
+ .pres-large-text .pres-pilot-concept{--pilot-art-height:260px;align-self:center}
+ .pres-large-text .pres-pilot-concept>figcaption{font-size:16px}
+}
+.pres-print .pres-slide-pilot{gap:24px}
+.pres-print .pres-slide-pilot .pres-pilot-layout{grid-template-columns:auto 1fr;gap:.65in;align-items:center}
+.pres-print .pres-slide-pilot .pres-pilot-heading h1{max-width:none}
+.pres-print .pres-slide-pilot .pres-pilot-concept{--pilot-art-height:3.6in}
+.pres-print .pres-slide-pilot .pres-pilot-heading>.pres-pill{margin-bottom:14px}
+.pres-print .pres-slide-pilot .pres-pilot-steps p{font-size:26px}
+.pres-print .pres-slide-pilot .pres-pilot-concept>figcaption{font-size:11px;margin-top:10px}
+@media(min-width:701px) and (max-height:800px){
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-stage:has(>.pres-slide-pilot),
+ .pres-root:not(.pres-large-text):not(.pres-print) .pres-slide-pilot{min-height:calc(100svh - 138px)}
+}
