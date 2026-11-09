@@ -60,3 +60,32 @@ The explicit application-recording overlay now accepts pointer input above the s
 - All 20 PDF pages were reviewed, embedded fonts and selectable text checked, with 15 links per PDF and a decoded application QR.
 
 The production recording and scheduling measurements are performed after release, without concurrent browser tests or video encoding.
+
+## Published release and real recordings
+
+Application revision `488c78147064ded288c2fe5d236bd10164ab2fdd` was published to https://iter-navigator.vercel.app/presentation (Vercel deployment `dpl_2ydMwgGurHeGKCG6ZS1yRVgH3bXQ`, READY). The late mobile intro correction restores 76 px type with -3 px spacing; the inherited 29 px / -5 px combination had squeezed the letters together. Four mobile RU/KK intro and final states were reviewed; desktop and print styles were untouched.
+
+Two fresh continuous recordings of this exact revision were captured at ordinary speed: desktop RU, 1366 x 768, 47.44 seconds; narrow KK, 390 x 844, 44.84 seconds. Both are H.264, 25 fps, without audio, internal cuts, trimming or speed changes. They show the six-second intro, live-model handoff, quarter-turn, three condition details, expansion and route, a rapid interrupted transition, the B detour, and the remaining scenes. The source recordings and timing sidecars are preserved. Frame sequences and full-size key states were reviewed; this is not a claim of complete real-time visual playback review.
+
+The two published PDFs and intro MP4 matched the validated local file hashes. The public presentation returns HTTP 200. The standalone navigator retained local A = 40 m, B = 54 m after closure, no path with both elevators closed, RU/KK, 2D/3D and journal controls.
+
+### Isolated timing conditions
+
+Windows desktop, Chrome 157.0.8103.38, ANGLE AMD Radeon(TM) Graphics (0x1681), D3D11, DPR 1. The narrow viewport is browser emulation on this same computer, not a physical phone. Each pass ran alone, without recording, encoding or parallel browser tests. Samples below include active transition epochs only; idle pauses were excluded and interval origins reset between epochs.
+
+| Viewport / measure | Samples | Median | p95 | Maximum | Intervals >33.34 ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1366 x 768 / requestAnimationFrame | 127 | 7.80 ms | 8.80 ms | 10.40 ms | 0 |
+| 1366 x 768 / render-counter changes | 135 | 7.80 ms | 8.50 ms | 9.00 ms | 0 |
+| 390 x 844 / requestAnimationFrame | 116 | 7.60 ms | 8.80 ms | 102.70 ms | 1 |
+| 390 x 844 / render-counter changes | 131 | 8.00 ms | 8.80 ms | 29.10 ms | 0 |
+
+Render-counter deltas were one in all measured intervals. These are CPU callback and render-counter timestamps, not GPU execution time, display scanout or a universal FPS guarantee. The single 102.70 ms narrow-view rAF spike is retained, not discarded; the separate render-counter pass cannot explain its cause. Physical mobile performance and Safari remain untested. The 24 fps generated clip does not determine these measurements.
+
+### Temporary backend failure
+
+The first final public smoke received HTTP 503 from `/api/health`, with `storage_unavailable`. A later retry returned 200, and the complete navigator smoke then passed with health and reports both 200. Another final health check also returned 200. Backend files were not changed by this release. The proxy combines several upstream/configuration failure cases into this response; without server logs, the precise transient cause remains unknown. No database, credentials, permissions or hosting plan were changed. Local routing remained available during the failure.
+
+### Final limits and cost
+
+The building remains fictional, room measurements are demonstration data, the future-pilot artwork is explicitly conceptual, and Kazakh text has not been reviewed by a native-language reviewer. No new generation was used for QA or typography corrections. This motion revision spent 19.5 Higgsfield credits; cumulative ITER spend remains 23.75 / 100, with 76.25 unspent and no pending operation.
