@@ -171,8 +171,9 @@ test('live route, closure and unknown-data controls use model results without ch
   await page.getByTestId('presentation-unknown-toggle').click();
   await expect(page.getByTestId('presentation-uncertainty-result')).toHaveAttribute('data-route-status', 'ok');
   await expect(page.getByTestId('presentation-uncertainty-result')).toHaveAttribute('data-uncertain-edges', 'door-205');
-  await expect(active(page).locator('.pres-doors')).toHaveAttribute('data-allow-unknown', 'true');
-  await expect(active(page).locator('.pres-door-excluded')).toContainText('72');
+  await expect(page.locator('[data-anchor=door-205]')).toBeVisible();
+  await expect(page.locator('.pres-model .diorama')).toHaveAttribute('data-route-ids', /door-205/);
+  await expect(active(page).locator('.pres-rule')).toContainText('72');
   expect(await page.evaluate(() => localStorage.getItem('navigator-scenario-v1'))).toBe(navigatorState);
 });
 
@@ -391,7 +392,7 @@ for (const [width, height] of [[1920, 1080], [1366, 768], [390, 844], [375, 667]
 for (const [width, height] of [[390, 844], [375, 667]]) for (const lang of ['ru', 'kk']) test(`ordinary mobile slide gate ${width}x${height} ${lang}`, async ({ page }, info) => {
   await page.setViewportSize({ width: width!, height: height! }); await page.emulateMedia({ reducedMotion: 'reduce' });
   await open(page, 'intro', lang);
-  const visualSelectors = ['[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '.pres-doors', '.pres-phone-figure', '.pres-pipeline', '.pres-pilot-layout', '[data-testid="presentation-model"]'];
+  const visualSelectors = ['[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '[data-testid="presentation-model"]', '[data-anchor=door-205]', '[data-testid=presentation-live-interface]', '.pres-pipeline', '.pres-pilot-layout', '[data-testid="presentation-model"]'];
   for (const [index, scene] of scenes.entries()) {
     await expect(active(page)).toHaveAttribute('data-scene', scene);
     await page.evaluate(() => scrollTo(0, 0)); await frames(page);

@@ -2,12 +2,15 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { PointerEvent } from 'react';
 import { useI18n } from '../i18n/locale';
 import * as THREE from 'three';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Building, RouteResult } from '../domain/model';
 import { boundCamera, dragCamera, panCamera, wheelCamera, CAMERA_HALF_HEIGHT } from '../ui/camera';
 import { createFloorArchitecture } from '../ui/architecture';
 import type { CameraState } from '../ui/camera';
-import { routeElementProgress, snapshotDioramaPose, unitProgress } from '../ui/dioramaDirector';
+import { directorDoorAnchor, directorGraphEdges, routeElementProgress, snapshotDioramaPose, unitProgress } from '../ui/dioramaDirector';
 import type { DioramaDirector, DioramaDirectorController } from '../ui/dioramaDirector';
 
 interface VisualState { routeReveal?:boolean; expanded?: boolean; cameraTransitionId?: number; result: RouteResult; floor: 'all' | number; closedEdgeIds: string[]; camera: CameraState; motionAllowed: boolean; theme: 'dark' | 'light'; largerText: boolean; highlight: { nodeId: string; edgeId?: string } | null; gesturesEnabled: boolean }
@@ -72,6 +75,10 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
     const structureLabels: THREE.Sprite[] = [];
     const routes = new THREE.Group(); scene.add(routes);
     const accents = new THREE.Group(); scene.add(accents);
+    const graph = new THREE.Group(); scene.add(graph);
+    let graphSignature = "";
+    const graphBuckets: { line: LineSegments2; ids: string[]; excluded: boolean }[] = [];
+    const graphNodes: { points: THREE.Points; ids: string[] }[] = [];
     const nodes = new Map(building.nodes.map(node => [node.id, node]));
     const edges = new Map(building.edges.map(edge => [edge.id, edge]));
     const offsets = building.floors.map(f=>state.floor==='all'?(state.expanded?f.id*5:0):(f.id>state.floor?14:0));
@@ -204,12 +211,19 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
     const draw = () => {
       if (!renderer || !canRender()) return;
       try { failureStage='render'; applyCamera(); renderer.render(scene, view);
-        if(import.meta.env.DEV && !cameraEnd && !revealEnd && !floorEnd && performance.now()>=burstEnd){
+        if(import.meta.env.DEV && (director || (!cameraEnd && !revealEnd && !floorEnd && performance.now()>=burstEnd))){
         const projectedBounds=(objects:THREE.Object3D[])=>{let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;for(const object of objects){if(!object.visible)continue;const bounds=new THREE.Box3().setFromObject(object);if(bounds.isEmpty())continue;for(const x of [bounds.min.x,bounds.max.x])for(const y of [bounds.min.y,bounds.max.y])for(const z of [bounds.min.z,bounds.max.z]){const p=new THREE.Vector3(x,y,z).project(view);minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}}return {minX,minY,maxX,maxY};};
         container.dataset.routeScreenBounds=JSON.stringify(projectedBounds(routes.children));
         container.dataset.routeScreenPoints=JSON.stringify(state.result.status==='ok'?state.result.nodeIds.map(id=>{const node=nodes.get(id)!;const p=position(id);p.y+=floorOffset(node.floor);p.project(view);return {id,x:(p.x+1)*container.clientWidth/2,y:(1-p.y)*container.clientHeight/2};}):[]);
         container.dataset.activeBadgeBounds=JSON.stringify(routes.children.filter(o=>o instanceof THREE.Sprite&&o.userData.activeBadge).map(o=>{const p=o.position.clone().project(view);return {id:o.userData.badgeNode,x:(p.x+1)*container.clientWidth/2-65,y:(1-p.y)*container.clientHeight/2-16,width:130,height:32};}));
         container.dataset.modelScreenBounds=JSON.stringify(projectedBounds([...floorGroups.values()]));
+        if (director) {
+          container.dataset.directorAnchors = JSON.stringify(accents.children.filter(o => ['door-204', 'door-205', 'lift-a-0', 'stairs-0'].includes(o.userData.anchorId)).map(o => {
+            const p = o.position.clone().project(view);
+            return { id: o.userData.anchorId, x: (p.x + 1) / 2, y: (1 - p.y) / 2, inFrustum: Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1 && Math.abs(p.z) <= 1, active: o.visible, bounds: o.visible ? projectedBounds([o]) : null };
+          }));
+          container.dataset.directorBoundsFrame = String(renderCount + 1);
+        }
         }
         container.dataset.renderStats = JSON.stringify({calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,dpr:renderer.getPixelRatio(),shadowMap:1024}); container.dataset.renderCount = String(++renderCount); dirty = false; }
       catch { fail(); }
@@ -368,11 +382,50 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
           }
         }
       }
+      // At most four edge and three node draw calls; GSAP remains the only interpolation owner.
+      if (graphBuckets.length) {
+        const signature = JSON.stringify([director.requirements, state.closedEdgeIds]);
+        if (signature !== graphSignature) {
+          graphSignature = signature;
+          const inspections = directorGraphEdges(building, director.requirements, state.closedEdgeIds);
+          graphBuckets.forEach((bucket, i) => {
+            bucket.ids = inspections.filter(e => Number(e.excluded) * 2 + Number(e.uncertain) === i).map(e => e.edge.id);
+            bucket.line.geometry.instanceCount = bucket.ids.length;
+          });
+        }
+        for (const bucket of graphBuckets) {
+          const opacity = unitProgress(pose.graphOpacity) * (bucket.excluded ? 1 - unitProgress(pose.graphFilter) : 1);
+          bucket.line.visible = opacity > .001 && bucket.ids.length > 0;
+          bucket.line.material.opacity = opacity * .88;
+          bucket.line.material.resolution.set(Math.max(1, container.clientWidth), Math.max(1, container.clientHeight));
+          const start = bucket.line.geometry.getAttribute('instanceStart');
+          const end = bucket.line.geometry.getAttribute('instanceEnd');
+          bucket.ids.forEach((id, i) => {
+            const edge = edges.get(id)!;
+            [edge.from, edge.to].forEach((nodeId, j) => {
+              const node = nodes.get(nodeId)!;
+              (j === 0 ? start : end).setXYZ(i, node.x, node.floor * building.floorHeightM + .3 + floorOffset(node.floor), node.z);
+            });
+          });
+          start.needsUpdate = true; end.needsUpdate = true;
+        }
+        for (const bucket of graphNodes) {
+          const opacity = unitProgress(pose.graphOpacity);
+          bucket.points.visible = opacity > .001;
+          (bucket.points.material as THREE.PointsMaterial).opacity = opacity;
+          const attribute = bucket.points.geometry.getAttribute('position');
+          bucket.ids.forEach((id, i) => {
+            const node = nodes.get(id)!;
+            attribute.setXYZ(i, node.x, node.floor * building.floorHeightM + .32 + floorOffset(node.floor), node.z);
+          });
+          attribute.needsUpdate = true;
+        }
+      }
       for (const object of accents.children) {
-        const amount = unitProgress(pose[object.userData.channel as 'entrance' | 'stairs' | 'door' | 'lift']);
+        const amount = object.userData.anchorId === 'door-205' ? Math.max(unitProgress(pose.door205), object.userData.nodeId === (state.result.status === 'ok' ? state.result.nodeIds.at(-1) : 'room-204') ? unitProgress(pose.door) : 0) : unitProgress(pose[object.userData.channel as 'entrance' | 'stairs' | 'door' | 'lift']);
         const destination = state.result.status === 'ok' ? state.result.nodeIds.at(-1) : 'room-204';
         const single = object.userData.channel === 'stairs' ? object.userData.nodeId === 'stairs-0' : object.userData.channel === 'lift' ? object.userData.nodeId === 'lift-a-0' : object.userData.channel !== 'door' || object.userData.nodeId === destination;
-        object.visible = amount > .001 && single;
+        object.visible = amount > .001 && (single || (object.userData.anchorId === 'door-205' && unitProgress(pose.door205) > .001));
         object.position.y = object.userData.baseY + floorOffset(object.userData.floor);
         object.scale.setScalar(1 + amount * .15);
         ((object as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = amount * .85;
@@ -404,7 +457,7 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
         const oldSize = renderer.getSize(new THREE.Vector2()), oldDpr = renderer.getPixelRatio();
         const oldBackground = scene.background;
         const background = options.background ?? '#f2f1e9';
-        const hidden = [routes, accents, ...structureLabels]; const visibility = hidden.map(o => o.visible);
+        const hidden = [routes, accents, graph, ...structureLabels]; const visibility = hidden.map(o => o.visible);
         const frustum = [view.left, view.right, view.top, view.bottom];
         try {
           if (options.clean !== false) hidden.forEach(o => { o.visible = false; });
@@ -590,6 +643,31 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
         });floorMaterials.set(id,entries);
       });
       if (director) {
+        for (let i = 0; i < 4; i++) {
+          const geometry = new LineSegmentsGeometry();
+          geometry.setPositions(new Float32Array(building.edges.length * 6));
+          geometry.instanceCount = 0;
+          const value = new LineMaterial({ color: i % 2 ? '#a5712f' : '#19747b', linewidth: 2, transparent: true, opacity: 0, depthWrite: false, depthTest: false, toneMapped: false });
+          structureResources.geometries.push(geometry); structureResources.materials.push(value);
+          const line = new LineSegments2(geometry, value); line.frustumCulled = false; line.renderOrder = 5; graph.add(line);
+          graphBuckets.push({ line, ids: [], excluded: i >= 2 });
+        }
+        // Tiny screen-space markers distinguish junctions, room endpoints and vertical connectors.
+        for (let kind = 0; kind < 3; kind++) {
+          const ids = building.nodes.filter(n => (n.kind === 'room' ? 1 : n.kind === 'lift' || n.kind === 'stairs' ? 2 : 0) === kind).map(n => n.id);
+          const geometry = new THREE.BufferGeometry();
+          geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ids.length * 3), 3));
+          const canvas = document.createElement('canvas'); canvas.width = canvas.height = 32;
+          const context = canvas.getContext('2d')!; context.fillStyle = '#ffffff';
+          if (kind === 0) { context.beginPath(); context.arc(16, 16, 13, 0, Math.PI * 2); context.fill(); }
+          else if (kind === 1) context.fillRect(3, 3, 26, 26);
+          else { context.beginPath(); context.moveTo(16, 1); context.lineTo(31, 16); context.lineTo(16, 31); context.lineTo(1, 16); context.closePath(); context.fill(); }
+          const texture = new THREE.CanvasTexture(canvas);
+          const value = new THREE.PointsMaterial({ color: '#07535b', map: texture, size: kind === 0 ? 4 : 5, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false, depthTest: false, toneMapped: false });
+          const points = new THREE.Points(geometry, value); points.frustumCulled = false; points.renderOrder = 6; graph.add(points);
+          structureResources.geometries.push(geometry); structureResources.materials.push(value); structureResources.textures.push(texture);
+          graphNodes.push({ points, ids });
+        }
         for (const node of building.nodes) {
           const channel = node.kind === 'entrance' || node.id === 'entrance' ? 'entrance' : node.kind === 'stairs' ? 'stairs' : node.kind === 'lift' ? 'lift' : node.kind === 'room' ? 'door' : null;
           if (!channel) continue;
@@ -599,9 +677,9 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
           const ring = new THREE.Mesh(geometry, value); ring.rotation.x = -Math.PI / 2;
           ring.position.copy(position(node.id)); ring.position.y += .08;
           if (channel === 'door') {
-            const doors = createFloorArchitecture(building, node.floor).doors;
-            const nearest = [...doors].sort((a,b) => Math.hypot(a.x-node.x,a.z-node.z)-Math.hypot(b.x-node.x,b.z-node.z))[0];
-            if (nearest) { ring.position.x = nearest.x; ring.position.z = nearest.z; }
+            const anchor = directorDoorAnchor(building, `door-${node.id.replace('room-', '')}`);
+            if (!anchor) continue;
+            ring.position.set(anchor.x, anchor.y, anchor.z);
           }
           ring.userData = { channel, nodeId: node.id, anchorId: channel === 'door' ? `door-${node.id.replace('room-', '')}` : node.id, baseY: ring.position.y, floor: node.floor };
           accents.add(ring);

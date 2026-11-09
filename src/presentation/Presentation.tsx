@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Component, lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, TouchEvent } from 'react';
 import { flushSync } from 'react-dom';
 import { useI18n } from '../i18n/locale';
@@ -17,6 +17,9 @@ import {
 import './presentation.css';
 import './choreography.css';
 import './laterScenes.css';
+import './compositionRevision.css';
+import { RouteInterface } from './RouteInterface';
+import { PrintScene } from './PrintScenes';
 import { gsap } from 'gsap';
 import { createDioramaPose } from '../ui/dioramaDirector';
 import type { DioramaDirectorController } from '../ui/dioramaDirector';
@@ -80,10 +83,10 @@ interface SceneProps {
   closed: boolean; setClosed: (closed: boolean) => void;
   unknown: boolean; setUnknown: (unknown: boolean) => void;
   condition: number; setCondition: (condition: number) => void;
-  routeSettled: boolean;
+  routeSettled: boolean; systemStep: number; setSystemStep(value: number): void; guidanceStep: number | null; setGuidanceStep(value: number | null): void;
   reveal: boolean; setReveal: (reveal: boolean) => void; phase: number; setPhase: (phase: number) => void; setRecording: (value: boolean) => void; modelFailed: boolean;
 }
-function Scene({ index, lang, print = false, qr, closed, setClosed, unknown, setUnknown, phase, setPhase, setRecording, modelFailed, condition, setCondition, routeSettled }: SceneProps) {
+function Scene({ index, lang, print = false, qr, closed, setClosed, unknown, setUnknown, phase, setPhase, setRecording, modelFailed, condition, setCondition, routeSettled, systemStep, setSystemStep, guidanceStep, setGuidanceStep }: SceneProps) {
   const { nodeLabelRu } = useI18n();
   const t = (ru: string, kk: string) => lang === 'kk' ? kk : ru;
   const copy = presentationCopy[lang].scenes[index]!;
@@ -100,20 +103,21 @@ function Scene({ index, lang, print = false, qr, closed, setClosed, unknown, set
   const heading = <div className="pres-copy"><p className="pres-eyebrow"><span>{String(index + 1).padStart(2, '0')}</span>{copy.eyebrow}</p><h1 id={`pres-title-${index}`}>{copy.title}</h1><p className="pres-body">{index === 2 && !print ? t('Проверим три условия: лестницу, ширину двери и переход между этажами.', 'Үш шартты тексерейік: баспалдақ, есік ені және қабаттар арасындағы өткел.') : index === 4 && !print ? t('Закрываем лифт A в симуляции. Требования те же, проверяем другой путь.', 'Симуляцияда A лифтін жабамыз. Талаптар өзгермейді, басқа жолды тексереміз.') : copy.body}</p></div>;
   const note = <p className="pres-scene-note">{index === 2 ? t("Геометрия схематична. Размеры и условия — из данных учебной модели.", "Геометрия сызбалық. Өлшемдер мен шарттар оқу моделінің деректерінен.") : copy.note}</p>;
   const bullets = <ul className="pres-feature-list">{copy.bullets.map((bullet, i) => <li key={i}><span>{String(i + 1).padStart(2, '0')}</span><p>{bullet}</p></li>)}</ul>;
+  if (print && index >= 5 && index <= 7) return <PrintScene index={index} lang={lang} heading={heading} note={note} />;
   return <section className={`pres-slide pres-slide-${copy.id}${MODEL_SCENES.has(index) && (!print || [0, 3, 4, 9].includes(index)) ? ' pres-slide-model' : ''}`} data-testid="presentation-scene" data-scene={copy.id} data-scene-number={index + 1} aria-labelledby={`pres-title-${index}`}>
     {index === 0 && <><div className="pres-copy-column">{heading}<div className="pres-intro-mark" aria-hidden="true">ITER<span>↗</span></div><div className="pres-capabilities"><span>RU / KK</span><span>2D + 3D</span><span>WEB</span></div>{note}</div>{print && <Poster index={index} lang={lang} className="pres-static-model" />}</>}
     {index === 1 && (print ? <><div className="pres-wide-heading">{heading}</div><BarrierDiagram lang={lang} />{note}</> : <><div className="pres-copy-column">{heading}<p className="pres-question">{t("Как попасть в аудиторию 204 без лестниц?", "204-аудиторияға баспалдақсыз қалай жетуге болады?")}</p><div className="pres-condition-tags"><span>{t("Лестница", "Баспалдақ")}</span><span>{t("Ширина двери", "Есіктің ені")}</span><span>{t("Лифт", "Лифт")}</span></div>{note}</div></>)}
     {index === 2 && <><div className="pres-copy-column">{heading}{!print && <><div className="pres-condition-actions" role="group" aria-label={t('Проверить условия прохода', 'Өту шарттарын тексеру')}>{[t('Лестница', 'Баспалдақ'), t('Дверь', 'Есік'), t('Лифт A', 'A лифті')].map((label, i) => <button key={i} data-testid={`condition-${i}`} aria-pressed={condition === i} onClick={() => setCondition(i)}><span>0{i + 1}</span>{label}<b aria-hidden="true">↗</b></button>)}</div><div className="pres-condition-explanation" role="status">{condition === 0 ? <><strong>{t('Без ступеней', 'Сатысыз')}</strong><p>{t('Лестница исключена. Нужен другой переход между этажами.', 'Баспалдақ алынған. Қабаттар арасында басқа өткел қажет.')}</p></> : condition === 1 ? <><strong>{t('105 см ≥ 90 см', '105 см ≥ 90 см')}</strong><p>{t('По данным модели основная дверь 204 шириной 105 см соответствует требованию 90 см.', 'Модель деректері бойынша 204 негізгі есігінің ені 105 см, 90 см талабына сай.')}</p></> : <><strong>{t('Подъём через лифт A', 'A лифтімен көтерілу')}</strong><p>{t('В модели лифт соединяет этажи без ступеней. Теперь можно строить путь.', 'Модельде лифт қабаттарды сатысыз байланыстырады. Енді жолды есептеуге болады.')}</p></>}</div></>}<details className="pres-route-disclosure" open={print || undefined}><summary>{t('Изменить цель и требования', 'Мақсат пен талаптарды өзгерту')}</summary><form className="pres-route-form" onSubmit={event => { event.preventDefault(); setCalculation({ room, preset }); setCalculatedExplicitly(true); }}><label>{t('Куда', 'Қайда')}<select aria-label={t('Аудитория или помещение', 'Аудитория немесе бөлме')} value={room} onChange={event => setRoom(event.target.value)} disabled={print}>{building.nodes.filter(node => node.selectable && node.kind === 'room').map(node => <option key={node.id} value={node.id}>{nodeLabelRu(node.id, node.label, node.labelKk)}</option>)}</select></label><label>{t('Требования', 'Талаптар')}<select aria-label={t('Требования к маршруту', 'Маршрут талаптары')} value={preset} onChange={event => setPreset(event.target.value)} disabled={print}><option value="step-free">{t('Без ступеней · ширина ≥ 90 см', 'Сатысыз · ені ≥ 90 см')}</option><option value="wide">{t('Широкий проход · ≥ 100 см', 'Кең өткел · ≥ 100 см')}</option><option value="walking">{t('Лестницы допустимы · ≥ 70 см', 'Баспалдаққа рұқсат · ≥ 70 см')}</option></select></label>{!print && <button className="pres-primary" type="submit">{t('Рассчитать маршрут', 'Маршрутты есептеу')} <span aria-hidden="true">↗</span></button>}</form>{(print || calculatedExplicitly) && <RouteLine result={calculated} lang={lang} />}{(print || calculatedExplicitly) && <a className="pres-text-link" href={navigatorLink(calculation.room, selectedRequirements)}>{t('Открыть этот маршрут в ITER', 'Осы маршрутты ITER-де ашу')} ↗</a>}</details>{note}</div><div className="pres-plan-panel"><span className="pres-panel-caption">{t('Настоящий расчёт · настоящая схема', 'Нақты есептеу · нақты сызба')}</span><FloorPlan building={building} result={calculated} floor={floor} closedEdgeIds={EMPTY_EDGES} selectedNodeId={calculation.room} /><p>{t('Старт: главный вход. Уклон ≤ 5%. Неизвестные параметры запрещены.', 'Бастау: негізгі кіреберіс. Көлбеу ≤ 5%. Белгісіз параметрлерге рұқсат жоқ.')}</p></div></>}
     {index === 3 && <><div className="pres-copy-column">{heading}<div className="pres-room-number">204<span>{t('АУДИТОРИЯ', 'АУДИТОРИЯ')}</span></div>{(print || phase === 4) && <div className="pres-route-meta"><strong>{distance(route204)} м</strong><span>{t('Через лифт A · без ступеней', 'A лифті арқылы · сатысыз')}</span></div>}{!print && <><div className="pres-model-phases" role="group" aria-label={t('Состояния модели', 'Модель күйлері')}><select disabled={modelFailed} aria-label={t('Состояние модели', 'Модель күйі')} value={phase} onChange={event => setPhase(Number(event.target.value))}>{[t('Общий вид', 'Жалпы көрініс'), t('Раскрыть этажи', 'Қабаттарды ашу'), t('Второй этаж', 'Екінші қабат'), t('Аудитория 204', '204-аудитория'), t('Показать путь', 'Жолды көрсету')].map((label, i) => <option key={i} value={i}>{label}</option>)}</select>{[t('Общий вид', 'Жалпы көрініс'), t('Раскрыть этажи', 'Қабаттарды ашу'), t('Второй этаж', 'Екінші қабат'), t('Аудитория 204', '204-аудитория'), t('Показать путь', 'Жолды көрсету')].map((label, i) => <button key={i} disabled={modelFailed} aria-pressed={phase === i} onClick={() => setPhase(i)}>{label}</button>)}</div><button className="pres-video-trigger" onClick={() => setRecording(true)}>{t('Смотреть запись приложения · 15 с', 'Қолданба жазбасын көру · 15 с')} ▷</button></>}{note}</div>{print && <Poster index={index} lang={lang} className="pres-static-model" />}</>}
     {index === 4 && <><div className="pres-copy-column">{heading}<span className="pres-pill pres-amber">{t('Локальная симуляция', 'Жергілікті симуляция')}</span><div className="pres-detour-numbers" data-ready={print || routeSettled}>{(print || routeSettled) ? <><strong>{distance(blocked ? detour204 : route204)}<small> м</small></strong><span className="pres-detour-via">{blocked ? t('через лифт B', 'B лифті арқылы') : t('через лифт A', 'A лифті арқылы')}</span></> : <span className="pres-detour-working">{t('Показываем обход…', 'Айналма жолды көрсетеміз…')}</span>}</div><p className="pres-detour-status" role="status" data-testid="presentation-detour-result" data-distance={print || routeSettled ? distance(blocked ? detour204 : route204) : undefined}>{!print && !routeSettled ? (closed ? t('Лифт A закрыт. Перестраиваем маршрут.', 'A лифті жабық. Маршрутты қайта құрамыз.') : t('Лифт A открыт. Возвращаем исходный путь.', 'A лифті ашық. Бастапқы жолды қайтарамыз.')) : blocked ? t('Лифт A закрыт. Маршрут идёт через B.', 'A лифті жабық. Маршрут B арқылы өтеді.') : t('Лифт A доступен. Исходный маршрут.', 'A лифті қолжетімді. Бастапқы маршрут.')}</p>{!print && <button className="pres-primary" data-testid="presentation-lift-toggle" aria-pressed={closed} onClick={() => setClosed(!closed)}>{closed ? t('Вернуть лифт A', 'A лифтін қайтару') : t('Закрыть лифт A', 'A лифтін жабу')}<span aria-hidden="true">↻</span></button>}{note}</div>{print && <Poster index={index} lang={lang} className="pres-static-model" />}</>}
-    {index === 5 && <><div className="pres-copy-column">{heading}<div className="pres-segmented" role="group" aria-label={t('Политика неизвестных данных', 'Белгісіз деректер саясаты')}><button disabled={print} aria-pressed={!uncertainty} onClick={() => setUnknown(false)}>{t('Строго', 'Қатаң')}</button><button disabled={print} data-testid="presentation-unknown-toggle" aria-pressed={uncertainty} onClick={() => setUnknown(true)}>{t('Разрешить неизвестное', 'Белгісізге рұқсат')}</button></div><div className="pres-uncertain-result" role="status" data-testid="presentation-uncertainty-result" data-route-status={result205.status} data-uncertain-edges={result205.status === 'ok' ? result205.uncertainEdgeIds.join(',') : ''}><span className="pres-status-dot" />{uncertainty ? t('Путь к 205 найден, но не подтверждён.', '205-ке жол табылды, бірақ расталмаған.') : t('Путь к 205 не подтверждён. Не хватает данных.', '205-ке жол расталмады. Дерек жеткіліксіз.')}</div><p className="pres-rule">{t('Известное нарушение остаётся запретом: 72 см < 90 см.', 'Белгілі сәйкессіздікке тыйым сақталады: 72 см < 90 см.')}</p>{note}</div><DoorDiagram allowed={uncertainty} lang={lang} /></>}
-    {index === 6 && <><div className="pres-copy-column">{heading}{bullets}<a className="pres-text-link" href={navigatorLink()}>{t('Открыть работающий навигатор', 'Жұмыс істейтін навигаторды ашу')} ↗</a>{note}</div><PhoneCapture lang={lang} print={print} /></>}
+    {index === 5 && <><div className="pres-copy-column">{heading}<div className="pres-segmented" role="group" aria-label={t('Политика неизвестных данных', 'Белгісіз деректер саясаты')}><button disabled={print} aria-pressed={!uncertainty} onClick={() => setUnknown(false)}>{t('Строго', 'Қатаң')}</button><button disabled={print} data-testid="presentation-unknown-toggle" aria-pressed={uncertainty} onClick={() => setUnknown(true)}>{t('Разрешить неизвестное', 'Белгісізге рұқсат')}</button></div><div className="pres-uncertain-result" role="status" data-testid="presentation-uncertainty-result" data-route-status={result205.status} data-uncertain-edges={result205.status === 'ok' ? result205.uncertainEdgeIds.join(',') : ''}><span className="pres-status-dot" />{uncertainty ? t('Дверь 205: ширина и покрытие неизвестны. Путь разрешён явно.', '205 есігі: ені мен жабыны белгісіз. Жолға айқын рұқсат берілді.') : t('Дверь 205: ширина и покрытие неизвестны. Путь исключён.', '205 есігі: ені мен жабыны белгісіз. Жол алынып тасталды.')}</div><p className="pres-rule">{t('Известное нарушение остаётся запретом: 72 см < 90 см.', 'Белгілі сәйкессіздікке тыйым сақталады: 72 см < 90 см.')}</p>{note}</div>{print && <DoorDiagram allowed={uncertainty} lang={lang} />}</>}
+    {index === 6 && <><div className="pres-copy-column">{heading}{bullets}<a className="pres-text-link" href={navigatorLink()}>{t('Открыть работающий навигатор', 'Жұмыс істейтін навигаторды ашу')} ↗</a>{note}</div>{print ? <PhoneCapture lang={lang} print /> : <RouteInterface lang={lang} selected={guidanceStep} onSelect={setGuidanceStep} />}</>}
     {index === 7 && <><div className="pres-wide-heading">{heading}</div><div className="pres-pipeline">{[
       [t('Данные', 'Деректер'), t('Узлы, проходы, свойства', 'Түйіндер, өткелдер, қасиеттер'), '01'],
       [t('Фильтрация', 'Сүзу'), t('Требования и закрытия', 'Талаптар мен жабылулар'), '02'],
       [t('Поиск пути', 'Жолды іздеу'), t('Алгоритм Дейкстры', 'Дейкстра алгоритмі'), '03'],
       [t('Представление', 'Көрсету'), '2D · 3D · ' + t('текст', 'мәтін'), '04'],
-    ].map(([title, body, number], i) => <div className="pres-pipeline-step" key={number}><span>{number}</span><h3>{title}</h3><p>{body}</p>{i < 3 && <i aria-hidden="true">→</i>}</div>)}</div><div className="pres-system-aside"><span className="pres-pill">{t('Не AI', 'AI емес')}</span><p>{t('Один граф. Одни требования. Проверяемый результат.', 'Бір граф. Бірдей талаптар. Тексерілетін нәтиже.')}</p><div><b>{t('Журнал сообщений', 'Хабарламалар журналы')}</b><span>{t('Отдельно от графа. Сообщение не меняет маршрут автоматически.', 'Графтан бөлек. Хабарлама маршрутты автоматты өзгертпейді.')}</span></div></div>{note}</>}
+    ].map(([title, body, number], i) => <button type="button" className="pres-pipeline-step" key={number} aria-pressed={systemStep === i} disabled={print} onClick={() => setSystemStep(i)}><span>{number}</span><h3>{title}</h3><p>{body}</p>{i < 3 && <i aria-hidden="true">→</i>}</button>)}</div><div className="pres-system-aside"><span className="pres-pill">{t('Не AI', 'AI емес')}</span><p>{t('Один граф. Одни требования. Проверяемый результат.', 'Бір граф. Бірдей талаптар. Тексерілетін нәтиже.')}</p><div><b>{t('Журнал сообщений', 'Хабарламалар журналы')}</b><span>{t('Отдельно от графа. Сообщение не меняет маршрут автоматически.', 'Графтан бөлек. Хабарлама маршрутты автоматты өзгертпейді.')}</span></div></div>{note}</>}
     {index === 8 && <><div className="pres-pilot-heading"><span className="pres-pill pres-amber">{t('Следующий шаг · план', 'Келесі қадам · жоспар')}</span>{heading}</div><div className="pres-pilot-layout"><PilotConcept lang={lang} /><ol className="pres-pilot-steps">{copy.bullets.map((item, i) => <li key={i}><span>{String(i + 1).padStart(2, '0')}</span><p>{item}</p></li>)}</ol></div>{note}</>}
     {index === 9 && <><div className="pres-copy-column">{heading}<div className="pres-finish-brand" aria-hidden="true">ITER<span>↗</span></div><a className="pres-primary pres-open-navigator" href={PUBLIC_NAVIGATOR_URL}>{t('Открыть навигатор', 'Навигаторды ашу')}<span aria-hidden="true">↗</span></a><div className="pres-qr"><a href={PUBLIC_NAVIGATOR_URL} aria-label={t('Открыть ITER по адресу QR-кода', 'QR-код мекенжайы бойынша ITER-ді ашу')}>{qr ? <img src={qr} width="168" height="168" alt={t('QR-код: открыть ITER', 'QR-код: ITER-ді ашу')} /> : <span className="pres-qr-placeholder">ITER ↗</span>}</a><div><strong>{t('Продолжить на своём экране', 'Өз экраныңызда жалғастыру')}</strong><a href={PUBLIC_NAVIGATOR_URL}>iter-navigator.vercel.app</a></div></div>{note}</div>{print && <Poster index={index} lang={lang} className="pres-static-model" />}</>}
   </section>;
@@ -142,12 +146,16 @@ export default function Presentation() {
   const [introDone, setIntroDone] = useState(() => readScene() !== 0);
   const finishIntro = useCallback(() => setIntroDone(true), []);
   const bindDirector = useCallback((value: DioramaDirectorController | null) => { controller.current = value; setDirectorReady(!!value); value?.apply(); if (import.meta.env.DEV) (window as unknown as { __ITER_DIRECTOR__: unknown }).__ITER_DIRECTOR__ = value ? { pose: pose.current, controller: value } : null; }, []);
-  const director = useMemo(() => ({ pose: pose.current, bind: bindDirector }), [bindDirector]);
+  const director = useMemo(() => ({ pose: pose.current, bind: bindDirector, requirements: { ...requirements } }), [bindDirector]);
   const [closed, setClosed] = useState(false);
   const [renderedClosed, setRenderedClosed] = useState(false);
   const renderedClosedRef = useRef(false);
   const changeClosure = useCallback((value: boolean) => { setSettled(false); setClosed(value); }, []);
   const [condition, setCondition] = useState(0);
+  const [systemStep, setSystemStep] = useState(0);
+  const [guidanceStep, setGuidanceStep] = useState<number | null>(0);
+  const transitionScene = useRef<number | null>(null);
+  const sceneEntrancePending = useRef(false);
   const [unknown, setUnknown] = useState(false);
   const [reveal, setReveal] = useState(true);
   const [phase, setPhase] = useState(4);
@@ -169,7 +177,7 @@ export default function Presentation() {
   useEffect(() => { if (systemReduced || reduceMotion || largeText) setIntroDone(true); }, [systemReduced, reduceMotion, largeText]);
   const motionAllowed = presentationMotionAllowed && modelVisible && !recording;
   const copy = presentationCopy[lang];
-  const result = scene === 4 ? (renderedClosed ? detour204 : route204) : route204;
+  const result = scene === 5 ? (unknown ? route205Unknown : route205Strict) : scene === 4 ? (renderedClosed ? detour204 : route204) : route204;
   const modelFloor = 'all';
   const modelExpanded = scene === 4 || (scene === 3 && (phase === 1 || phase === 4));
   const modelCamera = useMemo(() => scene === 3 && phase === 3 ? focusNodeCamera(building, 'room-204') : modelExpanded ? fitRouteCamera(building, route204.status === 'ok' ? route204.nodeIds : [], modelAspect) : { ...INITIAL_CAMERA, zoom: Math.min(.94, Math.max(.6, modelAspect * .57)) }, [scene, phase, modelExpanded, modelAspect]);
@@ -207,14 +215,35 @@ export default function Presentation() {
     document.documentElement.dataset.presentationReady = 'false';
     return () => { delete document.documentElement.dataset.presentation; delete document.documentElement.dataset.presentationReady; };
   }, []);
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (print || !compactStage || largeText) return;
+    const stage = rootRef.current?.querySelector<HTMLElement>('.pres-stage');
+    const slide = stage?.querySelector<HTMLElement>('.pres-slide');
+    if (!stage || !slide) return;
+    const layout = () => {
+      const height = scene === 0 ? stage.clientWidth * 9 / 16 : scene === 6 ? 185 : Math.max(150, Math.min(300, stage.clientHeight - slide.offsetHeight - 20));
+      stage.style.setProperty('--model-top', '0px');
+      stage.style.setProperty('--model-height', `${height}px`);
+      stage.style.setProperty('--stage-reserve', `${height + 20}px`);
+    };
+    layout();
+    const observer = new ResizeObserver(layout); observer.observe(slide);
+    return () => observer.disconnect();
+  }, [scene, compactStage, largeText, print, lang]);
+  useLayoutEffect(() => {
     if (print || (!directorReady && !modelFailed)) return;
-    const target = scenePose(scene, phase, condition);
+    director.requirements = { ...requirements, allowUnknown: scene === 5 && unknown };
+    const target = scenePose(scene, phase, condition, compactStage || largeText, systemStep, unknown);
+    const changingScene = transitionScene.current !== scene;
+    if (changingScene) sceneEntrancePending.current = true;
+    transitionScene.current = scene;
     const host = modelRef.current;
     const copyElements = rootRef.current?.querySelectorAll('.pres-slide .pres-copy-column, .pres-slide .pres-wide-heading');
     const routeMeta = rootRef.current?.querySelector('.pres-route-meta');
+    const secondary = rootRef.current?.querySelectorAll('.pres-doors, .pres-route-interface, .pres-pipeline, .pres-system-aside, .pres-pilot-layout, .pres-slide .pres-copy-column > :not(.pres-copy), .pres-object-annotations');
     const compact = compactStage || largeText;
-    const composition = stageTransform(scene, compact);
+    const mobileTop = scene === 6 ? (rootRef.current?.querySelector<HTMLElement>('.pres-copy-column')?.offsetHeight ?? 70) + 24 : (rootRef.current?.querySelector<HTMLElement>('.pres-slide')?.offsetHeight ?? 260) + 10;
+    const composition = { ...stageTransform(scene, compact), left: compact ? '0%' : scene === 5 || scene === 7 ? '40%' : '30%', width: compact ? '100%' : scene === 5 || scene === 7 ? '60%' : '70%', top: compactStage && !largeText ? `${mobileTop}px` : largeText ? 'auto' : '50%' };
     // GSAP may parse CSS translateY(-50%) as a pixel offset at fractional heights.
     // Our composition owns percentage translation; never retain that pixel residual.
     gsap.set(host, { x: 0, y: 0 });
@@ -224,7 +253,9 @@ export default function Presentation() {
       if (host) { host.dataset.routeProgress = String(target.routeProgress); host.dataset.yaw = String(target.yaw); }
       if (copyElements) gsap.set(copyElements, { opacity: 1, y: 0 });
       if (routeMeta) gsap.set(routeMeta, { opacity: 1, y: 0 });
+      if (secondary) gsap.set(secondary, { autoAlpha: 1 });
       if (scene === 4) { renderedClosedRef.current = closed; setRenderedClosed(closed); }
+      sceneEntrancePending.current = false;
       setSettled(true);
       return;
     }
@@ -240,12 +271,14 @@ export default function Presentation() {
       }
     };
     setSettled(false);
-    const timeline = gsap.timeline({ onComplete: () => setSettled(true) });
+    const timeline = gsap.timeline({ onComplete: () => { sceneEntrancePending.current = false; setSettled(true); } });
     if (!presentationMotionAllowed) {
       if (scene === 4) { renderedClosedRef.current = closed; setRenderedClosed(closed); }
       Object.assign(pose.current, target); apply(); gsap.set(host, composition);
       if (copyElements) gsap.set(copyElements, { opacity: 1, y: 0 });
       if (routeMeta) gsap.set(routeMeta, { opacity: 1, y: 0 });
+      if (secondary) gsap.set(secondary, { autoAlpha: 1 });
+      sceneEntrancePending.current = false;
       setSettled(true);
     } else {
       timeline.to(host, { ...composition, duration: 1.05, ease: 'power3.inOut' }, 0);
@@ -253,7 +286,14 @@ export default function Presentation() {
       const { routeProgress: _progress, ...geometry } = target;
       void _progress;
       timeline.to(pose.current, { ...geometry, ...(routeProgress ? {} : { routeProgress: 0 }), duration: 1.05, ease: 'power3.inOut', onUpdate: apply }, 0);
-      if (copyElements) timeline.fromTo(copyElements, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: .4, stagger: .05 }, .55);
+      if (copyElements) gsap.set(copyElements, { opacity: 1, y: 0 });
+      if (secondary && (changingScene || sceneEntrancePending.current)) {
+        // Spatial safety and route-result completion are different milestones.
+        // Once controls can appear, a click must never restart their entrance.
+        timeline.call(() => { sceneEntrancePending.current = false; }, [], 1.05);
+        timeline.fromTo(secondary, { autoAlpha: 0 }, { autoAlpha: 1, duration: .25 }, 1.05);
+      }
+      else if (secondary) gsap.set(secondary, { autoAlpha: 1 });
       if (scene === 4 && closed !== renderedClosedRef.current) {
         timeline.to(pose.current, { routeProgress: 0, duration: .28, ease: 'power2.in', onUpdate: apply }, 0);
         timeline.call(() => {
@@ -269,7 +309,7 @@ export default function Presentation() {
     const onVisibility = () => { if (document.hidden) timeline.progress(1); };
     document.addEventListener('visibilitychange', onVisibility);
     return () => { timeline.kill(); document.removeEventListener('visibilitychange', onVisibility); };
-  }, [scene, phase, condition, closed, print, directorReady, modelFailed, presentationMotionAllowed, largeText, compactStage]);
+  }, [scene, phase, condition, closed, print, directorReady, modelFailed, presentationMotionAllowed, largeText, compactStage, systemStep, unknown, lang, director]);
   useEffect(() => { document.title = `ITER · ${lang === 'kk' ? 'Таныстырылым' : 'Презентация'} · ${scene + 1}/10`; }, [lang, scene]);
   useEffect(() => {
     if (print) return;
@@ -327,21 +367,22 @@ export default function Presentation() {
   }
   function touchStart(event: TouchEvent) { if (event.touches.length !== 1 || isInteractive(event.target)) { touch.current = null; return; } const point = event.touches[0]!; touch.current = { x: point.clientX, y: point.clientY }; }
   function touchEnd(event: TouchEvent) { const origin = touch.current; touch.current = null; const point = event.changedTouches[0]; if (!origin || !point) return; const dx = point.clientX - origin.x, dy = point.clientY - origin.y; if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(sceneRef.current + (dx < 0 ? 1 : -1)); }
-  const shared = { lang, qr, closed, setClosed: changeClosure, unknown, setUnknown, reveal, setReveal, phase, setPhase, setRecording, modelFailed, condition, setCondition, routeSettled: settled || modelFailed };
+  const shared = { lang, qr, closed, setClosed: changeClosure, unknown, setUnknown, reveal, setReveal, phase, setPhase, setRecording, modelFailed, condition, setCondition, systemStep, setSystemStep, guidanceStep, setGuidanceStep, routeSettled: settled || modelFailed };
   if (print) return <div ref={rootRef} className="pres-root pres-print" data-testid="presentation-root" data-print="true" lang={lang === 'kk' ? 'kk-KZ' : 'ru-RU'}>{copy.scenes.map((item, index) => <div className="pres-print-page" key={item.id}><div className="pres-print-brand">ITER <span>{t('Навигация с учётом условий', 'Шарттарды ескеретін навигация')}</span><b>RU / KK</b></div><Scene {...shared} index={index} print /><div className="pres-print-footer"><a href={PUBLIC_NAVIGATOR_URL}>iter-navigator.vercel.app</a><span>{t('Учебный прототип · вымышленное здание', 'Оқу прототипі · ойдан шығарылған ғимарат')}</span><b>{String(index + 1).padStart(2, '0')} / 10</b></div></div>)}</div>;
-  return <div ref={rootRef} className={`pres-root pres-choreographed${largeText ? ' pres-large-text' : ''}`} data-testid="presentation-root" data-settled={settled && (directorReady || modelFailed) && readyMediaKey === String(scene) + ':' + lang} data-motion={presentationMotionAllowed ? 'on' : 'off'} lang={lang === 'kk' ? 'kk-KZ' : 'ru-RU'}>
+  return <div ref={rootRef} className={`pres-root pres-choreographed${largeText ? ' pres-large-text' : ''}`} data-testid="presentation-root" data-current-scene={SCENE_IDS[scene]} data-settled={settled && (directorReady || modelFailed) && readyMediaKey === String(scene) + ':' + lang} data-motion={presentationMotionAllowed ? 'on' : 'off'} lang={lang === 'kk' ? 'kk-KZ' : 'ru-RU'}>
     <a className="pres-skip-link" href="#presentation-controls">{t('К управлению показом', 'Көрсетілім басқаруына')}</a>
     <header className="pres-header"><a className="pres-wordmark" href="/" aria-label={t('ITER: открыть навигатор', 'ITER: навигаторды ашу')}>ITER<span aria-hidden="true">↗</span></a><span className="pres-header-label">{t('МАРШРУТ НАЧИНАЕТСЯ С УСЛОВИЙ', 'МАРШРУТ ШАРТТАРДАН БАСТАЛАДЫ')}</span><div className="pres-header-tools"><div className="pres-languages" role="group" aria-label={t('Язык презентации', 'Презентация тілі')}><button data-testid="presentation-language-ru" lang="ru" aria-pressed={lang === 'ru'} onClick={() => chooseLanguage('ru')}>RU</button><button data-testid="presentation-language-kk" lang="kk" aria-pressed={lang === 'kk'} onClick={() => chooseLanguage('kk')}>ҚАЗ</button></div><button className="pres-icon-button" data-testid="presentation-fullscreen" onClick={() => void toggleFullscreen()} aria-label={fullscreen ? copy.labels.exitFullscreen : copy.labels.fullscreen} title={fullscreen ? copy.labels.exitFullscreen : copy.labels.fullscreen}>{fullscreen ? '↙' : '⛶'}</button></div></header>
     <main className="pres-stage" onTouchStart={touchStart} onTouchEnd={touchEnd} onTouchCancel={() => { touch.current = null; }}>
       <div ref={modelRef} className="pres-model" data-testid="presentation-model" data-visible={modelVisible} data-live={modelVisible && !modelFailed && !recording} data-ready={modelReady} data-model-scene={SCENE_IDS[scene]} aria-hidden={!modelVisible} style={{ display: modelVisible ? undefined : 'none' }}>
         <Poster key={scene === 4 && !closed ? 3 : scene} index={scene === 4 && !closed ? 3 : scene} lang={lang} />
-        {modelMounted && !modelFailed && <div className="pres-live-model" style={{ opacity: modelReady ? 1 : 0, display: recording ? 'none' : undefined }}><ModelBoundary onFailure={modelFailure}><Suspense fallback={null}><Diorama director={director} building={building} result={result} floor={modelFloor} closedEdgeIds={scene === 4 && renderedClosed ? liftAEdges : EMPTY_EDGES} camera={modelCamera} cameraTransitionId={scene * 100 + Number(closed) * 10 + phase} motionAllowed={motionAllowed} theme="light" largerText={false} highlight={scene === 3 && phase === 3 ? { nodeId: 'room-204' } : null} gesturesEnabled={false} gestureReset={0} expanded={modelExpanded} routeReveal={scene === 4 || (scene === 3 && phase === 4)} onFailure={modelFailure} onCameraChange={ignoreCameraChange} /></Suspense></ModelBoundary></div>}
+        {modelMounted && !modelFailed && <div className="pres-live-model" style={{ opacity: modelReady ? 1 : 0, display: recording ? 'none' : undefined }}><ModelBoundary onFailure={modelFailure}><Suspense fallback={null}><Diorama director={director} building={building} result={result} floor={modelFloor} closedEdgeIds={scene === 4 && renderedClosed ? liftAEdges : EMPTY_EDGES} camera={modelCamera} cameraTransitionId={scene * 100 + Number(closed) * 10 + phase} motionAllowed={motionAllowed} theme="light" largerText={false} highlight={scene === 6 && guidanceStep !== null && route204.status === 'ok' ? { nodeId:route204.nodeIds[guidanceStep]!, edgeId:route204.edgeIds[guidanceStep] } : scene === 3 && phase === 3 ? { nodeId: 'room-204' } : null} gesturesEnabled={false} gestureReset={0} expanded={modelExpanded} routeReveal={scene === 4 || (scene === 3 && phase === 4)} onFailure={modelFailure} onCameraChange={ignoreCameraChange} /></Suspense></ModelBoundary></div>}
         {recording && scene === 3 && <div className="pres-recording">{recordingFailed ? <><Poster index={3} lang={lang} /><p role="status">{t('Запись не загрузилась. Показан конечный вид маршрута.', 'Жазба жүктелмеді. Маршруттың соңғы көрінісі көрсетілді.')}</p></> : <video ref={recordingRef} data-testid="presentation-video" src="/presentation/media/model-reveal.mp4" poster="/presentation/media/model-reveal-poster.webp" controls autoPlay playsInline preload="metadata" onError={() => setRecordingFailed(true)} />}<p>{t('Запись реального приложения · интерфейс на русском · без звука', 'Нақты қолданба жазбасы · интерфейс орыс тілінде · дыбыссыз')}</p><button onClick={() => { recordingRef.current?.pause(); setRecording(false); }}>{t('Вернуться к живой модели', 'Тірі модельге оралу')}</button></div>}
         {modelFailed && <p className="pres-model-fallback" data-testid="presentation-fallback">{t('Статичный вид модели · WebGL недоступен', 'Модельдің статикалық көрінісі · WebGL қолжетімсіз')}</p>}
         {scene === 2 && !modelFailed && directorReady && <div className="pres-object-annotations" aria-label={t("Условия прохода", "Өту шарттары")}><span key={condition} data-anchor={condition === 0 ? 'stairs-0' : condition === 1 ? 'door-204' : 'lift-a-0'}>{condition === 0 ? t('Лестница · не подходит', 'Баспалдақ · жарамсыз') : condition === 1 ? t('Дверь 204 · 105 см', '204 есігі · 105 см') : t('Лифт A · без ступеней', 'A лифті · сатысыз')}</span></div>}
+        {scene === 5 && !modelFailed && directorReady && <div className="pres-object-annotations"><span data-anchor="door-205">{t('Дверь 205 · ширина неизвестна', '205 есігі · ені белгісіз')}</span></div>}
         {scene === 4 && !modelFailed && directorReady && <div className="pres-object-annotations"><span data-anchor="lift-a-0">{closed ? t('Лифт A закрыт · симуляция', 'A лифті жабық · симуляция') : t('Лифт A доступен', 'A лифті қолжетімді')}</span></div>}
         {scene === 3 && phase === 3 && !modelFailed && directorReady && <div className="pres-object-annotations"><span data-anchor="door-204">{t('Аудитория 204 · 2 этаж', '204-аудитория · 2-қабат')}</span></div>}
-        <IntroFilm active={scene === 0 && !introDone} reduced={!presentationMotionAllowed} lang={lang} onComplete={finishIntro} />
+        <IntroFilm active={scene === 0 && !introDone} reduced={!presentationMotionAllowed} ready={(directorReady && modelReady) || modelFailed} lang={lang} onComplete={finishIntro} />
         <span className="pres-model-caption">{t('АВТОРСКАЯ МОДЕЛЬ · УЧЕБНЫЙ КОРПУС', 'АВТОРЛЫҚ МОДЕЛЬ · ОҚУ КОРПУСЫ')}</span>
       </div>
       <Scene {...shared} key={scene} index={scene} />
