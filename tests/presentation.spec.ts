@@ -485,3 +485,141 @@ test('navigator retains A40, B54, strict both-lifts closure, RU/KK, 2D/3D and re
   }
   await page.screenshot({ path: info.outputPath('navigator-readonly-regression.png'), fullPage: true });
 });
+
+// Targeted coverage for the separately commissioned scene-nine concept artwork.
+// Run with --grep "pilot artwork" and a distinct PRESENTATION_QA_RUN to retain the original 35-test evidence.
+const pilotAsset = '**/presentation/media/pilot-concept.webp';
+const pilot = (page: Page) => page.getByTestId('presentation-pilot-concept');
+
+async function pilotGeometry(page: Page) {
+  await frames(page);
+  await noHorizontalOverflow(page);
+  const viewport = page.viewportSize()!;
+  const header = (await page.locator('.pres-header').boundingBox())!;
+  const footer = (await page.locator('.pres-controls').boundingBox())!;
+  const boxes: Record<string, { x: number; y: number; width: number; height: number }> = {};
+  for (const selector of ['h1', '.pres-pilot-heading>.pres-pill', '.pres-pilot-concept', '.pres-pilot-steps', '.pres-scene-note']) {
+    const element = active(page).locator(selector);
+    await expect(element).toBeVisible();
+    const box = (await element.boundingBox())!;
+    boxes[selector] = box;
+    expect(box.x, `${selector} left`).toBeGreaterThanOrEqual(-1);
+    expect(box.x + box.width, `${selector} right`).toBeLessThanOrEqual(viewport.width + 1);
+    expect(box.y, `${selector} clears header`).toBeGreaterThanOrEqual(header.y + header.height - 1);
+    expect(box.y + box.height, `${selector} clears footer`).toBeLessThanOrEqual(footer.y + 1);
+  }
+  const figure = boxes['.pres-pilot-concept']!;
+  const steps = boxes['.pres-pilot-steps']!;
+  const overlapWidth = Math.min(figure.x + figure.width, steps.x + steps.width) - Math.max(figure.x, steps.x);
+  const overlapHeight = Math.min(figure.y + figure.height, steps.y + steps.height) - Math.max(figure.y, steps.y);
+  expect(overlapWidth <= 1 || overlapHeight <= 1, 'Artwork and pilot steps must not overlap').toBe(true);
+  const scroll = await page.evaluate(() => {
+    const initialY = scrollY;
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' });
+    const maximumY = scrollY;
+    window.scrollTo({ top: initialY, behavior: 'instant' });
+    return { bodyHeight: document.body.scrollHeight, documentHeight: document.documentElement.scrollHeight, maximumY };
+  });
+  expect(scroll.documentHeight, 'Normal pilot is one slide').toBeLessThanOrEqual(viewport.height + 2);
+  expect(scroll.maximumY, 'Normal pilot has no meaningful extra scroll').toBeLessThanOrEqual(2);
+  return { viewport, header, footer, boxes, scroll };
+}
+
+for (const [width, height] of [[1366, 768], [1536, 864], [375, 667], [390, 844]]) for (const lang of ['ru', 'kk']) {
+  test(`pilot artwork composition and adjacent transitions ${width}x${height} ${lang}`, async ({ page }, info) => {
+    await page.setViewportSize({ width: width!, height: height! });
+    await open(page, 'pilot', lang);
+    await expect(pilot(page)).toHaveAttribute('data-artwork-loaded', 'true');
+    await expect.poll(() => active(page).evaluate(element => element.getAnimations({ subtree: true }).filter(animation => animation.playState === 'running').length)).toBe(0);
+    const artwork = pilot(page).locator('img');
+    expect(await artwork.evaluate(image => ({ width: (image as HTMLImageElement).naturalWidth, height: (image as HTMLImageElement).naturalHeight, fit: getComputedStyle(image).objectFit }))).toEqual({ width: 1600, height: 1195, fit: 'contain' });
+    await expect(artwork).toHaveAttribute('alt', lang === 'ru' ? /Это не реальная планировка ITER/ : /ITER-дің нақты жоспары емес/);
+    await expect(pilot(page).locator('figcaption')).toContainText('Higgsfield');
+    await expect(active(page).locator('.pres-scene-note')).toContainText(lang === 'ru' ? 'пока не проведён' : 'әзірге өткізілген жоқ');
+    await expect(active(page).locator('.pres-pilot-steps li')).toHaveCount(3);
+    await info.attach('pilot-geometry', { body: JSON.stringify(await pilotGeometry(page)), contentType: 'application/json' });
+    await page.screenshot({ path: info.outputPath('pilot-loaded.png') });
+    await page.getByTestId('presentation-prev').click();
+    await expect(active(page)).toHaveAttribute('data-scene', 'system');
+    await expect(pilot(page)).toHaveCount(0);
+    await page.keyboard.press('ArrowRight');
+    await expect(active(page)).toHaveAttribute('data-scene', 'pilot');
+    await expect(pilot(page)).toHaveAttribute('data-artwork-loaded', 'true');
+    await page.getByTestId('presentation-next').click();
+    await expect(active(page)).toHaveAttribute('data-scene', 'finish');
+    await expect(pilot(page)).toHaveCount(0);
+    await page.keyboard.press('ArrowLeft');
+    await expect(active(page)).toHaveAttribute('data-scene', 'pilot');
+    const other = lang === 'ru' ? 'kk' : 'ru';
+    await page.getByTestId(`presentation-language-${other}`).click();
+    await expect(pilot(page).locator('figcaption')).toContainText(other === 'ru' ? 'Художественный образ' : 'көркем бейнесі');
+    await expect(active(page)).toHaveAttribute('data-scene', 'pilot');
+    await expect(pilot(page)).toHaveAttribute('data-artwork-loaded', 'true');
+    await page.reload();
+    await expect(active(page)).toHaveAttribute('data-scene', 'pilot');
+    await expect(page.locator('html')).toHaveAttribute('lang', other === 'kk' ? 'kk-KZ' : 'ru-RU');
+    await expect(pilot(page)).toHaveAttribute('data-artwork-loaded', 'true');
+    expect(await page.locator('canvas').count()).toBeLessThanOrEqual(1);
+    await expect(page.getByTestId('presentation-model')).toHaveAttribute('data-visible', 'false');
+  });
+}
+
+for (const [width, height] of [[1366, 768], [375, 667]]) for (const lang of ['ru', 'kk']) {
+  test(`pilot artwork failure retains useful slide ${width}x${height} ${lang}`, async ({ page }, info) => {
+    await page.setViewportSize({ width: width!, height: height! });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.route(pilotAsset, route => route.abort('failed'));
+    await open(page, 'pilot', lang);
+    const fallback = pilot(page).locator('.pres-pilot-art-fallback');
+    await expect(fallback).toBeVisible();
+    await expect(fallback).toContainText(lang === 'ru' ? 'Художественный образ недоступен' : 'Көркем бейне қолжетімсіз');
+    await expect(pilot(page).locator('img')).toHaveCount(0);
+    await expect(active(page).locator('.pres-pilot-steps li')).toHaveCount(3);
+    await pilotGeometry(page);
+    await page.screenshot({ path: info.outputPath('pilot-asset-failed.png') });
+    await page.getByTestId('presentation-next').click();
+    await expect(active(page)).toHaveAttribute('data-scene', 'finish');
+    await page.getByTestId('presentation-prev').click();
+    await expect(active(page)).toHaveAttribute('data-scene', 'pilot');
+    await expect(fallback).toBeVisible();
+  });
+
+  test(`pilot artwork reduced motion ${width}x${height} ${lang}`, async ({ page }, info) => {
+    await page.setViewportSize({ width: width!, height: height! });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await open(page, 'system', lang);
+    await page.getByTestId('presentation-next').click();
+    await expect(active(page)).toHaveAttribute('data-scene', 'pilot');
+    await expect(pilot(page)).toHaveAttribute('data-artwork-loaded', 'true');
+    expect(await active(page).evaluate(element => element.getAnimations({ subtree: true }).filter(animation => animation.playState === 'running').length)).toBe(0);
+    expect(await active(page).locator('.pres-pilot-layout').evaluate(element => getComputedStyle(element).animationName)).toBe('none');
+    await pilotGeometry(page);
+    await page.screenshot({ path: info.outputPath('pilot-reduced-motion.png') });
+    for (const key of ['ArrowRight', 'ArrowLeft', 'ArrowLeft', 'ArrowRight']) await page.keyboard.press(key);
+    await expect(active(page)).toHaveAttribute('data-scene', 'pilot');
+    await expect(pilot(page)).toHaveAttribute('data-artwork-loaded', 'true');
+    expect(await active(page).evaluate(element => element.getAnimations({ subtree: true }).filter(animation => animation.playState === 'running').length)).toBe(0);
+  });
+}
+
+for (const lang of ['ru', 'kk']) test(`pilot artwork slow load reserves geometry ${lang}`, async ({ page }, info) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  let release = () => {};
+  const ready = new Promise<void>(resolve => { release = resolve; });
+  await page.route(pilotAsset, async route => { await ready; await route.continue(); });
+  try {
+    await page.goto(`/presentation?scene=pilot&lang=${lang}`, { waitUntil: 'domcontentloaded' });
+    await expect(active(page)).toHaveAttribute('data-scene', 'pilot');
+    await expect(page.locator('html')).toHaveAttribute('lang', lang === 'kk' ? 'kk-KZ' : 'ru-RU');
+    await expect(pilot(page)).toHaveAttribute('data-artwork-loaded', 'false');
+    await expect(pilot(page).locator('figcaption')).toBeVisible();
+    const before = await pilotGeometry(page);
+    await page.screenshot({ path: info.outputPath('pilot-loading.png') });
+    release();
+    await expect(pilot(page)).toHaveAttribute('data-artwork-loaded', 'true');
+    const after = await pilotGeometry(page);
+    expect(after.boxes).toEqual(before.boxes);
+    await page.screenshot({ path: info.outputPath('pilot-after-loading.png') });
+  } finally { release(); }
+});
