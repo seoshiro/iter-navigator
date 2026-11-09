@@ -5,6 +5,7 @@ test('published desktop RU/KK, actual WebGL, routing, room search and links',asy
   await page.goto('/');await expect(page.getByTestId('route-result')).toContainText('40');
   await expect(page.locator('.diorama')).toHaveAttribute('data-render-count',/[1-9]\d*/);
   await page.screenshot({path:testInfo.outputPath('desktop-ru.png'),fullPage:true});
+  await page.locator('#closure-settings summary').click();
   await page.getByRole('checkbox',{name:'Лифт A',exact:true}).check();await expect(page.getByTestId('route-result')).toContainText('54');
   await page.getByRole('button',{name:'Қазақша',exact:true}).click();await expect(page.locator('html')).toHaveAttribute('lang','kk-KZ');
   await expect(page.getByTestId('route-result')).toContainText('54');await page.screenshot({path:testInfo.outputPath('desktop-kk.png'),fullPage:true});

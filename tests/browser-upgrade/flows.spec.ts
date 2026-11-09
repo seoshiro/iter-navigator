@@ -8,16 +8,19 @@ test('original controls, strict unknown, zero distance and shared result IDs',as
   await page.goto('/');
   const result=page.getByTestId('route-result');
   await expect(result).toContainText('40');
+  await page.locator('#closure-settings summary').click();
   await page.getByRole('checkbox',{name:'Лифт A',exact:true}).check();await expect(result).toContainText('54');
   await page.getByRole('checkbox',{name:'Лифт B',exact:true}).check();await expect(result).toHaveAttribute('data-route-state','no-route');
   await page.getByRole('checkbox',{name:'Лифт A',exact:true}).uncheck();await page.getByRole('checkbox',{name:'Лифт B',exact:true}).uncheck();
   await page.getByRole('combobox',{name:'Куда',exact:true}).selectOption('room-205');await expect(result).toHaveAttribute('data-route-state','insufficient');
+  await page.locator('#requirements-settings summary').click();
   await page.getByRole('checkbox',{name:'Разрешить участки с неполными данными',exact:true}).check();await expect(result).toHaveAttribute('data-route-state','uncertain');
   await page.getByRole('combobox',{name:'Откуда',exact:true}).selectOption('room-205');await expect(result.locator('.distance')).toHaveText('0м');
 });
 test('language retains route variant, endpoints, requirements and current step',async({page})=>{
   await page.goto('/');
   await page.locator('.variant-disclosure summary').click();await page.locator('[data-variant-index="1"]').click();
+  await page.locator('.compact-guidance-options summary').click();
   await page.getByRole('combobox',{name:'Просмотр шага',exact:true}).selectOption('1');
   const before=await page.getByTestId('route-result').getAttribute('data-route-ids');
   await page.getByRole('button',{name:'Қазақша',exact:true}).click();
