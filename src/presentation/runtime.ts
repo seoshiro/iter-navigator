@@ -31,5 +31,5 @@ export function navigatorLink(destination = 'room-204', requirements: Requiremen
   return link.valid ? link.value : PUBLIC_NAVIGATOR_URL;
 }
 export function posterForScene(index: number, lang: 'ru' | 'kk' = 'ru'): string {
-  return `/presentation/media/${index === 3 ? 'route-204' : index === 4 ? 'detour-204' : 'building'}${lang === 'kk' ? '-kk' : ''}.webp`;
+  return `/presentation/media/${index === 3 ? 'route-204' : index === 4 ? 'detour-204' : index === 5 ? 'door205-focus' : index === 7 ? 'graph-filtered-route' : 'building'}${lang === 'kk' ? '-kk' : ''}.webp`;
 }

@@ -1,43 +1,49 @@
-# Presentation PDF and poster verification
+# Presentation PDF verification: actual model revision
 
-Verified 2026-11-09T17:53:09.785399+00:00 from the final local working tree on `feat/presentation-motion-20261109` (HEAD before release: `fe38525fcf2cb30b2a0816e62efe31ecae1a141a`).
+Verified 2026-11-09T19:47:59.918229+00:00 from the final local presentation working tree. Production deployment and existing Space file replacement remain the parent's responsibility.
 
-## Delivered project assets
+## Delivered files
+
+The two existing files were updated in place, not replaced by a separate presentation:
 
 - `public/presentation/ITER-Presentation-RU.pdf`
 - `public/presentation/ITER-Presentation-KK.pdf`
-- Six optimized 1920 x 1080 WebP posters under `public/presentation/media/`: `building`, `route-204`, `detour-204`, each with its `-kk` equivalent.
-- The existing files were updated, not replaced by a separate deck or presentation concept.
 
 | PDF | Bytes | Pages | Clickable links | SHA-256 |
 | --- | ---: | ---: | ---: | --- |
-| RU | 3,873,535 | 10 | 15 | `e3c0c9bc18174fa2807da9801a1578f641dc402a2dae04fc607d1178a268541a` |
-| KK | 3,880,416 | 10 | 15 | `e769b736c20304f50a7f78519f021b3d122f4ee3166749831ea0e8b5139a8ba2` |
+| RU | 5,800,451 | 10 | 15 | `5260e1ace282649cb4c5ea2889337f4b23dcf9181f55b70d7e6c2bade8faa4da` |
+| KK | 5,805,568 | 10 | 15 | `e557523e00a11829fb97093001ab71d59dcace6dcfe0fe3ea90e12a2ba1d67d2` |
 
-## Checks passed
+## Pages 6 to 8 now use the actual product
 
-- Both PDFs contain exactly ten 16:9 pages, 1152 x 648 points (16 x 9 inches).
-- Selectable Russian and Kazakh text; all used fonts embedded; no replacement glyphs or text spans outside the page.
-- Kazakh-specific characters used in the slides were verified in extracted text.
-- All twenty pages rasterized and both contact sheets visually reviewed. Corrected pages 3 and 5 inspected at full resolution, as were model crops and the Kazakh system diagram.
-- No blank slides or missing model images. All three floors, the full A route and the full B detour remain within the poster frame with visible margins.
-- Fifteen clickable links per PDF. Both distinct public targets returned HTTP 200.
-- Final-page QR codes in both PDF rasterizations decode to `https://iter-navigator.vercel.app/`.
-- Print DOM reports zero clipped elements, zero image failures, and zero page errors.
-- The project public-directory PDFs are byte-for-byte identical to the validated local exports. Production hashes are checked after deployment.
+- Page 6: the real door205 opening in the source model, with strict and unknown-permitted policy results. Unknown width/surface remain explicitly unknown. Its room-side yaw135 / tilt25 pose matches the accepted live scene; source geometry was not moved or replaced.
+- Page 7: the shared `RouteInterface`, containing the actual `FloorPlan` and compact `RouteGuidance`, showing the third route step at readable size. Manual step navigation is stated, without implying live position tracking.
+- Page 8: real unfiltered graph versus requirement-filtered graph and the 40 m lift-A route. The criteria and algorithm remain searchable text.
+- The new images also preserve the uncertainty/system scenes' meaning in the existing static WebGL fallback.
 
-## Capture provenance
+New genuine captures: `door205-focus`, `graph-source`, `graph-filtered-route`, each with an RU and `-kk` WebP. All six are 1920 x 1080 exports from the settled application's director, `clean:false`. Graph capture uses temporary zoom0.76 for full-building margins; the original pose is restored in `finally`. Door205 uses the shared live pose without a static-only orientation. Capture JSON records original and exported poses. No generator or spending was used.
 
-Posters are real renders from the application's settled Three.js director, not generated artwork. The route uses lift A (40 m); the detour uses lift B (54 m). Capture waits for `data-ready=true`, `data-settled=true`, and for the detour result `data-distance=54`.
+## Verified
 
-The director capture API renders 1920 x 1080 with labels, accents, and routes retained (`clean:false`). Intro/building pose is unchanged. Route/detour capture temporarily uses zoom 0.76 rather than the animated scene's 0.82, keeping spread, cutaway, target, labels, and route progress unchanged. The original numeric pose is restored in `finally`, so live behavior is not modified. Both original and captured poses are recorded in local evidence.
+- Exactly 10 pages per PDF, 1152 x 648 points, 16:9.
+- Russian and Kazakh text is selectable; all fonts are embedded. No replacement glyphs or text spans beyond the page.
+- Kazakh-specific codepoints were checked in extracted text.
+- All 20 pages rasterized and visually reviewed via contact sheets; revised pages 6, 7 and 8 also inspected at full resolution in both languages.
+- No blank scenes, missing images or clipped print content. The original building/route/detour posters retain their prior complete-geometry framing.
+- 15 clickable links per PDF; all distinct public targets returned HTTP200. Both final QR codes decode to `https://iter-navigator.vercel.app/`.
+- No browser page errors or request failures during print export.
+- Public PDFs are byte-for-byte copies of the verified candidates.
 
-Original poster files remain recoverable in git and were also backed up in `.local/presentation-pdf/v1-poster-backup/`. No unrelated media was edited and no new generation or spending was used.
+## Scope and preservation
 
-## Print-only corrections
+`PrintScenes.tsx` and `printRevision.css` are reached only by print scenes6–8; live composition is not replaced. `Presentation.tsx` adds only the print branch. The small `posterForScene` mapping adds current uncertainty/system fallback images. The live scene5 pose change was made separately by the UI worker and accepted through focused QA.
 
-The final rules in `src/presentation/choreography.css` are scoped exclusively to `.pres-print`. They remove scrolling/clipping and the interactive disclosure summary from the static route section, and separate the 54 m figure from its 22 px lift caption. Live presentation selectors were not changed by this export task.
+Previous approved PDFs and their evidence were preserved at `.local/presentation-pdf/previous-approved/20261109T190809Z/`. Original v1 posters remain in git and `.local/presentation-pdf/v1-poster-backup/`. No unrelated media was overwritten.
 
-## Limits
+## Reproduction
 
-PDFs are static, showing meaningful final states rather than animation or video. This verification covers final local files. Production file hashes are verified as part of release checks.
+Use `.local/presentation-pdf/capture_revision_assets.mjs` (optional `--door-only`), `convert_revision_assets.py`, `export.mjs`, `verify.py`, and `finalize_revision.py`. Set `PRESENTATION_EXPORT_DIR` to `.local/presentation-pdf/composition-revision-candidate` for export/verification. Default source is `http://127.0.0.1:5380`.
+
+Candidate evidence includes `revision-capture-evidence.json`, `revision-poster-evidence.json`, `export-evidence.json`, `validation.json`, `visual-review.json`, `final-verification.json`, two contact sheets and all 20 full-page rasters. Capture/export browser instances are closed. No duplicate screenshot matrix and no Space upload were performed.
+
+The PDF intentionally preserves meaningful static states, not animation or interactivity. Final production hashes must still be checked after deployment.
