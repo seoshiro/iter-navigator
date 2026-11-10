@@ -15,7 +15,7 @@ type Feedback =
   | null;
 
 export function ReportJournal() {
-  const { locale, reportRu, reportKindRu, reportStatusRu, reportErrorRu, publicReportErrorRu, passageLabelRu, ru } = useI18n();
+  const { locale, language, reportRu, reportKindRu, reportStatusRu, reportErrorRu, publicReportErrorRu, passageLabelRu, ru } = useI18n();
   const copy = journalCopy[locale];
   const [mode] = useState(() => reportServiceMode(document));
   const connected = mode !== 'static';
@@ -48,7 +48,7 @@ export function ReportJournal() {
   const feedbackText = !feedback ? '' : feedback.type === 'copy' ? copy[feedback.key]
     : feedback.type === 'report' ? reportRu[feedback.key]
       : (hosted ? publicReportErrorRu[feedback.code] : undefined) ?? reportErrorRu[feedback.code];
-  const dateText = (value: string) => new Date(value).toLocaleString(locale === 'kk' ? 'kk-KZ' : 'ru-RU', { timeZone: 'UTC', timeZoneName: 'short' });
+  const dateText = (value: string) => new Date(value).toLocaleString(language, { timeZone: 'UTC', timeZoneName: 'short' });
 
   function setIssue(value: typeof storageIssue) { storageIssueRef.current = value; setStorageIssue(value); }
   function replaceState(next: JournalDraft) { stateRef.current = next; setJournal(next); }

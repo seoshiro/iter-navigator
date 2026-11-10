@@ -648,7 +648,7 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
           box(3.4,.06,2.5,entry.x,h+.01,23.6,circulation);
           label('ITER',entry.x,h+3.25,24,'#344a4a');
         }}
-        label(`${level.id + 1} ${locale==='kk'?'ҚАБАТ':'ЭТАЖ'}`, -2.6, h + .7, 18, '#d3e3dc');
+        label(locale==='en'?`FLOOR ${level.id + 1}`:`${level.id + 1} ${locale==='kk'?'ҚАБАТ':'ЭТАЖ'}`, -2.6, h + .7, 18, '#d3e3dc');
         for (const node of building.nodes.filter(item => item.floor === level.id && item.kind === 'room')) label(/^room-\d+$/.test(node.id)?node.id.replace('room-', ''):nodeLabelRu(node.id,node.label,node.labelKk), node.x, h + 1.2, node.z);
       }
       parent = surroundings;
@@ -790,7 +790,7 @@ export default function Diorama({ director, building, result, floor, closedEdgeI
     event.currentTarget.dataset.dragging = String(pointers.current.size > 0);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
-  return <div ref={host} className="diorama" tabIndex={-1} style={{ touchAction: gesturesEnabled ? 'none' : 'pan-y' }} data-gestures={String(gesturesEnabled)} role="img" aria-label={locale==='kk'?'Ойдан шығарылған ғимараттың үшөлшемді моделі. Көрсеткілер адамның орнын емес, бағыт ретін көрсетеді. Барлық әрекет батырмалар арқылы қолжетімді.':'Авторская трёхмерная модель вымышленного здания. Стрелки показывают порядок маршрута, не положение человека. Все действия доступны кнопками, маршрут — в тексте и на схеме.'} data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}
+  return <div ref={host} className="diorama" tabIndex={-1} style={{ touchAction: gesturesEnabled ? 'none' : 'pan-y' }} data-gestures={String(gesturesEnabled)} role="img" aria-label={locale==='en'?'Three-dimensional model of a fictional building. Arrows show the route order, not your location. All controls are available as buttons. The route is also available as text and a floor plan.':locale==='kk'?'Ойдан шығарылған ғимараттың үшөлшемді моделі. Көрсеткілер адамның орнын емес, бағыт ретін көрсетеді. Барлық әрекет батырмалар арқылы қолжетімді.':'Авторская трёхмерная модель вымышленного здания. Стрелки показывают порядок маршрута, не положение человека. Все действия доступны кнопками, маршрут — в тексте и на схеме.'} data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}
     onContextMenu={event => event.preventDefault()}
     onPointerDown={event => {
       if (director) return;
