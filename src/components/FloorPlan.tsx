@@ -6,9 +6,9 @@ import { createFloorArchitecture } from '../ui/architecture';
 interface Props { building: Building; result: RouteResult; floor: 'all' | number; closedEdgeIds: string[]; highlight?: { nodeId: string; edgeId?: string } | null; selectedNodeId?: string | null; zoom?: number; resetToken?: number; onSelectNode?: (id: string) => void }
 export function FloorPlan({ building, result, floor, closedEdgeIds, highlight, selectedNodeId, zoom = 1, resetToken = 0, onSelectNode }: Props) {
   const { locale, nodeLabelRu } = useI18n();
-  const t = (ru: string, kk: string) => locale === 'kk' ? kk : ru;
-  const floorLabel = (id: number) => locale === 'kk' ? building.floors.find(f => f.id === id)?.labelKk ?? `${id + 1} қабат` : building.floors.find(f => f.id === id)!.label;
-  const roomShort: Record<string, [string, string]> = { 'room-library': ['Библиотека', 'Кітапхана'], 'room-dean': ['Деканат', 'Деканат'], 'room-canteen': ['Столовая', 'Асхана'], 'room-medical': ['Мед.', 'Мед.'], 'room-toilets': ['WC', 'WC'], 'room-wardrobe': ['Гардер.', 'Гардер.'] };
+  const t = (ru: string, kk: string, en: string) => locale === 'en' ? en : locale === 'kk' ? kk : ru;
+  const floorLabel = (id: number) => locale === 'en' ? `Floor ${id + 1}` : locale === 'kk' ? building.floors.find(f => f.id === id)?.labelKk ?? `${id + 1} қабат` : building.floors.find(f => f.id === id)!.label;
+  const roomShort: Record<string, [string, string, string]> = { 'room-library': ['Библиотека', 'Кітапхана', 'Library'], 'room-dean': ['Деканат', 'Деканат', 'Dean'], 'room-canteen': ['Столовая', 'Асхана', 'Cafeteria'], 'room-medical': ['Мед.', 'Мед.', 'First aid'], 'room-toilets': ['WC', 'WC', 'WC'], 'room-wardrobe': ['Гардер.', 'Гардер.', 'Cloakroom'] };
   const prefix = useId();
   const collectionRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -26,19 +26,19 @@ export function FloorPlan({ building, result, floor, closedEdgeIds, highlight, s
   const routeFloors = new Set(result.status === 'ok' ? result.nodeIds.map(id => nodeMap.get(id)!.floor) : []);
   const x = (v: number) => 24 + v * 9;
   const y = (v: number) => 35 + v * 9;
-  return <div ref={collectionRef} className="floor-plans" role="region" aria-label={t('Схема этажей учебного корпуса', 'Оқу корпусының қабат сызбалары')} tabIndex={0} data-testid="floor-plan" data-highlight-node={highlight?.nodeId ?? ''} data-highlight-edge={highlight?.edgeId ?? ''} data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}>
+  return <div ref={collectionRef} className="floor-plans" role="region" aria-label={t('Схема этажей учебного корпуса', 'Оқу корпусының қабат сызбалары', "Floor plans of the demo building")} tabIndex={0} data-testid="floor-plan" data-highlight-node={highlight?.nodeId ?? ''} data-highlight-edge={highlight?.edgeId ?? ''} data-route-ids={result.status === 'ok' ? result.edgeIds.join(',') : ''}>
     {floors.map(f => {
       const architecture = createFloorArchitecture(building, f.id);
       return <figure className="floor-card" key={f.id} data-floor-id={f.id}>
-        <figcaption><span>{floorLabel(f.id)}{routeFloors.has(f.id) ? t(' · на маршруте', ' · маршрутта') : ''}</span><span className="tiny muted">{t('Условный план', 'Шартты жоспар')}</span></figcaption>
-        <div className="floor-viewport" role="region" aria-label={`${floorLabel(f.id)}: ${t('прокручиваемая схема', 'айналдыруға болатын сызба')}`} tabIndex={0}><svg viewBox="0 0 336 262" style={{ width: `calc(min(100%, var(--floor-height) * 336 / 262) * ${zoom})` }} role="group" tabIndex={-1} aria-labelledby={`${prefix}-${f.id}`}>
-          <title id={`${prefix}-${f.id}`}>{`${floorLabel(f.id)}: ${t('условный архитектурный план и текущий маршрут', 'шартты сәулет жоспары және ағымдағы маршрут')}`}</title>
+        <figcaption><span>{floorLabel(f.id)}{routeFloors.has(f.id) ? t(' · на маршруте', ' · маршрутта', " · on this route") : ''}</span><span className="tiny muted">{t('Условный план', 'Шартты жоспар', "Illustrative floor plan")}</span></figcaption>
+        <div className="floor-viewport" role="region" aria-label={`${floorLabel(f.id)}: ${t('прокручиваемая схема', 'айналдыруға болатын сызба', "scrollable floor plan")}`} tabIndex={0}><svg viewBox="0 0 336 262" style={{ width: `calc(min(100%, var(--floor-height) * 336 / 262) * ${zoom})` }} role="group" tabIndex={-1} aria-labelledby={`${prefix}-${f.id}`}>
+          <title id={`${prefix}-${f.id}`}>{`${floorLabel(f.id)}: ${t('условный архитектурный план и текущий маршрут', 'шартты сәулет жоспары және ағымдағы маршрут', "illustrative floor plan and current route")}`}</title>
           <rect x="26" y="40" width="288" height="204" rx="3" className="plan-shell" />
           <g aria-hidden="true" data-testid="plan-architecture">
             {architecture.rooms.map(room => <rect key={room.id} data-room-id={room.id} x={x(room.x - room.width / 2)} y={y(room.z - room.depth / 2)} width={room.width * 9} height={room.depth * 9} className={`plan-room${selectedNodeId === room.id ? ' selected' : ''}`} stroke="none" />)}
             {architecture.walls.map((wall, index) => <line key={index} x1={x(wall.x1)} y1={y(wall.z1)} x2={x(wall.x2)} y2={y(wall.z2)} className="plan-wall" />)}
             {architecture.doors.map((door, index) => <path key={index} className="plan-door" d={door.axis === 'x' ? `M ${x(door.x - door.width / 2)} ${y(door.z)} l 0 -9 q 9 0 9 9` : `M ${x(door.x)} ${y(door.z - door.width / 2)} l 9 0 q 0 9 -9 9`} />)}
-            <text x={x(16)} y={y(14.4)} textAnchor="middle" className="plan-corridor-label">{t('КОРИДОР', 'ДӘЛІЗ')}</text>
+            <text x={x(16)} y={y(14.4)} textAnchor="middle" className="plan-corridor-label">{t('КОРИДОР', 'ДӘЛІЗ', "CORRIDOR")}</text>
           </g>
           {building.edges.toSorted((a, b) => Number(nodeMap.get(a.from)!.floor !== nodeMap.get(a.to)!.floor) - Number(nodeMap.get(b.from)!.floor !== nodeMap.get(b.to)!.floor)).map(edge => {
             const from = nodeMap.get(edge.from)!; const to = nodeMap.get(edge.to)!;
@@ -54,11 +54,11 @@ export function FloorPlan({ building, result, floor, closedEdgeIds, highlight, s
               const markerX = x(node.x) + (transitions > 1 ? (other.floor < node.floor ? -12 : 12) : 0);
               const relation = directionFrom && directionTo ? `${directionFrom.floor + 1} → ${directionTo.floor + 1}` : `${node.floor + 1} ↔ ${other.floor + 1}`;
               return <g key={edge.id} data-edge-id={edge.id} data-route={active ? 'true' : 'false'} className={`${isClosed ? 'transition closed' : active ? 'transition active' : 'transition'}${uncertain.has(edge.id) ? ' uncertain' : ''}${highlight?.edgeId === edge.id ? ' selected' : ''}`} aria-label={edgeName}>
-                <title>{edgeName}{isClosed ? t(' · закрыто', ' · жабық') : uncertain.has(edge.id) ? t(' · данные не проверены', ' · деректер тексерілмеген') : ''}</title>
+                <title>{edgeName}{isClosed ? t(' · закрыто', ' · жабық', " · closed") : uncertain.has(edge.id) ? t(' · данные не проверены', ' · деректер тексерілмеген', " · unverified data") : ''}</title>
                 <rect data-direction-from={directionFrom?.id} data-direction-to={directionTo?.id} x={markerX - 10} y={y(node.z) - 12} width="20" height="24" rx="3" />
                 <text x={markerX} y={y(node.z) + 4} textAnchor="middle" style={!active && !isClosed ? { fontSize: 11 } : undefined}>{isClosed ? '×' : uncertain.has(edge.id) ? '?' : directionFrom && directionTo ? directionTo.floor > directionFrom.floor ? '↑' : '↓' : `${other.floor > node.floor ? '↑' : '↓'}${other.floor + 1}`}</text>
                 {active && <text x={x(node.x)} y={y(node.z) + 26} textAnchor="middle" className={`transition-label${active ? '' : ' non-route'}`}>
-                  {edge.type === 'lift' ? `${t('Лифт', 'Лифт')} ${edge.id.includes('-a-') ? 'A' : 'B'}` : t('Лестница', 'Баспалдақ')} {relation}{isClosed ? ' ×' : ''}
+                  {edge.type === 'lift' ? `${t('Лифт', 'Лифт', "Elevator")} ${edge.id.includes('-a-') ? 'A' : 'B'}` : t('Лестница', 'Баспалдақ', "Stairs")} {relation}{isClosed ? ' ×' : ''}
                 </text>}
               </g>;
             }
@@ -81,9 +81,9 @@ export function FloorPlan({ building, result, floor, closedEdgeIds, highlight, s
               {selectable && <circle className="node-hit-target" cx={x(n.x)} cy={y(n.z)} r="16" />}
               {(highlight?.nodeId === n.id || selectedNodeId === n.id || transitionNodes.includes(n.id)) && <circle cx={x(n.x)} cy={y(n.z)} r={n.kind === 'room' ? 8 : 11} className="plan-highlight-node" />}
               {destination && !start ? <rect x={x(n.x) - 6} y={y(n.z) - 6} width="12" height="12" rx="1" className="plan-endpoint-destination" /> : !service && <circle cx={x(n.x)} cy={y(n.z)} r={start ? 7 : n.selectable ? 4 : 2} className={`plan-node ${result.status === 'ok' && result.nodeIds.includes(n.id) ? 'on-route' : ''}`} />}
-              {service && !building.edges.some(e => routed.has(e.id) && (e.from === n.id || e.to === n.id) && nodeMap.get(e.from)!.floor !== nodeMap.get(e.to)!.floor) && <text x={x(n.x)} y={y(n.z) + 26} textAnchor="middle" className="plan-service-label">{n.kind === 'lift' ? `${t('Лифт', 'Лифт')} ${n.id.includes('-a-') ? 'A' : 'B'}` : t('Лестница', 'Баспалдақ')}</text>}
-              {n.kind === 'room' && <text x={x(n.x)} y={y(n.z) - 9} textAnchor="middle" className="plan-room-label">{roomShort[n.id]?.[locale === 'kk' ? 1 : 0] ?? n.id.replace('room-', '')}</text>}
-              {n.kind === 'entrance' && <text x={x(n.x) + 12} y={y(n.z) + 15} className="plan-service-label">{t('Вход', 'Кіру')} ↑</text>}
+              {service && !building.edges.some(e => routed.has(e.id) && (e.from === n.id || e.to === n.id) && nodeMap.get(e.from)!.floor !== nodeMap.get(e.to)!.floor) && <text x={x(n.x)} y={y(n.z) + 26} textAnchor="middle" className="plan-service-label">{n.kind === 'lift' ? `${t('Лифт', 'Лифт', "Elevator")} ${n.id.includes('-a-') ? 'A' : 'B'}` : t('Лестница', 'Баспалдақ', "Stairs")}</text>}
+              {n.kind === 'room' && <text x={x(n.x)} y={y(n.z) - 9} textAnchor="middle" className="plan-room-label">{roomShort[n.id]?.[locale === 'en' ? 2 : locale === 'kk' ? 1 : 0] ?? n.id.replace('room-', '')}</text>}
+              {n.kind === 'entrance' && <text x={x(n.x) + 12} y={y(n.z) + 15} className="plan-service-label">{t('Вход', 'Кіру', "Entrance")} ↑</text>}
             </g>;
           })}
         </svg></div>

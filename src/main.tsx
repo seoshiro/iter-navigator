@@ -6,4 +6,4 @@ import './styles.css';
 
 const Presentation = lazy(() => import('./presentation/Presentation'));
 const isPresentation = /^\/presentation\/?$/.test(window.location.pathname);
-createRoot(document.getElementById('root')!).render(<StrictMode><LanguageProvider>{isPresentation ? <Suspense fallback={<div role="status" style={{ padding: '10vh 8vw', fontSize: '2rem' }}>ITER</div>}><Presentation /></Suspense> : <App />}</LanguageProvider></StrictMode>);
+createRoot(document.getElementById('root')!).render(<StrictMode><LanguageProvider storageKey={isPresentation ? 'iter-presentation-language-v1' : undefined} supportedLocales={isPresentation ? ['ru', 'kk'] : undefined}>{isPresentation ? <Suspense fallback={<div role="status" style={{ padding: '10vh 8vw', fontSize: '2rem' }}>ITER</div>}><Presentation /></Suspense> : <App />}</LanguageProvider></StrictMode>);
