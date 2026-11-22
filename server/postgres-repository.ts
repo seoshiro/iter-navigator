@@ -4,6 +4,8 @@ import pg from 'pg';
 import type { PoolClient, PoolConfig } from 'pg';
 import { isReport, REPORT_BUILDING_ID, REPORT_LIMITS, REPORT_PASSAGES } from '../shared/report-contract.ts';
 import type { CreateReportResult, Report, ReportPage } from '../shared/report-contract.ts';
+import { isModerationCommand } from '../shared/moderation.ts';
+import type { ModerationCommand, ModerationItem, PassageUpdates } from '../shared/moderation.ts';
 import type { ReportStore } from './report-store.ts';
 import { JournalError, safeError, validateCreate, validatePage } from './validation.ts';
 import type { PageQuery } from './validation.ts';
@@ -64,6 +66,7 @@ export class PostgresReportRepository implements ReportStore {
   }
   private async initialize(initialize: boolean): Promise<void> {
     const sql = await readFile(new URL('./postgres-schema.sql', import.meta.url), 'utf8');
+    const migration = await readFile(new URL('./postgres-moderation.sql', import.meta.url), 'utf8');
     await this.transaction(async client => {
       await client.query(LOCK);
       const foreign = await client.query("SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema',$1) AND n.nspname NOT LIKE 'pg_toast%' AND n.nspname NOT LIKE 'pg_temp_%' AND c.relkind IN ('r','p','v','m','f','S') LIMIT 1", [SCHEMA]);
@@ -76,18 +79,27 @@ export class PostgresReportRepository implements ReportStore {
       }
       const reference = `iter_reference_${randomUUID().replaceAll('-', '')}`;
       await client.query(sql.replaceAll('__SCHEMA__', reference));
+      const live = await signature(client, SCHEMA);
+      if (live === await signature(client, reference)) {
+        const legacy = await client.query(`SELECT schema_version FROM ${SCHEMA}.journal_metadata WHERE singleton=1`);
+        if ((!initialize && present.rowCount) || legacy.rows[0]?.schema_version !== 1) throw new JournalError('storage_unavailable');
+        await client.query(migration.replaceAll('__SCHEMA__', SCHEMA));
+      }
+      await client.query(migration.replaceAll('__SCHEMA__', reference));
       if (await signature(client, SCHEMA) !== await signature(client, reference)) throw new JournalError('storage_unavailable');
       await client.query(`DROP SCHEMA "${reference}" CASCADE`);
       const catalog = await client.query(`SELECT id,type FROM ${SCHEMA}.passage_catalog ORDER BY id`);
       const expected = [...REPORT_PASSAGES].sort((a, b) => a.id.localeCompare(b.id));
       if (catalog.rows.length !== expected.length || catalog.rows.some((row, index) => row.id !== expected[index]?.id || row.type !== expected[index]?.type)) throw new JournalError('storage_unavailable');
       const metadata = await client.query(`SELECT singleton,schema_version,building_id FROM ${SCHEMA}.journal_metadata`);
-      if (metadata.rows.length !== 1 || metadata.rows[0]?.singleton !== 1 || metadata.rows[0]?.schema_version !== 1 || metadata.rows[0]?.building_id !== REPORT_BUILDING_ID) throw new JournalError('storage_unavailable');
+      if (metadata.rows.length !== 1 || metadata.rows[0]?.singleton !== 1 || metadata.rows[0]?.schema_version !== 2 || metadata.rows[0]?.building_id !== REPORT_BUILDING_ID) throw new JournalError('storage_unavailable');
       const window = await client.query(`SELECT singleton,committed_at FROM ${SCHEMA}.write_window`);
       if (window.rows.length !== 1 || window.rows[0]?.singleton !== 1 || !Array.isArray(window.rows[0]?.committed_at) || window.rows[0].committed_at.length > REPORT_LIMITS.writesPerMinute) throw new JournalError('storage_unavailable');
       const rows = await client.query(`SELECT ${COLUMNS} FROM ${SCHEMA}.reports ORDER BY sequence LIMIT $1`, [REPORT_LIMITS.records + 1]);
       if (rows.rows.length > REPORT_LIMITS.records) throw new JournalError('storage_unavailable');
       for (const row of rows.rows) this.dto(row);
+      const invalid = await client.query(`SELECT 1 FROM ${SCHEMA}.report_closures c JOIN ${SCHEMA}.reports r ON c.report_id=r.id WHERE r.status <> 'reviewed' OR r.passage_id IS NULL LIMIT 1`);
+      if (invalid.rowCount) throw new JournalError('storage_unavailable');
     });
   }
   private async transaction<T>(operation: (client: PoolClient) => Promise<T>): Promise<T> {
@@ -148,6 +160,56 @@ export class PostgresReportRepository implements ReportStore {
       if (nextCursor !== null && (!Number.isSafeInteger(nextCursor) || nextCursor <= 0)) throw new JournalError('storage_unavailable');
       return { reports, nextCursor };
     } catch (error) { throw safeError(error); }
+  }
+  async listModeration(query: PageQuery) {
+    const checked = validatePage(new URLSearchParams({ limit: String(query.limit), ...(query.before === null ? {} : { before: String(query.before) }) }));
+    const result = await this.pool.query(`SELECT ${COLUMNS}, sequence, c.report_id, c.expires_at,
+      CASE WHEN c.reopened_at IS NOT NULL THEN 'reopened' WHEN c.expires_at <= statement_timestamp() THEN 'expired' ELSE 'active' END AS state
+      FROM ${SCHEMA}.reports LEFT JOIN ${SCHEMA}.report_closures c ON c.report_id=id
+      WHERE ($1::bigint IS NULL OR sequence<$1) ORDER BY sequence DESC LIMIT $2`, [checked.before, checked.limit + 1]);
+    const page = result.rows.slice(0, checked.limit);
+    const items: ModerationItem[] = page.map(({ sequence: _sequence, report_id, expires_at, state, ...row }) => ({
+      report: this.dto(row), closure: report_id ? { state, expiresAt: expires_at?.toISOString() ?? null } : null,
+    }));
+    return { items, nextCursor: result.rows.length > checked.limit ? Number(page.at(-1).sequence) : null };
+  }
+
+  async moderate(command: ModerationCommand) {
+    if (!isModerationCommand(command)) throw new JournalError('invalid_input');
+    await this.transaction(async client => {
+      const rows = await client.query(`SELECT ${COLUMNS} FROM ${SCHEMA}.reports WHERE id=$1 FOR UPDATE`, [command.id]);
+      if (!rows.rowCount) throw new JournalError('not_found');
+      const report = this.dto(rows.rows[0]);
+      if (command.version !== report.version) throw new JournalError('version_conflict');
+      if (command.action === 'reopen') {
+        const updated = await client.query(`UPDATE ${SCHEMA}.report_closures SET reopened_at=statement_timestamp()
+          WHERE report_id=$1 AND reopened_at IS NULL AND (expires_at IS NULL OR expires_at>statement_timestamp())`, [command.id]);
+        if (!updated.rowCount) throw new JournalError('transition_conflict');
+        return;
+      }
+      if (command.action === 'close') {
+        if (report.passageId === null) throw new JournalError('invalid_input');
+        if (report.status === 'rejected') throw new JournalError('transition_conflict');
+        const inserted = await client.query(`INSERT INTO ${SCHEMA}.report_closures(report_id, expires_at)
+          VALUES ($1, statement_timestamp() + $2::integer * interval '1 hour') ON CONFLICT DO NOTHING`, [command.id, command.hours]);
+        if (!inserted.rowCount) throw new JournalError('transition_conflict');
+      } else if (report.status !== 'pending') throw new JournalError('transition_conflict');
+      if (report.status === 'pending') {
+        await client.query(`UPDATE ${SCHEMA}.reports SET status=$2, version=version+1,
+          updated_at=greatest(created_at, to_char(statement_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) WHERE id=$1`,
+          [command.id, command.action === 'reject' ? 'rejected' : 'reviewed']);
+      }
+    });
+  }
+
+  async passageUpdates(): Promise<PassageUpdates> {
+    const result = await this.pool.query(`SELECT passage_id,
+      bool_or(status='reviewed' AND c.report_id IS NOT NULL AND c.reopened_at IS NULL AND (c.expires_at IS NULL OR c.expires_at > statement_timestamp())) AS closed,
+      bool_or(status='pending' AND kind <> 'note') AS warning
+      FROM ${SCHEMA}.reports LEFT JOIN ${SCHEMA}.report_closures c ON c.report_id=id
+      WHERE passage_id IS NOT NULL GROUP BY passage_id ORDER BY passage_id`);
+    return { closed: result.rows.filter(row => row.closed).map(row => row.passage_id),
+      warnings: result.rows.filter(row => row.warning && !row.closed).map(row => row.passage_id) };
   }
   async close(): Promise<void> { await this.pool.end(); }
 }

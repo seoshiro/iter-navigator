@@ -4,6 +4,19 @@ Use separate Iter resources: Vercel **Hobby**, Render web service **Free**, and 
 
 The human approved test-first publication on 2026-10-08: run independent code review and available local checks before publishing the sanitized TEST version; complete real PostgreSQL, actual Neon TLS and all hosted acceptance afterward. These checks remain pending until actually executed. The test version is not certified ready. No credential handling is authorized by this sequencing change.
 
+## Report moderation
+
+The panel is at the foot of the connected planner and uses the journal's existing public report IDs and cursor ordering. A pending lift or obstruction report adds a warning. Review and dismissal do not close a passage. Confirmation excludes the report's exact passage in both travel directions from primary and alternate routes. Each report owns its closure. The last active closure must end before that passage becomes eligible again. The default closure lasts until repair. Operators may instead select 1, 8 or 24 hours, measured by PostgreSQL.
+
+The visitor's closure simulation, saved scenario and shared links remain local scenario inputs. Connected clients fetch `/api/closures` at startup, on return and every 15 seconds while visible. The feed contains only catalog passage IDs for closures and warnings. The journal continues to display the previously public report fields. If current status cannot be checked, live guidance pauses. Ordinary static builds still run the offline model.
+
+### Enabling the panel in a future release
+
+1. Back up the dedicated journal database. Start the new backend first using the existing database and origin/proxy settings. Under the existing database lock it verifies the exact v1 schema, validates the catalog and report records, and commits the v2 migration in one transaction. Existing submissions, versions, UUIDs and write history are preserved. An unexpected schema fails startup.
+2. Release the matching Vercel proxy and frontend with the existing `NAVIGATOR_HOSTED_BUILD=public-demo` setting. The proxy forwards moderator authorization only on the two moderator endpoints.
+3. Configure a distinct server-only `NAVIGATOR_MODERATOR_SECRET` on Render when access is wanted. Generate 32 random bytes or more, encoded as 43–128 base64url characters. Distribute it privately to authorized operators. Never set a `VITE_` variable or use the proxy credential as the moderator key. Missing/invalid configuration disables moderator login. An operator enters the key over HTTPS and receives a signed 15-minute bearer token held only in tab memory. Rotating the server key invalidates existing tokens.
+After migration, use a v2-compatible backend for rollback. The old binary rejects the new schema.
+
 ## Prepare and publish
 
 1. Run the preservation checks and `tools/verify.ps1 -CleanInstall`. Complete the real PostgreSQL suite with an isolated synthetic database before final acceptance; under the approved test-first order this suite may follow the sanitized test publication. Preserve baseline 4260, review 4262, the two four-row journals and historical QA. Record source revision plus file hashes. Independent review is required before declaring completion.
@@ -17,13 +30,13 @@ The human approved test-first publication on 2026-10-08: run independent code re
 
 ## Persistence and free-service limits
 
-PostgreSQL serializes identity, capacity and the rolling 30 new writes/minute check with one transaction lock shared across processes. Replay is checked first. It does not consume capacity or rate allowance. The rate window and report commit together; success is sent after COMMIT. Rows are immutable except the existing one-way owner workflow status/version transition, with no network review endpoint. Reports never influence routing.
+PostgreSQL serializes identity, capacity and the rolling 30 new writes/minute check with one transaction lock shared across processes. Replay is checked first. It does not consume capacity or rate allowance. The rate window and report commit together; success is sent after COMMIT. The report content stays immutable. Moderator decisions can advance its review status and create a separate closure record.
 
-The client keeps the existing eight-second timeout. Render can sleep, Neon can suspend and free quotas can run out. An unavailable journal does not disable routing. Timeouts and storage failures are ambiguous: keep the frozen draft and retry the same UUID in the open tab; do not invent a saved confirmation. There is no paid fallback or keep-alive automation. Refreshing/closing the tab loses its draft, as in local mode.
+The client keeps the existing eight-second timeout. Render can sleep, Neon can suspend and free quotas can run out. An unavailable closure feed pauses live route guidance. Timeouts and storage failures are ambiguous: keep the frozen draft and retry the same UUID in the open tab; do not invent a saved confirmation. There is no paid fallback or keep-alive automation. With browser storage available, the journal restores the draft and its pending request ID after reload.
 
 ## Rollback
 
-Keep the accepted source snapshot and both SQLite backups privately. Roll back only the separate hosted deployment to its previous reviewed snapshot; preserve Neon data and UUID identity. To remove hosted journal availability while retaining public routing, redeploy an ordinary static build without `NAVIGATOR_HOSTED_BUILD`. Revoke the proxy credential through approved secure account handling if needed. Do not delete cloud data/resources without separate authorization. Never change or stop baseline 4260 or unrelated projects. The earlier SQLite concurrent-write failure remains UNKNOWN.
+Keep the accepted source snapshot and both SQLite backups privately. Use a backend compatible with the installed schema version and preserve Neon data and UUID identity. To remove hosted journal availability while retaining public routing, redeploy an ordinary static build without `NAVIGATOR_HOSTED_BUILD`. Revoke the proxy credential through approved secure account handling if needed. Do not delete cloud data/resources without separate authorization. Never change or stop baseline 4260 or unrelated projects. The earlier SQLite concurrent-write failure remains UNKNOWN.
 
 ## Provider references
 

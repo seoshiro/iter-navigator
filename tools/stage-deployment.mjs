@@ -23,7 +23,7 @@ function origin(raw, suffix) {
 if (Boolean(rawRender) !== Boolean(rawPublic)) throw new Error('Both verified origins are required together.');
 const render = rawRender ? origin(rawRender, '.onrender.com') : null;
 const publicOrigin = rawPublic ? origin(rawPublic) : null;
-const exactFiles = ['index.html', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vite.config.ts', 'render.yaml', 'shared/report-contract.ts', 'server/http.ts', 'server/paths.ts', 'server/validation.ts', 'server/report-store.ts', 'server/public-boundary.ts', 'server/postgres-repository.ts', 'server/postgres-schema.sql', 'server/public-main.ts', 'docs/deployment.md', 'docs/deployment-flow.svg'];
+const exactFiles = ['index.html', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json', 'vite.config.ts', 'render.yaml', 'shared/report-contract.ts', 'server/http.ts', 'server/paths.ts', 'server/validation.ts', 'server/report-store.ts', 'server/public-boundary.ts', 'server/postgres-repository.ts', 'server/postgres-schema.sql', 'server/postgres-moderation.sql', 'shared/moderation.ts', 'server/moderator-auth.ts', 'server/public-main.ts', 'docs/deployment.md', 'docs/deployment-flow.svg'];
 if (cloudTests) exactFiles.push('server/postgres.test.ts', 'server/postgres-test-worker.ts', 'tools/test-postgres.mjs', 'tools/stage-deployment.mjs', 'tools/vercel-proxy.mjs');
 const directories = ['src', 'public'];
 const files = [...exactFiles];
@@ -71,8 +71,8 @@ if (render) {
   const proxy = (await readFile(resolve(root, 'tools/vercel-proxy.mjs'), 'utf8')).replace('__VERIFIED_RENDER_ORIGIN__', render);
   // Static entry points avoid Vercel injecting dynamic path query parameters.
   await writeFile(resolve(target, 'server/vercel-proxy.mjs'), proxy);
-  for (const path of ['health', 'reports', '[...path]']) await writeFile(resolve(target, 'api/' + path + '.mjs'), "export { default } from '../server/vercel-proxy.mjs';\n");
-  await writeFile(resolve(target, 'vercel.json'), JSON.stringify({ framework: 'vite', env: { NODEJS_HELPERS: '0' }, buildCommand: 'npx --yes pnpm@11.19.0 run build', installCommand: 'npx --yes pnpm@11.19.0 install --frozen-lockfile', outputDirectory: 'dist', functions: { 'api/health.mjs': { maxDuration: 10 }, 'api/reports.mjs': { maxDuration: 10 }, 'api/[...path].mjs': { maxDuration: 10 } }, headers: [{ source: '/(.*)', headers: [{ key: 'X-Content-Type-Options', value: 'nosniff' }, { key: 'X-Frame-Options', value: 'DENY' }] }] }, null, 2) + '\n');
+  for (const path of ['health', 'reports', 'closures', 'moderation', 'moderation-session', '[...path]']) await writeFile(resolve(target, 'api/' + path + '.mjs'), "export { default } from '../server/vercel-proxy.mjs';\n");
+  await writeFile(resolve(target, 'vercel.json'), JSON.stringify({ framework: 'vite', rewrites: [{ source: '/presentation', destination: '/index.html' }, { source: '/presentation/', destination: '/index.html' }], env: { NODEJS_HELPERS: '0' }, buildCommand: 'npx --yes pnpm@11.19.0 run build', installCommand: 'npx --yes pnpm@11.19.0 install --frozen-lockfile', outputDirectory: 'dist', functions: { 'api/closures.mjs': { maxDuration: 10 }, 'api/moderation.mjs': { maxDuration: 10 }, 'api/moderation-session.mjs': { maxDuration: 10 }, 'api/health.mjs': { maxDuration: 10 }, 'api/reports.mjs': { maxDuration: 10 }, 'api/[...path].mjs': { maxDuration: 10 } }, headers: [{ source: '/(.*)', headers: [{ key: 'X-Content-Type-Options', value: 'nosniff' }, { key: 'X-Frame-Options', value: 'DENY' }] }] }, null, 2) + '\n');
 }
 const revision = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8', windowsHide: true });
 const staged = [];

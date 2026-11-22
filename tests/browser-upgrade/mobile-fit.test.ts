@@ -1,6 +1,8 @@
+import { clearPassages } from '../clear-passages';
 import { test, expect } from '@playwright/test';
 for(const viewport of [{width:390,height:844},{width:375,height:667}])test(`expanded route stays inside real projection ${viewport.width}`,async({browser},testInfo)=>{
  const context=await browser.newContext({viewport,deviceScaleFactor:2,isMobile:true,hasTouch:true});const page=await context.newPage();
+ await clearPassages(page);
  await page.goto('http://127.0.0.1:5269/');await page.locator('.view-switch button').first().click();const scene=page.locator('.diorama');await expect(scene).toHaveAttribute('data-animating','false');
  // Start from actual manual orbit/zoom, matching the mobile report sequence.
  await scene.scrollIntoViewIfNeeded();const box=(await scene.boundingBox())!;await page.mouse.move(box.x+box.width*.45,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.65,box.y+box.height*.55,{steps:10});await page.mouse.up();

@@ -13,7 +13,9 @@ try {
   boundary = publicBoundary({ renderOrigin: process.env.RENDER_EXTERNAL_URL ?? '', publicOrigin: process.env.NAVIGATOR_PUBLIC_ORIGIN ?? '', proxySecret: process.env.NAVIGATOR_PROXY_SECRET ?? '' });
   repository = await PostgresReportRepository.open(process.env.DATABASE_URL);
 } catch { console.error('public_configuration_or_storage_unavailable'); process.exit(1); }
-const server = createJournalServer({ repository, hostedBoundary: boundary });
+const moderatorSecret = process.env.NAVIGATOR_MODERATOR_SECRET;
+const server = createJournalServer({ repository, hostedBoundary: boundary,
+  moderatorSecret: moderatorSecret !== process.env.NAVIGATOR_PROXY_SECRET ? moderatorSecret : undefined });
 server.on('error', () => { console.error('server_unavailable'); void repository.close().finally(() => { process.exitCode = 1; }); });
 server.listen(Number(rawPort), '0.0.0.0', () => console.log('Iter public demonstration service ready.'));
 let closing = false;

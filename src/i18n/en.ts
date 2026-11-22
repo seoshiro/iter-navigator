@@ -45,7 +45,7 @@ export const en: typeof ru = {
 
 export const edgeNamesEn: Record<EdgeType, string> = { corridor: 'Passage', door: 'Door', ramp: 'Ramp', lift: 'Elevator', stairs: 'Stairs' };
 export const reasonNamesEn: Record<ExclusionReason, string> = {
-  closed: 'closed in the simulation', stairs: 'stairs excluded', 'step-free': 'steps present', width: 'insufficient width',
+  'confirmed-closed': 'closed by a moderator', closed: 'closed in the simulation', stairs: 'stairs excluded', 'step-free': 'steps present', width: 'insufficient width',
   slope: 'slope exceeds the limit', surface: 'uneven surface', 'unknown-step-free': 'presence of steps unknown',
   'unknown-width': 'width unknown', 'unknown-slope': 'slope unknown', 'unknown-surface': 'surface unknown',
 };

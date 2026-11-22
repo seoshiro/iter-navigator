@@ -6,6 +6,9 @@ import { REPORT_BUILDING_ID, REPORT_ERRORS, REPORT_LIMITS, REPORT_SERVICE_META_N
 import type { ReportStore } from './report-store.ts';
 import type { IncomingMessage as BoundaryRequest } from 'node:http';
 import { JournalError, safeError, validateCreate, validatePage } from './validation.ts';
+import { isModerationCommand } from '../shared/moderation.ts';
+import { login, requireModerator } from './moderator-auth.ts';
+import { singleHeader } from './public-boundary.ts';
 import { DIST_ROOT } from './paths.ts';
 
 export function allowedHosts(port: number): ReadonlySet<string> { return new Set([`127.0.0.1:${port}`, `localhost:${port}`]); }
@@ -56,13 +59,13 @@ async function readBody(request: IncomingMessage): Promise<unknown> {
   try { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as unknown; }
   catch { throw new JournalError('invalid_input'); }
 }
-const mime: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
+const mime: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.webp': 'image/webp', '.mp4': 'video/mp4', '.pdf': 'application/pdf', '.woff2': 'font/woff2' };
 async function staticFile(request: IncomingMessage, response: ServerResponse, pathname: string, distRoot: string): Promise<void> {
   if (!['GET', 'HEAD'].includes(request.method ?? '')) throw new JournalError('method_not_allowed');
   let decoded: string;
   try { decoded = decodeURIComponent(pathname); } catch { throw new JournalError('not_found'); }
   if (decoded.includes('\0') || decoded.includes('\\') || decoded.split('/').some(segment => segment.startsWith('.'))) throw new JournalError('not_found');
-  const relative = decoded === '/' ? 'index.html' : decoded.slice(1);
+  const relative = ['/', '/presentation', '/presentation/'].includes(decoded) ? 'index.html' : decoded.slice(1);
   try {
     const root = await realpath(distRoot);
     const target = await realpath(resolve(root, relative));
@@ -76,8 +79,13 @@ async function staticFile(request: IncomingMessage, response: ServerResponse, pa
     response.end(request.method === 'HEAD' ? undefined : body);
   } catch (error) { if (error instanceof JournalError) throw error; throw new JournalError('not_found'); }
 }
-export function createJournalServer(options: { repository: ReportStore | null; distRoot?: string; hostedBoundary?: (request: BoundaryRequest, mutation: boolean) => void }) {
+export function createJournalServer(options: { repository: ReportStore | null; moderatorSecret?: string; distRoot?: string; hostedBoundary?: (request: BoundaryRequest, mutation: boolean) => void }) {
   let readers = 0; const writes: number[] = [];
+  async function boundedRead(request: IncomingMessage) {
+    if (readers >= REPORT_LIMITS.bodyReaders) throw new JournalError('rate_limited');
+    readers++;
+    try { return await readBody(request); } finally { readers--; }
+  }
   const allowNew = () => {
     const now = Date.now(); while (writes[0] !== undefined && writes[0] <= now - 60_000) writes.shift();
     if (writes.length >= REPORT_LIMITS.writesPerMinute) return false;
@@ -100,6 +108,33 @@ export function createJournalServer(options: { repository: ReportStore | null; d
         if (url.search) throw new JournalError('invalid_input');
         json(response, 200, { mode: options.hostedBoundary ? 'public-demo' : 'local-demo', buildingId: REPORT_BUILDING_ID }); return;
       }
+      if (url.pathname === '/api/closures') {
+        if (request.method !== 'GET') throw new JournalError('method_not_allowed');
+        if (url.search) throw new JournalError('invalid_input');
+        if (!options.repository) throw new JournalError('storage_unavailable');
+        json(response, 200, await options.repository.passageUpdates()); return;
+      }
+      if (url.pathname === '/api/moderation-session') {
+        if (request.method !== 'POST') throw new JournalError('method_not_allowed');
+        if (url.search) throw new JournalError('invalid_input');
+        const session = login(options.moderatorSecret, singleHeader(request, 'authorization'));
+        const body = await boundedRead(request);
+        if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length) throw new JournalError('invalid_input');
+        json(response, 200, session); return;
+      }
+      if (url.pathname === '/api/moderation') {
+        requireModerator(options.moderatorSecret, singleHeader(request, 'authorization'));
+        if (!options.repository) throw new JournalError('storage_unavailable');
+        if (request.method === 'GET') {
+          json(response, 200, await options.repository.listModeration(validatePage(url.searchParams))); return;
+        }
+        if (request.method !== 'POST') throw new JournalError('method_not_allowed');
+        if (url.search) throw new JournalError('invalid_input');
+        const command = await boundedRead(request);
+        if (!isModerationCommand(command)) throw new JournalError('invalid_input');
+        await options.repository.moderate(command);
+        json(response, 200, { saved: true }); return;
+      }
       if (url.pathname !== '/api/reports') throw new JournalError('not_found');
       if (request.method === 'GET') {
         const query = validatePage(url.searchParams);
@@ -108,10 +143,7 @@ export function createJournalServer(options: { repository: ReportStore | null; d
       }
       if (request.method !== 'POST') throw new JournalError('method_not_allowed');
       if (url.search) throw new JournalError('invalid_input');
-      if (readers >= REPORT_LIMITS.bodyReaders) throw new JournalError('rate_limited');
-      readers++;
-      let payload: unknown;
-      try { payload = validateCreate(await readBody(request)); } finally { readers--; }
+      const payload = validateCreate(await boundedRead(request));
       if (!options.repository) throw new JournalError('storage_unavailable');
       const result = await options.repository.create(payload, options.hostedBoundary ? undefined : allowNew);
       json(response, result.replayed ? 200 : 201, result);

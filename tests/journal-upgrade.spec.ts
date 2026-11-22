@@ -27,6 +27,7 @@ test.beforeEach(async ({ page, context }) => {
     return url.origin === 'http://127.0.0.1:5264' ? route.continue() : route.abort('blockedbyclient');
   });
   await page.route('**/api/**', route => json(route, { reports: [], nextCursor: null }));
+  await page.route('**/api/closures', route => json(route, { closed: [], warnings: [] }));
   await page.addInitScript(() => {
     if (!localStorage.getItem('iter-language-v1')) localStorage.setItem('iter-language-v1', 'ru');
   });

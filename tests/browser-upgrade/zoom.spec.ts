@@ -1,3 +1,4 @@
+import { clearPassages } from '../clear-passages';
 import { test, expect, chromium } from '@playwright/test';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -12,6 +13,7 @@ test('Chrome actual page zoom 200 percent in isolated profile', async ({ browser
   try {
     const page=context.pages()[0]!;
     await page.route('**/api/**',route=>route.fulfill({json:{items:[],nextCursor:null}}));
+    await clearPassages(page);
     await page.goto('chrome://settings/appearance');
     await page.evaluate(() => new Promise<void>(resolve => (window as unknown as {chrome:{settingsPrivate:{setDefaultZoom:(zoom:number,callback:()=>void)=>void}}}).chrome.settingsPrivate.setDefaultZoom(2,resolve)));
     await page.goto('http://127.0.0.1:5269/');

@@ -9,6 +9,8 @@
   },
   "scripts": {
     "build": "node node_modules/typescript7/bin/tsc --noEmit && vite build",
+    "start:local": "node server/local-main.ts",
+    "test:moderation": "node --test tests/moderation-flow.mjs",
     "start:public": "node server/public-main.ts",
     "test:postgres": "node tools/test-postgres.mjs",
     "dev": "vite --host 127.0.0.1",

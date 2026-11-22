@@ -1,3 +1,4 @@
+import { clearPassages } from './clear-passages';
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
@@ -19,6 +20,7 @@ test.beforeEach(async ({ page, context }) => {
     return url.origin === 'http://127.0.0.1:5369' ? route.continue() : route.abort('blockedbyclient');
   });
   await page.route('**/api/**', route => route.fulfill({ json: { status: 'ok', mode: 'public-demo', reports: [], items: [], nextCursor: null } }));
+  await clearPassages(page);
   await page.addInitScript(() => { if (!localStorage.getItem('iter-language-v1')) localStorage.setItem('iter-language-v1', 'ru'); });
 });
 test.afterEach(async ({ page }) => { expect(errors.get(page), 'Unexpected page errors').toEqual([]); });
