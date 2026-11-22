@@ -1,3 +1,4 @@
+import { clearPassages } from './clear-passages';
 import { test, expect } from '@playwright/test';
 import type { CDPSession, Page } from '@playwright/test';
 type Camera = { yaw: number; zoom: number; panX: number; panY: number; tilt?: number };
@@ -36,6 +37,7 @@ test.beforeEach(async ({ page, context, baseURL }) => {
   failures.set(page, []); page.on('pageerror', error => failures.get(page)!.push(error.message));
   await context.route('**/*', route => new URL(route.request().url()).origin === new URL(baseURL!).origin && ['GET','HEAD'].includes(route.request().method()) ? route.continue() : route.abort());
   if(new URL(baseURL!).hostname==='127.0.0.1') await page.route('**/api/**', route => route.fulfill({ json: { status: 'ok', mode: 'public-demo', reports: [], items: [], nextCursor: null } }));
+  if (new URL(baseURL!).hostname === '127.0.0.1') await clearPassages(page);
   await page.addInitScript(() => localStorage.setItem('iter-language-v1', 'ru'));
 });
 test.afterEach(async ({ page }) => expect(failures.get(page), 'Unexpected page errors').toEqual([]));

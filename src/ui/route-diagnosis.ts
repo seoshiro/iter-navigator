@@ -10,13 +10,14 @@ export interface RouteDiagnosis {
 }
 
 // Presentation-only counterfactuals: no candidate from this function is a navigable route.
-export function diagnoseRoute(building: Building, scenario: Scenario, result: RouteResult): RouteDiagnosis {
+export function diagnoseRoute(building: Building, scenario: Scenario, result: RouteResult, confirmed: readonly string[] = []): RouteDiagnosis {
   const edges = new Map(building.edges.map(edge => [edge.id, edge]));
   const nodes = new Map(building.nodes.map(node => [node.id, node]));
   const closed = new Set(scenario.closedEdgeIds);
   const describe = (ids: string[], strict = true) => ids.flatMap(edgeId => {
     const reasons = inspectEdge(edges.get(edgeId)!, strict ? { ...scenario.requirements, allowUnknown: false } : scenario.requirements, closed).reasons;
-    return reasons.length ? [{ edgeId, reasons }] : [];
+    return reasons.length ? [{ edgeId, reasons: reasons.map(reason =>
+      reason === 'closed' && confirmed.includes(edgeId) ? 'confirmed-closed' as const : reason) }] : [];
   });
   if (result.status === 'invalid') return { kind: 'invalid', details: [], floors: [], stepFree: null, connected: false };
   if (result.status === 'ok') {

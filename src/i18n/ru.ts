@@ -45,7 +45,7 @@ export const nodeLabelRu = (id: string, label: string) => id === 'room-205' ? ru
 export const passageLabelRu = (id: string | null, label: string) => id === 'door-205' ? `Дверь в аудиторию 205 · ${room205Uncertainty}` : label;
 export const edgeNames: Record<EdgeType, string> = { corridor: 'Проход', door: 'Дверь', ramp: 'Пандус', lift: 'Лифт', stairs: 'Лестница' };
 export const reasonNames: Record<ExclusionReason, string> = {
-  closed: 'закрыто в симуляции', stairs: 'лестница запрещена', 'step-free': 'есть ступени', width: 'недостаточная ширина',
+  'confirmed-closed': 'проход закрыт модератором', closed: 'закрыто в симуляции', stairs: 'лестница запрещена', 'step-free': 'есть ступени', width: 'недостаточная ширина',
   slope: 'уклон выше заданного', surface: 'неровное покрытие', 'unknown-step-free': 'неизвестно наличие ступеней',
   'unknown-width': 'неизвестная ширина', 'unknown-slope': 'неизвестный уклон', 'unknown-surface': 'неизвестное покрытие',
 };

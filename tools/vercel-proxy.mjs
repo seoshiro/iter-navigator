@@ -46,10 +46,18 @@ export default async function proxy(request, response) {
     if (!request.url?.startsWith('/') || request.url.startsWith('//')) throw new Error('invalid_input');
     const url = new URL(request.url, 'http://127.0.0.1');
     // Match the handler's route, method and query precedence before reading a body.
-    if (url.pathname !== '/api/reports' && url.pathname !== '/api/health') throw new Error('not_found');
-    if (url.pathname === '/api/health' ? request.method !== 'GET' : !['GET', 'POST'].includes(request.method)) throw new Error('method_not_allowed');
-    if (url.search && (url.pathname === '/api/health' || request.method === 'POST')) throw new Error('invalid_input');
+    const routes = {
+      '/api/health': ['GET'], '/api/reports': ['GET', 'POST'], '/api/closures': ['GET'],
+      '/api/moderation': ['GET', 'POST'], '/api/moderation-session': ['POST'],
+    };
+    if (!Object.hasOwn(routes, url.pathname)) throw new Error('not_found');
+    if (!routes[url.pathname].includes(request.method)) throw new Error('method_not_allowed');
+    if (url.search && (request.method !== 'GET' || !['/api/reports', '/api/moderation'].includes(url.pathname))) throw new Error('invalid_input');
     const headers = { 'x-iter-proxy-key': secret, 'x-iter-public-host': publicUrl.host };
+    if (url.pathname === '/api/moderation' || url.pathname === '/api/moderation-session') {
+      const authorization = header(request, 'authorization');
+      if (authorization !== undefined) headers.authorization = authorization;
+    }
     if (origin !== undefined) headers.origin = origin;
     if (site !== undefined) headers['sec-fetch-site'] = site;
     let body;

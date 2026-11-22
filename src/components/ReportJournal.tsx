@@ -5,6 +5,7 @@ import type { CreateReport, Report, ReportErrorCode, ReportKind } from '../../sh
 import { createReport, reportServiceMode, listReports, ReportClientError } from '../reports/client';
 import { browserDraftStorage, completeJournalDraft, emptyJournalDraft, journalDraftKey, readJournalDraft, removeJournalDraft, writeJournalDraft } from '../reports/draft';
 import type { JournalDraft, ReportDraft } from '../reports/draft';
+import { refreshPassages } from '../reports/use-passage-updates';
 import { journalCopy } from '../reports/copy';
 import { useI18n } from '../i18n/locale';
 
@@ -185,7 +186,7 @@ export function ReportJournal() {
     try {
       await createReport(payload, controller.signal);
       if (!mounted.current) return;
-      finishAttempt(submitted, true);
+      finishAttempt(submitted, true); refreshPassages();
       setFeedback({ type: 'report', key: hosted ? 'publicSaved' : 'saved' }); void refresh();
     } catch (error) {
       if (!mounted.current) return;

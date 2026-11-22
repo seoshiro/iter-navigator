@@ -1,3 +1,4 @@
+import { clearPassages } from './clear-passages';
 import { test, expect } from '@playwright/test';
 import type { Page, CDPSession } from '@playwright/test';
 import { presentationCopy } from '../src/presentation/content';
@@ -74,6 +75,7 @@ test.beforeEach(async ({ page, context, baseURL }) => {
   // Local frontend fixture only; never POST to a live or test backend.
   if (new URL(baseURL!).hostname === '127.0.0.1') {
     await page.route('**/api/**', route => route.fulfill({ json: { status: 'ok', mode: 'public-demo', reports: [], items: [], nextCursor: null } }));
+    await clearPassages(page);
   }
 });
 test.afterEach(async ({ page }) => {

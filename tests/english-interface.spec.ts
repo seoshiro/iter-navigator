@@ -17,6 +17,7 @@ async function isolate(context: BrowserContext) {
   await context.route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.origin !== origin) return route.abort('blockedbyclient');
+    if (url.pathname === '/api/closures') return json(route, { closed: [], warnings: [] });
     if (url.pathname.startsWith('/api/')) return json(route, { status: 'ok', mode: 'public-demo', reports: [], items: [], nextCursor: null });
     return route.continue();
   });

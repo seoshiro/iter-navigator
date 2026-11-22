@@ -1,5 +1,7 @@
+import { clearPassages } from '../clear-passages';
 import { test, expect } from '@playwright/test';
 const mockJournal = async (page: import('@playwright/test').Page) => {
+  await clearPassages(page);
   await page.route('**/api/health', route=>route.fulfill({json:{status:'ok',mode:'public-demo'}}));
   await page.route('**/api/reports**', route=>route.fulfill({json:{items:[],nextCursor:null}}));
 };

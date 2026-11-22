@@ -639,3 +639,15 @@ footer { font-size:.75rem; padding:20px 0; }
 .scene-touch-controls button[aria-label] { min-width:44px; font-size:1.15rem; }
 .scene-touch-controls p { margin:8px 0 0; color:var(--muted); font-size:.75rem; line-height:1.45; }
 @media(max-width:700px) { .scene-touch-controls { padding:0 12px 10px; } .scene-touch-controls p { font-size:.75rem; } }
+
+.moderation-panel { margin-top: .75rem; }
+.moderation-panel .journal-content { max-width: 54rem; }
+.moderation-panel .journal-content form, .moderator-actions { display: flex; flex-wrap: wrap; align-items: end; gap: .65rem; }
+.moderation-panel label { display: grid; gap: .35rem; min-width: 0; }
+.moderation-panel input, .moderation-panel select, .moderation-panel button { min-height: 44px; max-width: 100%; }
+.moderation-panel .journal-records li > small { display: block; margin-top: .3rem; }
+.moderation-panel .journal-records li { overflow-wrap: anywhere; }
+@media (max-width: 540px) {
+  .moderation-panel form label, .moderator-actions label { flex-basis: 100%; }
+  .moderator-actions button { flex: 1 1 10rem; }
+}

@@ -38,6 +38,16 @@ describe('eligible deterministic route alternatives', () => {
     const knownFailure = structuredClone(building); knownFailure.edges.find(edge => edge.id === 'door-205')!.stepFree = { status: 'checked', value: false, source: 'fictional test', checkedOn: null };
     expect(findRouteVariants(knownFailure, 'entrance', 'room-205', { ...requirements, allowUnknown: true }, []).alternatives).toEqual([]);
   });
+  it('excludes exactly one confirmed physical passage in both directions from every route', () => {
+    for (const [start, goal] of [['entrance', 'room-204'], ['room-204', 'entrance']] as const) {
+      const variants = findRouteVariants(building, start, goal, requirements, ['lift-a-01']);
+      expect(variants.primary).toMatchObject({ status: 'ok', distanceM: 54 });
+      for (const route of [variants.primary, ...variants.alternatives]) {
+        if (route.status === 'ok') expect(route.edgeIds).not.toContain('lift-a-01');
+      }
+    }
+    expect(findRoute(building, 'lift-a-1', 'lift-a-2', requirements, ['lift-a-01'])).toMatchObject({ edgeIds: ['lift-a-12'] });
+  });
   it('supports reverse, zero, invalid input and stable lexicographic ties', () => {
     expect(findRouteVariants(building, 'room-204', 'entrance', requirements, []).primary).toMatchObject({ edgeIds: [...a].reverse(), distanceM: 40 });
     expect(findRouteVariants(building, 'entrance', 'entrance', requirements, [])).toEqual({ primary: { status: 'ok', nodeIds: ['entrance'], edgeIds: [], distanceM: 0, uncertainEdgeIds: [] }, alternatives: [] });

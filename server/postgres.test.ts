@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { fork } from 'node:child_process';
 import pg from 'pg';
+import { readFile } from 'node:fs/promises';
 import { PostgresReportRepository, postgresConfiguration } from './postgres-repository.ts';
-import { REPORT_BUILDING_ID, REPORT_LIMITS } from '../shared/report-contract.ts';
+import { REPORT_BUILDING_ID, REPORT_LIMITS, REPORT_PASSAGES } from '../shared/report-contract.ts';
 import { JournalError } from './validation.ts';
 
 const raw = process.env.NAVIGATOR_PG_TEST_URL;
@@ -59,6 +60,44 @@ test('real PostgreSQL synthetic matrix: transactions, processes, persistence, li
   }
   async function processCreate(input: ReturnType<typeof payload>): Promise<ProcessResult> { return (await processContention([[input]]))[0]![0]!; }
   try {
+    await reset();
+    await context.test('v1 upgrade preserves old reports and replay; concurrent decisions, overlap and expiry', async () => {
+      const schema = await readFile(new URL('./postgres-schema.sql', import.meta.url), 'utf8');
+      await admin.query(schema.replaceAll('__SCHEMA__', 'iter_journal'));
+      for (const p of REPORT_PASSAGES) await admin.query('INSERT INTO iter_journal.passage_catalog VALUES ($1,$2)', [p.id, p.type]);
+      const legacy = { ...payload(), kind: 'lift_unavailable', passageId: 'lift-a-01' };
+      const id = randomUUID();
+      await admin.query(`INSERT INTO iter_journal.reports(id,client_request_id,building_id,passage_id,kind,message,status,created_at,updated_at,version)
+        VALUES($1,$2,$3,$4,$5,$6,'reviewed','2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z',2)`,
+        [id, legacy.clientRequestId, legacy.buildingId, legacy.passageId, legacy.kind, legacy.message]);
+      const repo = await open();
+      const replay = await repo.create(legacy);
+      assert.equal(replay.replayed, true); assert.equal(replay.report.id, id); assert.equal(replay.report.version, 2);
+      assert.deepEqual(await repo.passageUpdates(), { closed: [], warnings: [] });
+      const second = await repo.create({ ...legacy, clientRequestId: randomUUID() });
+      assert.deepEqual(await repo.passageUpdates(), { closed: [], warnings: ['lift-a-01'] });
+      await repo.moderate({ id, version: 2, action: 'close', hours: 1 });
+      const restarted = await open(false);
+      const decision = { id: second.report.id, version: 1, action: 'close' as const, hours: null };
+      const race = await Promise.allSettled([repo.moderate(decision), restarted.moderate(decision)]);
+      assert.equal(race.filter(r => r.status === 'fulfilled').length, 1);
+      assert.deepEqual(await restarted.passageUpdates(), { closed: ['lift-a-01'], warnings: [] });
+      // Advance this synthetic closure's timestamps. Expiry is evaluated by the database clock.
+      await admin.query("UPDATE iter_journal.report_closures SET closed_at=now()-interval '2 hours', expires_at=now()-interval '1 hour' WHERE report_id=$1", [id]);
+      assert.deepEqual(await repo.passageUpdates(), { closed: ['lift-a-01'], warnings: [] });
+      const page = await repo.listModeration({ before: null, limit: 10 });
+      assert.equal(page.items.find(item => item.report.id === id)?.closure?.state, 'expired');
+      await restarted.moderate({ id: second.report.id, version: 2, action: 'reopen' });
+      assert.deepEqual(await repo.passageUpdates(), { closed: [], warnings: [] });
+      await assert.rejects(() => repo.moderate({ ...decision, version: 2 }), hasCode('transition_conflict'));
+      const note = await repo.create(payload());
+      await assert.rejects(() => repo.moderate({ ...decision, id: note.report.id }), hasCode('invalid_input'));
+      await repo.moderate({ id: note.report.id, version: 1, action: 'review' });
+      const rejected = (await repo.create({ ...legacy, clientRequestId: randomUUID() })).report;
+      await repo.moderate({ id: rejected.id, version: 1, action: 'reject' });
+      await assert.rejects(() => repo.moderate({ ...decision, id: rejected.id, version: 2 }), hasCode('transition_conflict'));
+      assert.deepEqual(await repo.passageUpdates(), { closed: [], warnings: [] });
+    });
     await reset();
     await context.test('retries from independent processes commit once and changes conflict', async () => {
       const repository = await open(); const input = payload();

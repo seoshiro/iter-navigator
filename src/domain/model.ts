@@ -25,7 +25,7 @@ export interface Scenario {
   start: string; destination: string; requirements: Requirements;
   closedEdgeIds: string[]; floor: 'all' | number;
 }
-export type ExclusionReason = 'closed' | 'stairs' | 'step-free' | 'width' | 'slope' | 'surface'
+export type ExclusionReason = 'closed' | 'confirmed-closed' | 'stairs' | 'step-free' | 'width' | 'slope' | 'surface'
   | 'unknown-step-free' | 'unknown-width' | 'unknown-slope' | 'unknown-surface';
 export type RouteResult =
   | { status: 'ok'; nodeIds: string[]; edgeIds: string[]; distanceM: number; uncertainEdgeIds: string[] }

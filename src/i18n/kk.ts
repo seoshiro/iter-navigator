@@ -37,7 +37,7 @@ export const kk: typeof ru = {
 };
 export const edgeNamesKk: Record<EdgeType, string> = { corridor: 'Өткел', door: 'Есік', ramp: 'Пандус', lift: 'Лифт', stairs: 'Баспалдақ' };
 export const reasonNamesKk: Record<ExclusionReason, string> = {
-  closed: 'симуляцияда жабық', stairs: 'баспалдаққа рұқсат жоқ', 'step-free': 'сатылар бар', width: 'ені жеткіліксіз',
+  'confirmed-closed': 'өткелді модератор жапты', closed: 'симуляцияда жабық', stairs: 'баспалдаққа рұқсат жоқ', 'step-free': 'сатылар бар', width: 'ені жеткіліксіз',
   slope: 'еңісі белгіленгеннен артық', surface: 'жабыны тегіс емес', 'unknown-step-free': 'сатылардың бар-жоғы белгісіз',
   'unknown-width': 'ені белгісіз', 'unknown-slope': 'еңісі белгісіз', 'unknown-surface': 'жабыны белгісіз',
 };
