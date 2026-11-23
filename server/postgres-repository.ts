@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import pg from 'pg';
+import originalBuilding from '../src/data/building.original.json' with { type: 'json' };
 import type { PoolClient, PoolConfig } from 'pg';
 import { isReport, REPORT_BUILDING_ID, REPORT_LIMITS, REPORT_PASSAGES } from '../shared/report-contract.ts';
 import type { CreateReportResult, Report, ReportPage } from '../shared/report-contract.ts';
@@ -87,7 +88,8 @@ export class PostgresReportRepository implements ReportStore {
         .replace('VALUES (1, 1,', 'VALUES (1, 2,') : sql;
       await client.query(referenceSql.replaceAll('__SCHEMA__', reference));
       const live = await signature(client, SCHEMA);
-      if (live === await signature(client, reference)) {
+      const upgrading = live === await signature(client, reference);
+      if (upgrading) {
         if ((!initialize && present.rowCount) || marker !== 1) throw new JournalError('storage_unavailable');
         await client.query(migration.replaceAll('__SCHEMA__', SCHEMA));
       }
@@ -95,8 +97,18 @@ export class PostgresReportRepository implements ReportStore {
       if (await signature(client, SCHEMA) !== await signature(client, reference)) throw new JournalError('storage_unavailable');
       await client.query(`DROP SCHEMA "${reference}" CASCADE`);
       const catalog = await client.query(`SELECT id,type FROM ${SCHEMA}.passage_catalog ORDER BY id`);
-      const expected = [...REPORT_PASSAGES].sort((a, b) => a.id.localeCompare(b.id));
-      if (catalog.rows.length !== expected.length || catalog.rows.some((row, index) => row.id !== expected[index]?.id || row.type !== expected[index]?.type)) throw new JournalError('storage_unavailable');
+      const stored = new Map(catalog.rows.map(row => [row.id as string, row.type as string]));
+      const matches = (edges: readonly { id: string; type: string }[]) =>
+        stored.size === edges.length && edges.every(edge => stored.get(edge.id) === edge.type);
+      if (!matches(REPORT_PASSAGES)) {
+        // The deployed v1 service predates the six room doors. Recognize its
+        // complete catalogue before adding entries; partial or altered data fails.
+        if (!upgrading || !matches(originalBuilding.edges) || !originalBuilding.edges.every(old =>
+          REPORT_PASSAGES.some(edge => edge.id === old.id && edge.type === old.type))) throw new JournalError('storage_unavailable');
+        for (const edge of REPORT_PASSAGES.filter(edge => !stored.has(edge.id))) {
+          await client.query(`INSERT INTO ${SCHEMA}.passage_catalog(id,type) VALUES ($1,$2)`, [edge.id, edge.type]);
+        }
+      }
       const window = await client.query(`SELECT singleton,committed_at FROM ${SCHEMA}.write_window`);
       if (window.rows.length !== 1 || window.rows[0]?.singleton !== 1 || !Array.isArray(window.rows[0]?.committed_at) || window.rows[0].committed_at.length > REPORT_LIMITS.writesPerMinute) throw new JournalError('storage_unavailable');
       const rows = await client.query(`SELECT ${COLUMNS} FROM ${SCHEMA}.reports ORDER BY sequence LIMIT $1`, [REPORT_LIMITS.records + 1]);
