@@ -70,7 +70,11 @@ test('real PostgreSQL synthetic matrix: transactions, processes, persistence, li
       await admin.query(`INSERT INTO iter_journal.reports(id,client_request_id,building_id,passage_id,kind,message,status,created_at,updated_at,version)
         VALUES($1,$2,$3,$4,$5,$6,'reviewed','2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z',2)`,
         [id, legacy.clientRequestId, legacy.buildingId, legacy.passageId, legacy.kind, legacy.message]);
+      const baseCatalog = () => admin.query("SELECT c.oid::text, pg_get_constraintdef(c.oid) AS definition FROM pg_constraint c WHERE c.conrelid='iter_journal.journal_metadata'::regclass ORDER BY c.conname");
+      const originalChecks = (await baseCatalog()).rows;
       const repo = await open();
+      assert.deepEqual((await baseCatalog()).rows, originalChecks);
+      assert.equal((await admin.query('SELECT schema_version FROM iter_journal.journal_metadata')).rows[0].schema_version, 1);
       const replay = await repo.create(legacy);
       assert.equal(replay.replayed, true); assert.equal(replay.report.id, id); assert.equal(replay.report.version, 2);
       assert.deepEqual(await repo.passageUpdates(), { closed: [], warnings: [] });
