@@ -1,5 +1,6 @@
 import { createJournalServer } from './http.ts';
 import { PostgresReportRepository } from './postgres-repository.ts';
+import { moderatorConfiguration } from './moderator-auth.ts';
 import { publicBoundary } from './public-boundary.ts';
 
 const [major, minor] = process.versions.node.split('.').map(Number);
@@ -14,8 +15,10 @@ try {
   repository = await PostgresReportRepository.open(process.env.DATABASE_URL);
 } catch { console.error('public_configuration_or_storage_unavailable'); process.exit(1); }
 const moderatorSecret = process.env.NAVIGATOR_MODERATOR_SECRET;
+const moderatorState = moderatorConfiguration(moderatorSecret, process.env.NAVIGATOR_PROXY_SECRET);
+console.info('moderator_config=' + moderatorState);
 const server = createJournalServer({ repository, hostedBoundary: boundary,
-  moderatorSecret: moderatorSecret !== process.env.NAVIGATOR_PROXY_SECRET ? moderatorSecret : undefined });
+  moderatorSecret: moderatorState === 'ready' ? moderatorSecret : undefined });
 server.on('error', () => { console.error('server_unavailable'); void repository.close().finally(() => { process.exitCode = 1; }); });
 server.listen(Number(rawPort), '0.0.0.0', () => console.log('Iter public demonstration service ready.'));
 let closing = false;

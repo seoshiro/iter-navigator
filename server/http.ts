@@ -92,6 +92,7 @@ export function createJournalServer(options: { repository: ReportStore | null; m
     writes.push(now); return true;
   };
   const server = createServer({ headersTimeout: 5_000, requestTimeout: 10_000, keepAliveTimeout: 2_000, connectionsCheckingInterval: 1_000, maxHeaderSize: 8_192 }, (request, response) => {
+    let signInStage = 'render_boundary';
     void (async () => {
       const address = server.address(); if (!address || typeof address === 'string') throw new JournalError('forbidden');
       if (!request.url?.startsWith('/') || request.url.startsWith('//')) throw new JournalError('invalid_input');
@@ -117,7 +118,10 @@ export function createJournalServer(options: { repository: ReportStore | null; m
       if (url.pathname === '/api/moderation-session') {
         if (request.method !== 'POST') throw new JournalError('method_not_allowed');
         if (url.search) throw new JournalError('invalid_input');
-        const session = login(options.moderatorSecret, singleHeader(request, 'authorization'));
+        signInStage = 'authorization_header';
+        const authorization = singleHeader(request, 'authorization');
+        signInStage = authorization === undefined ? 'authorization_absent' : 'credential_check';
+        const session = login(options.moderatorSecret, authorization);
         const body = await boundedRead(request);
         if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length) throw new JournalError('invalid_input');
         json(response, 200, session); return;
@@ -147,7 +151,11 @@ export function createJournalServer(options: { repository: ReportStore | null; m
       if (!options.repository) throw new JournalError('storage_unavailable');
       const result = await options.repository.create(payload, options.hostedBoundary ? undefined : allowNew);
       json(response, result.replayed ? 200 : 201, result);
-    })().catch(error => failure(response, error));
+    })().catch(error => {
+      if (options.hostedBoundary && request.method === 'POST' && request.url === '/api/moderation-session' &&
+          error instanceof JournalError && error.code === 'forbidden') console.info('moderator_denied=' + signInStage);
+      failure(response, error);
+    });
   });
   server.maxConnections = REPORT_LIMITS.connections;
   server.maxRequestsPerSocket = 100;
