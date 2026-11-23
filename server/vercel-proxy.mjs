@@ -76,6 +76,11 @@ export default async function proxy(request, response) {
     for await (const chunk of upstream.body ?? []) { size += chunk.length; if (size > 150_000) throw new Error('storage_unavailable'); chunks.push(Buffer.from(chunk)); }
     response.writeHead(upstream.status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...(upstream.status === 429 ? { 'Retry-After': '60' } : {}) });
     response.end(Buffer.concat(chunks));
-  } catch (error) { fail(response, Object.hasOwn(errors, error?.message) ? error.message : 'storage_unavailable'); }
+  } catch (error) {
+    if (request.method === 'POST' && request.url === '/api/moderation-session' && error?.message === 'forbidden') {
+      console.info('moderator_denied=vercel_boundary');
+    }
+    fail(response, Object.hasOwn(errors, error?.message) ? error.message : 'storage_unavailable');
+  }
 }
 // The generated deployment sets NODEJS_HELPERS=0 for the original IncomingMessage stream.

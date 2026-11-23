@@ -3,8 +3,15 @@ import { moderatorSessionLifetimeMs } from '../shared/moderation.ts';
 import { JournalError } from './validation.ts';
 
 const digest = (text: string) => createHash('sha256').update(text).digest();
+const keyFormat = /^[A-Za-z0-9_-]{43,128}$/;
+// Fixed labels for private startup logs. Never include environment or request values.
+export function moderatorConfiguration(secret: string | undefined, proxy: string | undefined) {
+  if (!secret) return 'missing';
+  if (!keyFormat.test(secret)) return 'invalid_format';
+  return secret === proxy ? 'not_distinct' : 'ready';
+}
 function configured(secret?: string): string {
-  if (!secret || !/^[A-Za-z0-9_-]{43,128}$/.test(secret)) throw new JournalError('forbidden');
+  if (!secret || !keyFormat.test(secret)) throw new JournalError('forbidden');
   return secret;
 }
 function signature(secret: string, value: string) {
