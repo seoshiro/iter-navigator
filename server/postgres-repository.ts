@@ -77,12 +77,18 @@ export class PostgresReportRepository implements ReportStore {
         await client.query(sql.replaceAll('__SCHEMA__', SCHEMA));
         for (const passage of REPORT_PASSAGES) await client.query(`INSERT INTO ${SCHEMA}.passage_catalog(id,type) VALUES ($1,$2)`, [passage.id, passage.type]);
       }
+      const metadata = await client.query(`SELECT singleton,schema_version,building_id FROM ${SCHEMA}.journal_metadata`);
+      const marker = metadata.rows[0]?.schema_version;
+      if (metadata.rows.length !== 1 || metadata.rows[0]?.singleton !== 1 || ![1, 2].includes(marker) || metadata.rows[0]?.building_id !== REPORT_BUILDING_ID) throw new JournalError('storage_unavailable');
       const reference = `iter_reference_${randomUUID().replaceAll('-', '')}`;
-      await client.query(sql.replaceAll('__SCHEMA__', reference));
+      // The pre-release build used marker 2. Reproduce its constraint only in
+      // the disposable reference schema, preserving those local journals too.
+      const referenceSql = marker === 2 ? sql.replace('CHECK (schema_version = 1)', 'CHECK (schema_version = 2)')
+        .replace('VALUES (1, 1,', 'VALUES (1, 2,') : sql;
+      await client.query(referenceSql.replaceAll('__SCHEMA__', reference));
       const live = await signature(client, SCHEMA);
       if (live === await signature(client, reference)) {
-        const legacy = await client.query(`SELECT schema_version FROM ${SCHEMA}.journal_metadata WHERE singleton=1`);
-        if ((!initialize && present.rowCount) || legacy.rows[0]?.schema_version !== 1) throw new JournalError('storage_unavailable');
+        if ((!initialize && present.rowCount) || marker !== 1) throw new JournalError('storage_unavailable');
         await client.query(migration.replaceAll('__SCHEMA__', SCHEMA));
       }
       await client.query(migration.replaceAll('__SCHEMA__', reference));
@@ -91,8 +97,6 @@ export class PostgresReportRepository implements ReportStore {
       const catalog = await client.query(`SELECT id,type FROM ${SCHEMA}.passage_catalog ORDER BY id`);
       const expected = [...REPORT_PASSAGES].sort((a, b) => a.id.localeCompare(b.id));
       if (catalog.rows.length !== expected.length || catalog.rows.some((row, index) => row.id !== expected[index]?.id || row.type !== expected[index]?.type)) throw new JournalError('storage_unavailable');
-      const metadata = await client.query(`SELECT singleton,schema_version,building_id FROM ${SCHEMA}.journal_metadata`);
-      if (metadata.rows.length !== 1 || metadata.rows[0]?.singleton !== 1 || metadata.rows[0]?.schema_version !== 2 || metadata.rows[0]?.building_id !== REPORT_BUILDING_ID) throw new JournalError('storage_unavailable');
       const window = await client.query(`SELECT singleton,committed_at FROM ${SCHEMA}.write_window`);
       if (window.rows.length !== 1 || window.rows[0]?.singleton !== 1 || !Array.isArray(window.rows[0]?.committed_at) || window.rows[0].committed_at.length > REPORT_LIMITS.writesPerMinute) throw new JournalError('storage_unavailable');
       const rows = await client.query(`SELECT ${COLUMNS} FROM ${SCHEMA}.reports ORDER BY sequence LIMIT $1`, [REPORT_LIMITS.records + 1]);
