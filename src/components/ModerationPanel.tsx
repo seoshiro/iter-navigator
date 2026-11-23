@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { closureDurations } from '../../shared/moderation.ts';
+import { closureDurations, moderatorSessionLifetimeMs } from '../../shared/moderation.ts';
 import type { ModerationCommand, ModerationItem, ModerationPage } from '../../shared/moderation.ts';
 import { REPORT_PASSAGES } from '../../shared/report-contract.ts';
 import { useI18n } from '../i18n/locale';
 import { moderationCopy } from '../reports/moderation-copy';
 import { refreshPassages } from '../reports/use-passage-updates';
 
-interface Session { token: string; expiresAt: number }
+interface Session { token: string; discardAt: number }
 class RequestFailure extends Error {
   readonly status: number;
   constructor(status: number) { super(); this.status = status; }
@@ -62,7 +62,7 @@ function Inbox({ session, end }: { session: Session; end: (expired: boolean) => 
   const [notice, setNotice] = useState<'saved' | 'error' | 'changed' | null>(null);
   const [readError, setReadError] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => end(true), Math.max(0, session.expiresAt - Date.now()));
+    const timer = setTimeout(() => end(true), Math.max(0, session.discardAt - performance.now()));
     return () => clearTimeout(timer);
   }, [session, end]);
   useEffect(() => {
@@ -103,16 +103,22 @@ function ModeratorAccess() {
   const copy = moderationCopy[locale];
   const key = useRef<HTMLInputElement>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [feedback, setFeedback] = useState<'denied' | 'error' | null>(null);
+  const [feedback, setFeedback] = useState<'loginDenied' | 'sessionEnded' | 'error' | null>(null);
   const [busy, setBusy] = useState(false);
-  const end = useCallback((expired: boolean) => { setSession(null); setFeedback(expired ? 'denied' : null); }, []);
+  const end = useCallback((expired: boolean) => { setSession(null); setFeedback(expired ? 'sessionEnded' : null); }, []);
   async function signIn(event: FormEvent) {
     event.preventDefault();
     if (!key.current || busy) return;
     const credential = key.current.value;
     key.current.value = ''; setBusy(true); setFeedback(null);
-    try { setSession(await request<Session>('/api/moderation-session', credential, {})); }
-    catch (error) { setFeedback(error instanceof RequestFailure && error.status === 403 ? 'denied' : 'error'); }
+    // The server validates expiration. Measure the local display timeout from the request
+    // using elapsed time, so an incorrectly set device clock cannot end a fresh session.
+    const discardAt = performance.now() + moderatorSessionLifetimeMs;
+    try {
+      const { token } = await request<{ token: string }>('/api/moderation-session', credential, {});
+      setSession({ token, discardAt });
+    }
+    catch (error) { setFeedback(error instanceof RequestFailure && error.status === 403 ? 'loginDenied' : 'error'); }
     finally { setBusy(false); }
   }
   return session ? <Inbox session={session} end={end}/> : <form onSubmit={signIn}>
