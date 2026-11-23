@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { fork } from 'node:child_process';
 import pg from 'pg';
+import originalBuilding from '../src/data/building.original.json' with { type: 'json' };
 import { readFile } from 'node:fs/promises';
 import { PostgresReportRepository, postgresConfiguration } from './postgres-repository.ts';
 import { REPORT_BUILDING_ID, REPORT_LIMITS, REPORT_PASSAGES } from '../shared/report-contract.ts';
@@ -64,7 +65,7 @@ test('real PostgreSQL synthetic matrix: transactions, processes, persistence, li
     await context.test('v1 upgrade preserves old reports and replay; concurrent decisions, overlap and expiry', async () => {
       const schema = await readFile(new URL('./postgres-schema.sql', import.meta.url), 'utf8');
       await admin.query(schema.replaceAll('__SCHEMA__', 'iter_journal'));
-      for (const p of REPORT_PASSAGES) await admin.query('INSERT INTO iter_journal.passage_catalog VALUES ($1,$2)', [p.id, p.type]);
+      for (const p of originalBuilding.edges) await admin.query('INSERT INTO iter_journal.passage_catalog VALUES ($1,$2)', [p.id, p.type]);
       const legacy = { ...payload(), kind: 'lift_unavailable', passageId: 'lift-a-01' };
       const id = randomUUID();
       await admin.query(`INSERT INTO iter_journal.reports(id,client_request_id,building_id,passage_id,kind,message,status,created_at,updated_at,version)
@@ -74,6 +75,9 @@ test('real PostgreSQL synthetic matrix: transactions, processes, persistence, li
       const originalChecks = (await baseCatalog()).rows;
       const repo = await open();
       assert.deepEqual((await baseCatalog()).rows, originalChecks);
+      const updatedCatalog = (await admin.query('SELECT id,type FROM iter_journal.passage_catalog')).rows;
+      assert.equal(updatedCatalog.length, REPORT_PASSAGES.length);
+      assert.ok(REPORT_PASSAGES.every(edge => updatedCatalog.some(row => row.id === edge.id && row.type === edge.type)));
       assert.equal((await admin.query('SELECT schema_version FROM iter_journal.journal_metadata')).rows[0].schema_version, 1);
       const replay = await repo.create(legacy);
       assert.equal(replay.replayed, true); assert.equal(replay.report.id, id); assert.equal(replay.report.version, 2);
