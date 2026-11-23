@@ -68,10 +68,16 @@ test('phone moderation with a real database and independent route planners', { t
     await through(visitor, 'lift-a-01');
 
     const moderator = await planner();
+    // A phone's clock can be ahead of the service. Only the service determines token validity.
+    await moderator.clock.setFixedTime(new Date(Date.now() + 60 * 60_000));
     const panel = moderator.locator('.moderation-panel');
     await panel.locator('summary').click();
     await panel.getByLabel('Moderator access key').fill(key);
+    const issued = moderator.waitForResponse(r => r.url() === origin + '/api/moderation-session');
     await panel.getByRole('button', { name: 'Sign in' }).click();
+    assert.equal((await issued).status(), 200);
+    await expect(panel.getByRole('button', { name: 'Sign out' })).toBeVisible();
+    await expect(panel.locator('[data-moderation-id]')).toHaveCount(1);
     const row = id => panel.locator('[data-moderation-id="' + id + '"]');
     async function decide(id, name) {
       const reply = moderator.waitForResponse(r => r.url() === origin + '/api/moderation' && r.request().method() === 'POST');
@@ -114,6 +120,15 @@ test('phone moderation with a real database and independent route planners', { t
     assert.ok(await moderator.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
     await panel.getByRole('button', { name: 'Sign out' }).click();
     await expect(panel.getByLabel('Moderator access key')).toHaveValue('');
+    // The operator can distinguish a refused login from a session that ended after login.
+    await panel.getByLabel('Moderator access key').fill(randomBytes(32).toString('hex'));
+    await panel.getByRole('button', { name: 'Sign in' }).click();
+    await expect(panel.getByRole('status')).toContainText('A moderator session was not opened');
+    await moderator.route('**/api/moderation?limit=10', route => route.fulfill({ status: 403, body: '{}' }));
+    await panel.getByLabel('Moderator access key').fill(key);
+    await panel.getByRole('button', { name: 'Sign in' }).click();
+    await expect(panel.getByRole('status')).toContainText('Your moderator session has ended');
+    await moderator.unroute('**/api/moderation?limit=10');
     await moderator.locator('.language-switch button[lang="ru-RU"]').click();
     await expect(panel.getByLabel('Ключ модератора')).toBeVisible();
     await moderator.locator('.language-switch button[lang="kk-KZ"]').click();

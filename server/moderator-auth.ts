@@ -1,7 +1,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { moderatorSessionLifetimeMs } from '../shared/moderation.ts';
 import { JournalError } from './validation.ts';
 
-const lifetime = 15 * 60_000;
 const digest = (text: string) => createHash('sha256').update(text).digest();
 function configured(secret?: string): string {
   if (!secret || !/^[A-Za-z0-9_-]{43,128}$/.test(secret)) throw new JournalError('forbidden');
@@ -13,7 +13,7 @@ function signature(secret: string, value: string) {
 export function login(secret: string | undefined, authorization: string | undefined) {
   const key = configured(secret);
   if (!timingSafeEqual(digest(authorization ?? ''), digest('Bearer ' + key))) throw new JournalError('forbidden');
-  const expiresAt = Date.now() + lifetime;
+  const expiresAt = Date.now() + moderatorSessionLifetimeMs;
   const payload = expiresAt + '.' + randomBytes(18).toString('base64url');
   return { token: payload + '.' + signature(key, payload), expiresAt };
 }

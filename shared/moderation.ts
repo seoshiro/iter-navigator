@@ -1,6 +1,7 @@
 import { exactKeys, isRecord, positiveInteger, REPORT_PASSAGES, UUID_V4 } from './report-contract.ts';
 import type { Report } from './report-contract.ts';
 
+export const moderatorSessionLifetimeMs = 15 * 60_000;
 export const closureDurations = [1, 8, 24] as const;
 export type ModerationCommand = { id: string; version: number } & (
   { action: 'review' | 'reject' | 'reopen' } | { action: 'close'; hours: number | null }
