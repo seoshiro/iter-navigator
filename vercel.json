@@ -7,15 +7,9 @@
   "installCommand": "npx --yes pnpm@11.19.0 install --frozen-lockfile",
   "outputDirectory": "dist",
   "functions": {
-    "api/closures.mjs": {
-      "maxDuration": 10
-    },
-    "api/moderation.mjs": {
-      "maxDuration": 10
-    },
-    "api/moderation-session.mjs": {
-      "maxDuration": 10
-    },
+    "api/closures.mjs": { "maxDuration": 10 },
+    "api/moderation.mjs": { "maxDuration": 10 },
+    "api/moderation-session.mjs": { "maxDuration": 10 },
     "api/health.mjs": {
       "maxDuration": 10
     },
@@ -50,10 +44,5 @@
       "destination": "/index.html",
       "source": "/presentation/"
     }
-  ],
-  "git": {
-    "deploymentEnabled": {
-      "main": false
-    }
-  }
+  ]
 }
