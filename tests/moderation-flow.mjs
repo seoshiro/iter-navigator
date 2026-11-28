@@ -137,11 +137,16 @@ test('phone moderation with a real database and independent route planners', { t
     const offline = await planner();
     await offline.route('**/api/closures', route => route.abort());
     await offline.reload();
-    await expect(offline.getByText('Route guidance is paused', { exact: false }).first()).toBeVisible();
-    await expect(offline.getByTestId('route-result')).toHaveCount(0);
+    await expect(offline.getByTestId('closures-unchecked')).toContainText('Route guidance is paused');
+    // The locally computed route stays visible as unchecked, but guidance is locked until closures are known.
+    await expect(result(offline)).toHaveAttribute('data-closures-checked', 'false');
+    await through(offline, 'lift-a-01');
+    await expect(offline.getByRole('button', { name: 'Follow the route step by step' })).toBeDisabled();
     await offline.unroute('**/api/closures');
     await offline.getByRole('button', { name: 'Check again' }).click();
-    await through(offline, 'lift-a-01');
+    await expect(result(offline)).toHaveAttribute('data-closures-checked', 'true');
+    await expect(offline.getByTestId('closures-unchecked')).toHaveCount(0);
+    await expect(offline.getByRole('button', { name: 'Follow the route step by step' })).toBeEnabled();
     assert.deepEqual(browserErrors, []);
   } finally {
     await browser?.close(); await new Promise(ok => server.close(ok)); await repository.close();
