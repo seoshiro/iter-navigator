@@ -40,7 +40,7 @@ function Item({ item: { report, closure }, disabled, act }: {
         <button disabled={disabled} onClick={() => act({ ...identity, action: 'review' })}>{copy.review}</button>
         <button disabled={disabled} onClick={() => act({ ...identity, action: 'reject' })}>{copy.reject}</button>
       </>}
-      {passage && !closure && report.status !== 'rejected' && <>
+      {passage && report.kind !== 'note' && !closure && report.status !== 'rejected' && <>
         <label>{copy.duration}<select value={duration} disabled={disabled} onChange={e => setDuration(e.target.value)}>
           <option value="">{copy.manual}</option>{closureDurations.map(h => <option key={h} value={h}>{h} {copy.hours}</option>)}
         </select></label>

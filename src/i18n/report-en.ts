@@ -20,6 +20,9 @@ export const reportEn: typeof reportRu = {
   abandoned: 'Attempt abandoned. A report already saved may remain in the journal. You can edit the draft before submitting it again.',
   saved: 'Saved to the local journal. The text remains unverified and does not change routes.',
   invalid: 'Choose an appropriate passage and enter between 1 and 500 characters without control characters.',
+  invalidPassage: 'Choose the passage this report is about.',
+  invalidEmpty: 'Describe the obstacle.',
+  invalidLong: 'The description is too long: 500 characters at most.',
   dates: 'Dates show when a report was submitted and reviewed, not when the building was surveyed.',
 };
 export const reportKindEn: Record<ReportKind, string> = { lift_unavailable: 'Elevator unavailable', blocked_passage: 'Blocked passage', note: 'Note' };

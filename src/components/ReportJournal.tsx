@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { normalizeMessage, REPORT_BUILDING_ID, REPORT_KINDS, REPORT_PASSAGES, validTarget } from '../../shared/report-contract.ts';
+import { normalizeMessage, REPORT_BUILDING_ID, REPORT_KINDS, REPORT_LIMITS, REPORT_PASSAGES, validTarget } from '../../shared/report-contract.ts';
 import type { CreateReport, Report, ReportErrorCode, ReportKind } from '../../shared/report-contract.ts';
 import { createReport, reportServiceMode, listReports, ReportClientError } from '../reports/client';
 import { browserDraftStorage, completeJournalDraft, emptyJournalDraft, journalDraftKey, readJournalDraft, removeJournalDraft, writeJournalDraft } from '../reports/draft';
@@ -9,9 +9,12 @@ import { refreshPassages } from '../reports/use-passage-updates';
 import { journalCopy } from '../reports/copy';
 import { useI18n } from '../i18n/locale';
 
+// Same count the server applies: characters after NFC and trimming.
+const messageSize = (value: string) => [...value.normalize('NFC').trim()].length;
+
 type Feedback =
   | { type: 'copy'; key: keyof typeof journalCopy.ru }
-  | { type: 'report'; key: 'invalid' | 'publicSaved' | 'saved' | 'retryRejected' | 'publicAmbiguous' | 'ambiguous' | 'abandoned' }
+  | { type: 'report'; key: 'invalid' | 'invalidPassage' | 'invalidEmpty' | 'invalidLong' | 'publicSaved' | 'saved' | 'retryRejected' | 'publicAmbiguous' | 'ambiguous' | 'abandoned' }
   | { type: 'error'; code: ReportErrorCode }
   | null;
 
@@ -217,7 +220,9 @@ export function ReportJournal() {
     const current = stateRef.current.draft;
     const normalized = normalizeMessage(current.message);
     if (normalized === null || !validTarget(current.kind, current.passageId)) {
-      setFeedback({ type: 'report', key: 'invalid' }); feedbackRef.current?.focus({ preventScroll: true }); return;
+      const size = messageSize(current.message);
+      const key = !validTarget(current.kind, current.passageId) ? 'invalidPassage' : size === 0 ? 'invalidEmpty' : size > REPORT_LIMITS.messageCodePoints ? 'invalidLong' : 'invalid';
+      setFeedback({ type: 'report', key }); feedbackRef.current?.focus({ preventScroll: true }); return;
     }
     let clientRequestId: string;
     try { clientRequestId = crypto.randomUUID(); }
@@ -255,8 +260,10 @@ export function ReportJournal() {
               <div className="journal-fields"><label>{copy.kind}<select value={kind} onChange={event => changeKind(event.target.value as ReportKind)}>{REPORT_KINDS.map(value => <option key={value} value={value}>{reportKindRu[value]}</option>)}</select></label>
                 <label>{copy.passage}<select value={passageId ?? ''} onChange={event => changeDraft({ ...stateRef.current.draft, passageId: event.target.value || null })}>{kind === 'note' && <option value="">{copy.building}</option>}{passageOptions.map(item => <option key={item.id} value={item.id}>{passageLabelRu(item.id, item.label)}</option>)}</select>{passageId === 'door-205' && <small>{ru.room205}</small>}</label></div>
               <label htmlFor="report-message">{copy.message}</label>
-              <textarea id="report-message" value={message} onChange={event => changeDraft({ ...stateRef.current.draft, message: event.target.value })} rows={4} maxLength={1000} aria-describedby="report-message-help" aria-invalid={feedback?.type === 'report' && feedback.key === 'invalid'} required />
+              <textarea id="report-message" value={message} onChange={event => changeDraft({ ...stateRef.current.draft, message: event.target.value })} rows={4} maxLength={1000} aria-describedby="report-message-help report-message-count" aria-invalid={feedback?.type === 'report' && feedback.key.startsWith('invalid')} required />
               <small id="report-message-help">{copy.help}</small>
+              {/* maxLength counts UTF-16 units; the 500 limit counts characters, so the counter shows the real limit. */}
+              <small id="report-message-count" className={messageSize(message) > REPORT_LIMITS.messageCodePoints ? 'warning' : undefined} data-testid="report-message-count">{messageSize(message)} / {REPORT_LIMITS.messageCodePoints}</small>
               <button type="submit" disabled={!online}>{hosted ? copy.submitPublic : copy.submitLocal}</button>
             </fieldset>
           </form>

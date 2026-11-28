@@ -184,12 +184,33 @@ test('Kazakh labels, validation, empty state, and persisted draft feedback are l
   await expect(page.getByRole('form', { name: 'Кедергі туралы хабарлама жіберу', exact: true })).toBeVisible();
   await expect(page.locator('label[for="report-message"]')).toHaveText('Кедергінің сипаттамасы');
   await page.getByRole('button', { name: 'Ашық журналға жіберу', exact: true }).click();
-  await expect(page.getByTestId('report-feedback')).toContainText('500');
+  await expect(page.getByTestId('report-feedback')).toHaveText('Кедергінің сипаттамасын енгізіңіз.');
   await page.locator('#report-message').fill('Синтетикалық нобай');
   await page.reload(); await page.getByTestId('report-journal').locator('summary').click();
   await expect(page.getByTestId('report-feedback')).toContainText('Нобай құрылғыдан қалпына келтірілді');
   await expect(page.getByTestId('report-read-status')).not.toContainText('сообщени');
   await expect(page.locator('html')).toHaveAttribute('lang', 'kk-KZ');
+});
+
+test('the message counter shows the 500-character limit and each validation error is specific', async ({ page }) => {
+  let posts = 0;
+  await page.route('**/api/reports**', route => { if (route.request().method() === 'POST') posts++; return json(route, { reports: [], nextCursor: null }); });
+  await openJournal(page);
+  const counter = page.getByTestId('report-message-count'), feedback = page.getByTestId('report-feedback');
+  const submit = page.getByTestId('report-journal').locator('button[type=submit]');
+  await expect(counter).toHaveText('0 / 500');
+  await submit.click();
+  await expect(feedback).toHaveText('Введите описание препятствия.');
+  await page.locator('#report-message').fill('😀'.repeat(500)); // 1000 UTF-16 units, 500 characters
+  await expect(counter).toHaveText('500 / 500');
+  await expect(counter).not.toHaveClass(/warning/);
+  await page.locator('#report-message').fill('я'.repeat(501));
+  await expect(counter).toHaveText('501 / 500');
+  await expect(counter).toHaveClass(/warning/);
+  await submit.click();
+  await expect(feedback).toHaveText('Описание слишком длинное: не больше 500 символов.');
+  await expect(page.locator('#report-message')).toHaveAttribute('aria-invalid', 'true');
+  expect(posts).toBe(0);
 });
 
 test('stale reads preserve prior text records and render report content as text', async ({ page }) => {
