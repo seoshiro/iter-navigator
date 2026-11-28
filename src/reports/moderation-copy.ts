@@ -25,8 +25,8 @@ export const moderationCopy = {
     "expired": "Closure expired",
     "closed": "Passages excluded by a moderator",
     "warning": "Unverified obstacle reported on this route",
-    "loading": "Checking current passage closures…",
-    "unavailable": "Route guidance is paused because current passage closures could not be checked.",
+    "loading": "Checking current passage closures… The route below does not include them yet and may change.",
+    "unavailable": "Route guidance is paused because current passage closures could not be checked. The route below may change.",
     "retry": "Check again",
     "working": "Loading…"
   },
@@ -56,8 +56,8 @@ export const moderationCopy = {
     "expired": "Срок закрытия истёк",
     "closed": "Проходы, исключённые модератором",
     "warning": "На этом маршруте сообщили о препятствии. Жалоба ещё не проверена",
-    "loading": "Проверяем закрытия проходов…",
-    "unavailable": "Ведение по маршруту приостановлено. Не удалось проверить текущие закрытия проходов.",
+    "loading": "Проверяем закрытия проходов… Маршрут ниже рассчитан без них и может измениться.",
+    "unavailable": "Ведение по маршруту приостановлено. Не удалось проверить текущие закрытия проходов, маршрут ниже может измениться.",
     "retry": "Проверить ещё раз",
     "working": "Загрузка…"
   },
@@ -87,8 +87,8 @@ export const moderationCopy = {
     "expired": "Жабылу мерзімі аяқталды",
     "closed": "Модератор бағыттан алып тастаған өткелдер",
     "warning": "Бұл бағытта кедергі туралы хабар түсті. Шағым әлі тексерілмеді",
-    "loading": "Жабық өткелдер тексерілуде…",
-    "unavailable": "Қазір қай өткелдер жабық екенін тексеру мүмкін болмады. Бағыт бойынша нұсқау уақытша тоқтатылды.",
+    "loading": "Жабық өткелдер тексерілуде… Төмендегі бағыт оларсыз есептелген және өзгеруі мүмкін.",
+    "unavailable": "Қазір қай өткелдер жабық екенін тексеру мүмкін болмады. Бағыт бойынша нұсқау уақытша тоқтатылды, төмендегі бағыт өзгеруі мүмкін.",
     "retry": "Қайта тексеру",
     "working": "Жүктелуде…"
   }
