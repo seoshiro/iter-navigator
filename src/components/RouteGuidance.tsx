@@ -94,7 +94,7 @@ export function RouteGuidance({ building, result, selected, onSelect, onReadStep
   })}</ol>;
   const stepOptions = <>
     <label>{guidanceRu.stepReview}<select aria-label={guidanceRu.stepReview} value={current === null ? 'all' : current} onChange={event => onSelect(event.target.value === 'all' ? null : Number(event.target.value))}><option value="all">{guidanceRu.all}</option>{result.edgeIds.map((id, index) => <option key={id} value={index}>{stepName(index)}: {edgeNames[edges.get(id)!.type]} → {label(result.nodeIds[index + 1]!)}</option>)}</select></label>
-    <div className="guidance-actions guidance-speech-actions"><button type="button" disabled={current === null} aria-describedby={speechStatus === 'ready' ? undefined : 'step-speech-feedback'} onClick={onReadStep}>{guidanceRu.readStep}</button><button type="button" aria-describedby={speechStatus === 'ready' ? undefined : 'step-speech-feedback'} onClick={onStop}>{guidanceRu.stop}</button></div>
+    <div className="guidance-actions guidance-speech-actions"><button type="button" disabled={current === null} aria-describedby={speechStatus === 'ready' ? undefined : 'step-speech-feedback'} onClick={onReadStep}>{guidanceRu.readStep}</button><button type="button" disabled={speechStatus !== 'speaking'} aria-describedby={speechStatus === 'ready' ? undefined : 'step-speech-feedback'} onClick={onStop}>{guidanceRu.stop}</button></div>
     {speechStatus !== 'ready' && <p id="step-speech-feedback" className="speech-feedback">{speechRu[speechStatus]}</p>}
   </>;
   return <>

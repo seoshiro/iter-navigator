@@ -7,7 +7,7 @@ interface Props { preferences: DisplayPreferences; onChange: (value: DisplayPref
 export function DisplaySettings({ preferences, onChange, systemReduced, warning, speech, expanded, onExpandedChange }: Props) {
   const { ru, guidanceRu, speechRu, locale, storageWarning } = useI18n();
   return <section id="display-settings" tabIndex={-1} className="display-settings" data-workspace-panel="displayPanel" aria-label={ru.display.title}>
-    <div className="speech-controls"><label className="check-row"><input type="checkbox" checked={speech.enabled} onChange={event => speech.controller.setEnabled(event.target.checked)} />{guidanceRu.enable}</label><button type="button" onClick={speech.controller.stop}>{guidanceRu.stop}</button></div>
+    <div className="speech-controls"><label className="check-row"><input type="checkbox" checked={speech.enabled} onChange={event => speech.controller.setEnabled(event.target.checked)} />{guidanceRu.enable}</label><button type="button" disabled={speech.status !== 'speaking'} onClick={speech.controller.stop}>{guidanceRu.stop}</button></div>
     <p role="status" aria-live="polite" data-testid="speech-status">{speechRu[speech.status]}</p><details open={expanded}>
     <summary onClick={event => { event.preventDefault(); onExpandedChange(!expanded); }}>{ru.display.title}</summary>
     <fieldset><legend>{ru.display.title}</legend>
